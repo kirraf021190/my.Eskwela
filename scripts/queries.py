@@ -1,6 +1,7 @@
 from dosql import *
 import cgi
 from mod_python import Session
+import os
 
 def getClasses(req):
 	session = Session.Session(req)
@@ -218,5 +219,21 @@ def addScore(req, score, mult):
 	e = doSql()
 	f = e.execqry("select addscore('"+session['sCode']+"','"+b+"','"+c+"')", True)
 	return True
+
+def changePassword(req, currentPassword, confirmPassword, newPassword):
+	session = Session.Session(req)
+	if currentPassword == confirmPassword:
+		a = doSql()
+		f = a.execqry("select username from user_account where acct_id = '"+session['id']+"'", False)
+		b = a.execqry("update user_account set password = '"+newPassword+"' where username = '"+f+"'", true)
+		return True
+	else:
+		return False
+	
+def resetPassword(req):
+	session = Session.Session(req)
+	randPassword = os.urandom(string_length)
+	a = doSql()
+	f = a.execqry("update user_account set password = '"+randPassword+"' where username = '"+f+"'", true)
 
 
