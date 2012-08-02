@@ -235,5 +235,6 @@ def resetPassword(req):
 	randPassword = os.urandom(string_length)
 	a = doSql()
 	f = a.execqry("update user_account set password = '"+randPassword+"' where username = '"+f+"'", true)
+	#test
 
 
