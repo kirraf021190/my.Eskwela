@@ -478,8 +478,8 @@ $( "#attendanceform" ).dialog({
 
 			if ( bValid ) {
 					
-			   addAttendance($("#idnumber").val(), $("#studname").val());
-			  //  alert($("#idnumber").val());
+			    addAttendance($("#idnumber").val(), $("#studname").val());
+			    //alert($("#studname").val());
 				$( this ).dialog( "close" );
 			} 
 			},
@@ -491,7 +491,7 @@ $( "#attendanceform" ).dialog({
 
 $( "#attendance-form" )
 	.button()
-	.click(function() {
+   .click(function() {
 		
 		$( "#attendanceform" ).dialog( "open" );
 		
@@ -541,3 +541,5 @@ $("#editme").editInPlace({
 		}
 	});
 	
+
+

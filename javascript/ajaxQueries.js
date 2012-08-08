@@ -671,3 +671,15 @@ function addAttendance(idnum, sname){
 		}
 	});
 }
+
+function changepass(newpass, oldpass){
+	$.post('../scripts/queries/changepass',{newpass_:newpass, oldpass_:oldpass},function(data){
+		if(data){
+    		alert("success");
+			}
+		else {
+		    alert("invalid password");
+		}
+	});
+}
+

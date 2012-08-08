@@ -18,7 +18,7 @@ def getTeacherInfo(req):
         return session['name']+"$"+session['id']+"$"+session['dept']+"$"+session['college']+"$"+f
 
 def getSectionStudents(req):
-	session = Session.Session(req)
+	session = Session.Session(req) 
 	a = doSql()
     	f = a.execqry("select getstudents('"+session['class']+"', '"+session['sy']+"', '"+session['subj']+"')", False)[0][0]
 	return f
@@ -227,20 +227,19 @@ def addAttendance(req, idnum_, studentname_):
 	x = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 	e = doSql()
 	#f = e.execqry("INSERT INTO attendancetemp VALUES('"+b+"','"+c+"','"+x+"','"+session['sCode']+"')", True)
-	f = e.execqry("SELECT addattend('"+b+"','"+c+"','"+x+"','"+session['sCode']+"')", True)
+	f = e.execqry("SELECT addattend('"+b+"','"+c+"','"+x+"','"+session['subj']+"')", True)
 	#f = e.execqry("SELECT addattend('"+c+"')", True)
 
 	return True
+
 	
-def changePassword(req, currentPassword, confirmPassword, newPassword):
+def changepass(req, newpass_, oldpass_):
 	session = Session.Session(req)
-	if currentPassword == confirmPassword:
-		a = doSql()
-		f = a.execqry("select username from user_account where acct_id = '"+session['id']+"'", False)
-		b = a.execqry("SELECT changepass('"+newPassword+"','"+f+"')", True)
-		return True
-	else:
-		return False
+	e = doSql()
+	b = cgi.escape(newpass_)
+	c = cgi.escape(oldpass_)
+	f = a.execqry("SELECT changepass('"+session['id']+"','"+b+"','"+c+"')", True)
+	return f
 	
 def resetPassword(req):
 	session = Session.Session(req)

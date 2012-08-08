@@ -1,5 +1,5 @@
 import sys
-from pyPgSQL import PgSQL
+
 
 class doSql(object):
     #attributes
@@ -8,7 +8,7 @@ class doSql(object):
     errmsg ="" 
     #methods
     def __init__(self): #constructor
-        self._cxn = PgSQL.connect(dsn='localhost:5432',database="myeskwela",user='postgres',password='carbine123')
+        self._cxn = connect(dsn='localhost:5432',database="myeskwela",user='postgres',password='carbine123')
         self._cur = self._cxn.cursor()
 
     def __del__(self): #destructor
