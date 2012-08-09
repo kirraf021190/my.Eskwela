@@ -1,9 +1,5 @@
 import sys
-<<<<<<< HEAD
 import psycopg2
-=======
-
->>>>>>> 6b9eda9606adb3633286ae01105387b73096cc1d
 
 class doSql(object):
     #attributes
@@ -12,11 +8,7 @@ class doSql(object):
     errmsg ="" 
     #methods
     def __init__(self): #constructor
-<<<<<<< HEAD
         self._cxn = psycopg2.connect("dbname='myeskwela2' user='kalel' host='localhost' password='tikitiki'")
-=======
-        self._cxn = connect(dsn='localhost:5432',database="myeskwela",user='postgres',password='carbine123')
->>>>>>> 6b9eda9606adb3633286ae01105387b73096cc1d
         self._cur = self._cxn.cursor()
 
     def __del__(self): #destructor
