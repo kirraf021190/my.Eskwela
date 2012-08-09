@@ -9,6 +9,38 @@ create table sy (
      schoolyear text primary key
 );
 
+/*
+CREATE OR REPLACE FUNCTION insups2dent(text, text, text)
+  RETURNS void AS
+$BODY$
+  declare
+  	id_ alias for $1;
+   	mname_ alias for $2;
+        courseyear_ alias for $3;
+        b text;
+  begin
+	select into b id from student where id = id_;CREATE OR REPLACE FUNCTION clistwithpercent(in text, out text, out text, out numeric, out numeric, out numeric, out text)
+  RETURNS setof record AS
+$BODY$
+    select id, getname(id), sum(score * mult), 
+       getmaxscore($1,getcurrsem()),
+      (sum(score * mult) / getmaxscore($1, getcurrsem())) * 100 as d, computegrade(id, getcurrsem(), $1) from performance where 
+       schoolyear = getcurrsem() and
+       getsubject(section_code,getcurrsem()) = $1 
+       group by id order by d desc;
+$BODY$
+  LANGUAGE 'sql' VOLATILE;
+
+        if b isnull then
+             insert into student(id, name_, courseyear) values (id_, mname_, courseyear_);
+        else
+             update student set name_ = mname_, courseyear = courseyear_ where id = id_;
+        end if;
+        return;
+  end;
+$BODY$
+  LANGUAGE 'plpgsql' VOLATILE;
+*/
 
 CREATE OR REPLACE FUNCTION insups2dent(text, text)
   RETURNS void AS
@@ -922,12 +954,19 @@ $BODY$
         myclassmate record;
   begin
       
+       --subj = getsubject(mycodes.section_code, getcurrsem());
        
        select into myclassmate id, my_attendance(id, subj_, typ_, sem_)::numeric as b from 
                  attendance where schoolyear = sem_ and section_code = typ_ and time_::date in
                          (select time_::date from attendance where id = id_ 
                               and section_code = typ_) order by b desc limit 1;
       
+         --   select into b max(my_attendance(id, subj_, typ_)::numeric) from attendance 
+        --   where section_code like typ_;
+        --select into b count(*) as c from attendance where section_code in
+        --          (select section_code from subject where type_ = subj_ and
+         --          schoolyear = getcurrsem() and section_code like typ_) 
+         --          group by id order by c desc limit 1;
         return myclassmate.b::text;
   end;
 $BODY$
@@ -955,6 +994,24 @@ $BODY$
 
 
 --select max_attendance('CSC101', 'A4H23-LAB','2009-1260', getcurrsem());
+/*
+CREATE OR REPLACE FUNCTION clistwithpercentname(IN text, OUT text, OUT text, OUT numeric, OUT numeric, OUT numeric, OUT text)
+  RETURNS SETOF record AS
+$BODY$
+   
+     select id, getname(id) as n, sum(score * mult), 
+        getmaxscore($1,getcurrsem()),
+        (sum(score * mult) / getmaxscore($1, getcurrsem())) * 100 as d, computegrade(id, getcurrsem(), $1) from performance where 
+        schoolyear = getcurrsem() and
+        getsubject(section_code,getcurrsem()) = $1 
+        group by id order by n asc;
+ 
+      
+$BODY$
+  LANGUAGE 'sql' VOLATILE;
+
+  select * from clistwithpercentname('CSC101');
+*/
 
 -- Function: clistwithpercent(text)
 
@@ -995,6 +1052,10 @@ grant select on table subject to group students;
 grant select on table sy to group students;
 grant select on table student to group students;
 grant select on student_load to group students;
+
+  
+--- $2 is schoolyear
+
 
 
 /*
