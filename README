@@ -1,22 +1,24 @@
 This is the repository for the my.Eskwela project.
 Reminder to all collaborators:
-Please take note of the directory structures in this repo.
-0. root 
+A. Please take note of the directory structures in this repo.
+   0. root 
    This will contain only the index.html and this README file.
-1. db_script
+   1. db_script
    This will contain the database scripts for the project. 
    If possible maintain only one file -- progress.sql. Put all
    your database commands here (i.e., create/alter table, stored procs, etc.)
-2. html
+   2. html
    This will contain all .html files and its associated files/directories
    (i.e., css, pics, etc.)
-3. javascript
+   3. javascript
    As the name suggests, put all your javascript files here. This is the 
    directory that will contain the jquery(ui), jquery-mobile, phonegap files
    and all javascript frameworks needed by the project.
-4. scripts
+   4. scripts
    This directory will contain all server side scripting files 
    (python, php, etc)
+B. For Coding style.
+   1. Reminding the collaborators to use stored procs in any database transaction.
 
 For your guidance and strict compliance.
 
