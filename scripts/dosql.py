@@ -1,5 +1,5 @@
 import sys
-from pyPgSQL import PgSQL
+import psycopg2
 
 class doSql(object):
     #attributes
@@ -8,7 +8,7 @@ class doSql(object):
     errmsg ="" 
     #methods
     def __init__(self): #constructor
-        self._cxn = PgSQL.connect(dsn='localhost:5432',database="postgres5",user='postgres',password='postgres')
+        self._cxn = psycopg2.connect("dbname='myeskwela2' user='kalel' host='localhost' password='tikitiki'")
         self._cur = self._cxn.cursor()
 
     def __del__(self): #destructor

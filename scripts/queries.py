@@ -235,6 +235,17 @@ def resetPassword(req):
 	randPassword = os.urandom(string_length)
 	a = doSql()
 	f = a.execqry("update user_account set password = '"+randPassword+"' where username = '"+f+"'", true)
-	#test
+
+#def setGrade(req, quizzes, prelims, midterms, finals, attendance, project, other):
+#	session = Session.Session(req)
+#	_quizzes = cgi.quizzes
+#	_prelims = cgi.prelims
+#	_midterms = cgi.midterms
+#	_finals = cgi.finals
+#	_attendance = cgi.attendance
+#	_project = cgi.project
+#	_other = cgi.other
+#	a = doSql()
+#	f = a.execqry("update TABLEOFGRADES set quizzes = '"+_quizzes+"' prelims = '"+_prelims+"' midterms = '"+_midterms+"' finals = '"+_finals+"' attendance = '"+_attendance+"' project = '"+_project+"' other = '"+_other+"' where SUBJECTCODE = '"+session['subject']"'")
 
 
