@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<script>
+/*
+if (sessionStorage.myEskwelaSessionUser == null){
+	window.open('/eskwela.iit.edu.ph/m/components/auth/index.html', '_self');
+} */
+</script>
+<html>
+<head>
+	<title> my.Eskwela! </title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<link rel='stylesheet' href='jquery/jquery.mobile-1.1.0.min.css' />
+	<script src='jquery/jquery.js'></script>
+	<script src='jquery/jqueryui.js'></script>
+	<script src='jquery/jquery.mobile-1.1.0.js'></script>
+	
+	<link rel='stylesheet' href='css/style.css' type='text/css'>
+	<script src='js/main.js' type='text/javascript'></script>
+<!-- 	<script src='js/index.js' type='text/javascript'></script> -->
+	<script>
+	$(document).bind('pageinit', function(e){
+		_queryHandler.initializeQuery();
+		/*** Main Menu: Transaction Buttons ***/
+		$('.transaction-btn').click(function(){
+			//Get Transaction Type and Role...
+			var trans_type = $(this).attr("id"),
+				user_role  = "PARENT";
+				
+			//Store Transaction Type and role into the _queryHandler
+			
+			alert(":P");
+			if (user_role == "STUDENT"){
+				//Go to search-subject.html
+				$.mobile.changePage("search-subject.html", {transition:"slide"});
+			} else if (user_role == "PARENT"){
+				//Go to search-student.html
+				$.mobile.changePage("search-child.html", {transition:"slide"});
+			}
+		
+		});
+		
+		/*** Search Page: ***/
+		//parent-child-list-cont
+		
+		/*** Logout Press Button ***/
+		$('#logout-btn').click(function(){ _authHandler.logoutAction(); });
+		
+		/*** Override. Search Page. Filter Text Content ***/
+		$('#stud-subject-list-cont .ui-listview-filter :input').attr("placeholder", "Search List");
+		$('#parent-child-list-cont .ui-listview-filter :input').attr("placeholder", "Search List");
+		
+		/*** Override. jQuery Mobile Opacity ***/
+		$('div[data-role="dialog"]').live('pagebeforeshow', function(e, ui) {
+			ui.prevPage.addClass("ui-dialog-background ");
+		});
+
+		$('div[data-role="dialog"]').live('pagehide', function(e, ui) {
+			$(".ui-dialog-background ").removeClass("ui-dialog-background ");
+		});
+		
+	});
+	</script>
+	
+</head>
+<body id='main-body-container'>
+
+	<div data-role='page' class='mainpage' >
+		<div data-role='header' data-theme='c' style='width:145%;margin-left:-22%;' >
+			<h1> my.<span style='color:#fb816b'>Eskwela</span> - Main Menu</h1>
+		</div>
+		<div data-role='content'>
+			<div id='main-menu-head' >				
+				<div id='profile-prev-cont' align='center'>
+					<div id='profile-pic-cont'>
+						<div id='profile-pic'>
+							<img id='profile-img' src='http://localhost/eskwela.iit.edu.ph/s/images/scalaberch.JPG' />
+						</div>
+					</div>
+					<div id='profile-info'>
+						<h2 id='profile-account-name'> Bandiola, Kieth Mark S. </h2>
+						<div id='profile-account-info'>
+							<div id='profile-account-course'> BS Computer Science - 4 </div>
+							<div id='profile-account-college'> School of Computer Studies </div>
+						</div>
+					</div>
+				
+				</div>
+				
+				
+			</div>
+			<div id='main-menu-list'>
+				<ul data-role="listview" data-inset='false' data-theme="c">
+					<li id='view-attendance' class='transaction-btn'><a href="#">View My Attendance</a></li>
+					<li id='view-grade' class='transaction-btn'><a href="#">View My Grades</a></li>
+					<li id='#'><a href="#">My Profile</a></li>
+				</ul>
+			</div>
+		</div>
+		<div data-role='footer' data-position="fixed" data-theme='c'>
+			<div data-role="navbar" data-iconpost='top'>
+				<ul>
+					<li><a data-icon='info' href="a.html">About</a></li>
+					<li><a data-icon='grid' data-rel='dialog' data-transition='slidedown' href="settings-main.html">Settings</a></li>
+					<li><a data-icon='back' data-rel='dialog' data-transition='slidedown' href="logout.html">Logout</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	
+</body>
+</html>
