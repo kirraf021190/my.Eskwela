@@ -1,5 +1,7 @@
 from dosql import *
 from mod_python import Session
+import hashlib
+import uuid
 
 def login(req, username, pwd):
 	a = doSql()
@@ -62,3 +64,9 @@ def logout(req):
 	session['invalid'] = "You Have Been Logged Out."
 	session.save()
 	return "<html><body onload='location.href=\"../login\"'></body></html>"
+
+def encryptPass(pwd):
+	salt = uuid.uuid4().hex
+	hashPass = hashlib.sha512(pwd + salt).hexdigest()
+	return hashPass
+	
