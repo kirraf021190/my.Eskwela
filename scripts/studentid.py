@@ -28,10 +28,6 @@ def _add2attendance(id, section):
     except:
         return str(sys.exc_info()[1])
 
-def getData(req,heheh):
-	return "English1"
-
-
 def _getname(id):
     a = doSql()
     f = a.execqry("select getname('" + id + "')", False)
