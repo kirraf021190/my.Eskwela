@@ -3,6 +3,7 @@ import cgi
 from mod_python import Session
 import time
 import os
+import form
 
 def getClasses(req):
 	session = Session.Session(req)
@@ -247,13 +248,19 @@ def changepass(req, newpass_, oldpass_):
 	session = Session.Session(req)
 	e = doSql()
 	b = cgi.escape(newpass_)
-	c = cgi.escape(oldpass_)
+	c = cgi.escape(oldpass_)	
+	#Query to retrieve SALT from DATABASE
+	#oldHashPass = encryptPass(salt,c)
+	#newSalt = generateSalt()
+	#newHashPass = encryptPass(newSalt,b)
 	f = a.execqry("SELECT changepass('"+session['id']+"','"+b+"','"+c+"')", True)
 	return f
 	
 def resetPassword(req):
 	session = Session.Session(req)
 	randPassword = os.urandom(string_length)
+	#salt = generateSalt()
+	#hashPass = encryptPass(salt, randPassword)
 	a = doSql()
 	f = a.execqry("update user_account set password = '"+randPassword+"' where username = '"+f+"'", true)
 	f = a.execqry("SELECT changepass('"+randPassword+"','"+f+"')", True)

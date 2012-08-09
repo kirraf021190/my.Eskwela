@@ -5,6 +5,8 @@ import uuid
 
 def login(req, username, pwd):
 	a = doSql()
+	#Query to retrieve SALT from DATABASE
+	#hashPass = encryptPass(salt,pwd)
     	f = a.execqry("select login('"+username+"', '"+pwd+"')", False)[0][0]
 	s = f.split(',')
 	session = Session.Session(req)
@@ -65,8 +67,10 @@ def logout(req):
 	session.save()
 	return "<html><body onload='location.href=\"../login\"'></body></html>"
 
-def encryptPass(pwd):
-	salt = uuid.uuid4().hex
+def encryptPass(salt, pwd):
 	hashPass = hashlib.sha512(pwd + salt).hexdigest()
 	return hashPass
-	
+
+def generateSalt():
+	salt = uuid.uuid4().hex
+	return salt	
