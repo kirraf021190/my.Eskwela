@@ -1,6 +1,10 @@
 from dosql import *
 import cgi
 from mod_python import Session
+<<<<<<< HEAD
+=======
+import time
+>>>>>>> 6b9eda9606adb3633286ae01105387b73096cc1d
 import os
 
 def getClasses(req):
@@ -17,7 +21,7 @@ def getTeacherInfo(req):
         return session['name']+"$"+session['id']+"$"+session['dept']+"$"+session['college']+"$"+f
 
 def getSectionStudents(req):
-	session = Session.Session(req)
+	session = Session.Session(req) 
 	a = doSql()
     	f = a.execqry("select getstudents('"+session['class']+"', '"+session['sy']+"', '"+session['subj']+"')", False)[0][0]
 	return f
@@ -205,7 +209,6 @@ def updatePerformance(req, perfID1, score1_, score2_, mult, grpPerfID, regID):
 	f = a.execqry("select updateperformance('"+session['sCode']+"', '"+oI+"', '"+oS+"', '"+uS+"', '"+oM+"', '"+oG+"', '"+oR+"')", True)
 	return True
 
-
 def getScore(req):
 	session = Session.Session(req)
 	a = doSql()
@@ -220,6 +223,7 @@ def addScore(req, score, mult):
 	f = e.execqry("select addscore('"+session['sCode']+"','"+b+"','"+c+"')", True)
 	return True
 
+<<<<<<< HEAD
 def changePassword(req, currentPassword, confirmPassword, newPassword):
 	session = Session.Session(req)
 	if currentPassword == confirmPassword:
@@ -229,11 +233,34 @@ def changePassword(req, currentPassword, confirmPassword, newPassword):
 		return True
 	else:
 		return False
+=======
+def addAttendance(req, idnum_, studentname_):
+	session = Session.Session(req)	
+	b = cgi.escape(idnum_)
+	c = cgi.escape(studentname_)
+	x = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	e = doSql()
+	#f = e.execqry("INSERT INTO attendancetemp VALUES('"+b+"','"+c+"','"+x+"','"+session['sCode']+"')", True)
+	f = e.execqry("SELECT addattend('"+b+"','"+c+"','"+x+"','"+session['subj']+"')", True)
+	#f = e.execqry("SELECT addattend('"+c+"')", True)
+
+	return True
+
+	
+def changepass(req, newpass_, oldpass_):
+	session = Session.Session(req)
+	e = doSql()
+	b = cgi.escape(newpass_)
+	c = cgi.escape(oldpass_)
+	f = a.execqry("SELECT changepass('"+session['id']+"','"+b+"','"+c+"')", True)
+	return f
+>>>>>>> 6b9eda9606adb3633286ae01105387b73096cc1d
 	
 def resetPassword(req):
 	session = Session.Session(req)
 	randPassword = os.urandom(string_length)
 	a = doSql()
+<<<<<<< HEAD
 	f = a.execqry("update user_account set password = '"+randPassword+"' where username = '"+f+"'", true)
 
 #def setGrade(req, quizzes, prelims, midterms, finals, attendance, project, other):
@@ -248,4 +275,8 @@ def resetPassword(req):
 #	a = doSql()
 #	f = a.execqry("update TABLEOFGRADES set quizzes = '"+_quizzes+"' prelims = '"+_prelims+"' midterms = '"+_midterms+"' finals = '"+_finals+"' attendance = '"+_attendance+"' project = '"+_project+"' other = '"+_other+"' where SUBJECTCODE = '"+session['subject']"'")
 
+=======
+	f = a.execqry("SELECT changepass('"+randPassword+"','"+f+"')", True)
+	return True
+>>>>>>> 6b9eda9606adb3633286ae01105387b73096cc1d
 

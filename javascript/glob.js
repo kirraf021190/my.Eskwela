@@ -1,0 +1,3 @@
+var siteloc = "http://localhost";
+
+

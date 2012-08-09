@@ -1,0 +1,237 @@
+var siteloc = "http://localhost/webportal";
+
+function isNumber(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function repblanks(text)
+{
+    text = jQuery.trim(text);
+    if (text.length == 0)
+    {
+       text = "BLANK";
+    }
+   return text;
+}
+
+function gradevalidate(grade)
+{
+  var isvalid;
+  var grd_ = grade.toUpperCase();
+  if (grd_.length == 0)
+    isvalid = false;
+  else if (grd_ == "NC")
+    isvalid = true;
+      else if (grd_ == 'NG') 
+         isvalid = true;
+    else if (grd_ == 'INC') 
+         isvalid = true;
+    else if (grd_ == 'DRP')
+         isvalid = true;
+    else if (grd_ == 'WDRW') 
+         isvalid = true;
+    else if (grd_ == 'PASSED') 
+         isvalid = true;
+    else if (grd_ == '69')
+         isvalid = true;
+    else if (isNumber(grd_))
+           if  (parseFloat(grd_) >= 75.0 && parseFloat(grd_) <= 99.0) 
+           isvalid = true;
+        else
+           isvalid = false;   
+    else
+         isvalid = false;
+
+  return isvalid;
+}
+
+
+function nonnum(g_, c_)
+{
+  g = g_.toUpperCase();
+  c = c_.toUpperCase();
+  var res;
+  switch (g)
+  {
+  case "NG":
+	  res = (c.indexOf("NO GRADE") != -1);
+	  break;
+  case "WDRW":
+	  res = (c.indexOf('WITHDRAW') != -1);
+	  break;
+  case "NC":
+	  res = (c.indexOf("NO CREDIT") != -1);
+	  break;
+  case "DRP":
+	  res = (c.indexOf("DROPPED") != -1);
+	  break;
+  }
+  return res;
+}
+
+function gradecommentvalidate(grd_,comm_)
+{
+     if (isNumber(grd_))
+         if (parseFloat(grd_) >= 75.0)
+             res =  (comm_.toUpperCase() == 'PASSED'); 
+         else
+             res = (comm_.toUpperCase() =='FAILED');
+     else if (grd_.toUpperCase() == 'INC') 
+        res = (comm_.toUpperCase() == 'INCOMPLETE');
+     else if ((grd_.toUpperCase() == 'NG') || (grd_.toUpperCase() == 'WDRW') || (grd_.toUpperCase() == 'DRP') || (grd_.toUpperCase() == 'NC'))
+        res = (nonnum(grd_, comm_) && !((comm_.toUpperCase() == 'PASSED') || (comm_.toUpperCase() == 'FAILED'))); 
+     return res; 
+}
+
+
+function gradequiv(grade)
+{
+  var isvalid;
+  var grd_ = grade.toUpperCase();
+  if (grd_.length == 0)
+    isvalid = "Invalid";
+  else if (grd_ == "NC")
+    isvalid = "NO CREDIT";
+      else if (grd_ == 'NG') 
+         isvalid = "NO GRADE";
+    else if (grd_ == 'INC') 
+         isvalid = "INCOMPLETE";
+    else if (grd_ == 'DRP')
+         isvalid = "DROPPED";
+    else if (grd_ == 'WDRW') 
+         isvalid = "WITHDRAW";
+    else if (grd_ == 'PASSED') 
+         isvalid = grd_;
+    else if (grd_ == '69')
+         isvalid = "FAILED";
+    else if (isNumber(grd_))
+           if  (parseFloat(grd_) >= 75.0 && parseFloat(grd_) <= 99.0) 
+           isvalid = "PASSED";
+        else
+           isvalid = "Invalid";   
+    else
+         isvalid = "Invalid";
+
+  return isvalid;
+}
+
+jQuery.extend({
+    getValues: function(url){ //+++
+         var result = null;
+         $.ajax({
+            url:url,
+            type: 'get', 
+            dataType:'text',
+            async:false,
+            success: function(data){
+                 result = data;
+            }
+//error: function () {}
+         });//ajax
+      return result;
+    } //+++
+}); //extend     
+
+function isthere(id)
+{
+	try
+	{
+		val = document.getElementById(id).value;
+		return true;
+	}
+	catch(err)
+	{
+		return false;
+	}
+}
+
+function gettextboxvalue(txtboxname)
+{
+	return $('input[name="'+txtboxname+'"]').attr('value');
+}
+
+function settextboxvalue(txtboxname, value)
+{
+	 $('input[name="'+txtboxname+'"]').attr(value);
+}
+
+function getstucy(stuid)
+{
+	var res = $.getValues("getpersondegree.php?id="+stuid);
+	return res;
+}
+
+function popstuname(lblstuname, stuname, stuid)
+{	
+	document.getElementById(lblstuname).value = stuname;
+	document.getElementById('lblcy').value = getstucy(stuid);
+	document.getElementById('txtid').value = stuid;
+	getstuload(stuid);
+	$('#searchperson').dialog('close');
+}
+
+
+function getstuname(stuid)
+{
+	var res = $.getValues("searchname.php?name="+name+"&persontype=students");
+    return res;
+}
+
+function getfullname(stuid)
+{
+	var res = $.getValues("singlename.php?id="+stuid);
+    return res;
+}
+
+
+function popstuonenterk()
+{
+   stuid = document.getElementById('txtid').value;
+   document.getElementById('lblcy').value = getstucy(stuid);
+   document.getElementById('lblname').value = getfullname(stuid);
+   getstuload(stuid);
+}
+
+function getstuload(stuid)
+{
+	 var res = $.getValues("getstuload.php?id="+stuid);
+     $("#tblstuload tr").remove();
+     $("#tblstuload > tbody:last").append(res);
+}
+
+function showerror(msg)
+{
+	//alert(stuid + "  " + section_code);
+    event.preventDefault();
+	$("#diverrormessage").empty();
+    $("#diverrormessage").append(msg);
+    $("#errordialog").dialog("open");
+}
+
+
+function enrollsubject(section_code)
+{
+	  stuid = document.getElementById('txtid').value;
+	  uid = $("div#globuserid").text();//document.getElementById('globuserid').value;
+	  //section_code = document.getElementById('txtsearchsubject').value;
+	  //TODO: encode to db
+	  
+	  res = $.getValues("enrollstu.php?id="+stuid+"&scode="+section_code+"&uid="+uid);
+	 
+	  if (res == 'OK')
+    	  {
+    	     document.getElementById('txtscode').value = section_code;
+    	    
+    	  }
+      else
+    	  {
+    	    showerror(res);
+    	    
+    	  }
+	  $('#searchsubject').dialog("close");
+}
+
+function removeLoad(offeringid, stuid)
+{
+	alert(offeringid + '  ==  '+ stuid);
+}

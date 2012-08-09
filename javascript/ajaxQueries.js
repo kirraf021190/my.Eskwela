@@ -662,4 +662,24 @@ function getScore(){
 	
 }
 //add score!
+function addAttendance(idnum, sname){
+	$.post('../scripts/queries/addAttendance',{idnum_:idnum, studentname_:sname},function(data){
+		if(data.length>0){
+    		if(data=="False"){
+				alert("Error!!!")
+			}
+		}
+	});
+}
+
+function changepass(newpass, oldpass){
+	$.post('../scripts/queries/changepass',{newpass_:newpass, oldpass_:oldpass},function(data){
+		if(data){
+    		alert("success");
+			}
+		else {
+		    alert("invalid password");
+		}
+	});
+}
 
