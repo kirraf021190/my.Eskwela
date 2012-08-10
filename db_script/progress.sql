@@ -29,6 +29,24 @@ $BODY$
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE;
 
+CREATE OR REPLACE FUNCTION resetpass(integer, text)
+  RETURNS text AS
+$BODY$
+declare
+    id alias for $1;
+    newpass alias for $2;
+    usr text;
+begin
+    select into usr username from user_account where acct_id = id;
+    if usr isnull then
+        return 'false';
+    else
+        update user_account set password = newpass where username = usr;
+        return 'true';
+    end if;
+end;
+$BODY$
+  LANGUAGE 'plpgsql' VOLATILE;
 
 CREATE OR REPLACE FUNCTION getname(text)
   RETURNS text AS
