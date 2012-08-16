@@ -288,5 +288,5 @@ def resetPassword(req):
 #	session = Session.Session(req)
 #	user = cgi.escape(user)
 #	a = doSql()
-#	f = a.execqry("update parent set student = '"+user+"' where acct_id = '"+session['id']'"", true)
-#	return True
+#	f = a.execqry("select requestlink('"+session['id']+"', '"+user+"', true)
+#   return f

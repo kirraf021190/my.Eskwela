@@ -1054,6 +1054,30 @@ $_$;
 ALTER FUNCTION public.mygrade(text) OWNER TO postgres;
 
 --
+-- Name: requestlink(integer, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION requestlink(parentid integer, studentidnum text) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$declare
+     parentid_ alias for $1;
+     studentidnum_ alias for $2;
+     userexist text;
+     
+begin
+     SELECT INTO userexist id FROM student WHERE id = studentidnum_;
+     if userexist isnull then
+          return 'false';
+     else
+          INSERT INTO linkedaccounts values (parentid_,studentidnum_,'false');
+          return 'true';
+     end if;
+end;$_$;
+
+
+ALTER FUNCTION public.requestlink(parentid integer, studentidnum text) OWNER TO postgres;
+
+--
 -- Name: todec(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1164,6 +1188,19 @@ CREATE TABLE exam (
 
 
 ALTER TABLE public.exam OWNER TO postgres;
+
+--
+-- Name: linkedaccounts; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE linkedaccounts (
+    parentid text,
+    studentidnum text,
+    verified boolean
+);
+
+
+ALTER TABLE public.linkedaccounts OWNER TO postgres;
 
 --
 -- Name: performance; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -1314,6 +1351,14 @@ COPY exam (examid, schoolyear, answer, points, maxscore, isallow) FROM stdin;
 
 
 --
+-- Data for Name: linkedaccounts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY linkedaccounts (parentid, studentidnum, verified) FROM stdin;
+\.
+
+
+--
 -- Data for Name: performance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1334,6 +1379,7 @@ COPY stuanswer (id, schoolyear, examid, answer, time_, ansfrom) FROM stdin;
 --
 
 COPY student (id, name_, courseyear) FROM stdin;
+2010-7171	Shadowstrider	BSCS III
 \.
 
 
