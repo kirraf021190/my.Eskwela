@@ -283,3 +283,10 @@ def resetPassword(req):
 	#stored proc for this. update user accounts with new parent account.
 #	f = a.execqry("update user_account set fname, mname, lname, student, location", true).
 #	return True
+
+#def linkUsers(req, user):
+#	session = Session.Session(req)
+#	user = cgi.escape(user)
+#	a = doSql()
+#	f = a.execqry("update parent set student = '"+user+"' where acct_id = '"+session['id']'"", true)
+#	return True
