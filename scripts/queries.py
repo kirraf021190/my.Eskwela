@@ -168,10 +168,12 @@ def getStudPerf(req):
 	return f
 
 
-def getAttend(req):
+def getAttend(req, subjcode, idnum):
 	session = Session.Session(req)
 	a = doSql()
-	f = a.execqry("select getattendance('"+session['sCode']+"') ", False)[0][0]
+	b = cgi.escape(subjcode)
+	c = cgi.escape(idnum)
+	f = a.execqry("select getattendance('"+b+"', '"+c+"') ", False)[0][0]
 	return f
 
 def addAttend(req, catName, weight, aggr):
@@ -288,5 +290,18 @@ def resetPassword(req):
 #	session = Session.Session(req)
 #	user = cgi.escape(user)
 #	a = doSql()
-#	f = a.execqry("select requestlink('"+session['id']+"', '"+user+"', true)
+#	f = a.execqry("select requestlink('"+session['id']+"', '"+user+"', true)	
 #   return f
+
+def showSubjects(req, idnum):
+	a = doSql()
+	b = cgi.escape(idnum)
+	f = a.execqry("SELECT * enrolledsubj where idnum = '"+b+"')
+	return f
+
+def getGradeSubject(req, idnum, subj):
+	a = doSql()
+	b = cgi.escape(idnum)
+	c = cgi.escape(subj)
+	f = a.eecqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
+	return f
