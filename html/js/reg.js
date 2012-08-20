@@ -111,10 +111,7 @@ $(function(){
             $('#username').val(),
             $('#password').val(),
             $('#email').val(),
-            $('#firstname').val() + ' ' + $('#midname').val() + ' ' + $('#lastname').val(),
-            $('#age').val(),
-            $('#gender').val(),
-            $('#country').val()                       
+            $('#firstname').val() + ' ' + $('#midname').val() + ' ' + $('#lastname').val()                       
         );
         var tr = $('#fourth_step tr');
         tr.each(function(){
@@ -129,7 +126,12 @@ $(function(){
 
 
     $('#submit_fourth').click(function(){
-        //send information to server
+        registerUser(
+            $('#username').val(),
+            $('#password').val(),
+            $('#email').val(),
+            $('#firstname').val(), $('#midname').val(), $('#lastname').val()
+		)
         alert('saved');
     });
 
