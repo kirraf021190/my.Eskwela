@@ -32,7 +32,7 @@ def index(req):
 				<table>
 					<tr>
 					<td>
-						<input type="button" value="Log In" class="submit_button"/>
+						<input type="submit" value="Log In" class="submit_button"/>
 					</td> 
 					<td>
 						<a href="../html/registration.html">Signup</a>

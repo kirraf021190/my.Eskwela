@@ -233,15 +233,16 @@ def changePassword(req, currentPassword, confirmPassword, newPassword):
 	else:
 		return False
 
-def addAttendance(req, idnum_, studentname_):
-	session = Session.Session(req)	
-	b = cgi.escape(idnum_)
-	c = cgi.escape(studentname_)
-	x = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-	e = doSql()
-	#f = e.execqry("INSERT INTO attendancetemp VALUES('"+b+"','"+c+"','"+x+"','"+session['sCode']+"')", True)
-	f = e.execqry("SELECT addattend('"+b+"','"+c+"','"+x+"','"+session['subj']+"')", True)
-	#f = e.execqry("SELECT addattend('"+c+"')", True)
+def addAttendance(req, idArray, section):
+	session = Session.Session(req)
+	for idNum in idArray:
+		b = cgi.escape(idArray)
+		c = cgi.escape(section)
+		x = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+		e = doSql()
+		#f = e.execqry("INSERT INTO attendancetemp VALUES('"+b+"','"+c+"','"+x+"','"+session['sCode']+"')", True)
+		f = e.execqry("SELECT addattend('"+b+"','"+x+"','"+c+"')", True)
+		#f = e.execqry("SELECT addattend('"+c+"')", True)
 
 	return True
 
@@ -268,23 +269,23 @@ def resetPassword(req):
 	f = a.execqry("SELECT changepass('"+randPassword+"','"+f+"')", True)
 	return True
 
-#def registerUser(fname, mname, lname, studentName, studentId, location):
-#	a = doSql()
-#	b = cgi.escape(fname)
-#	c = cgi.escape(mname)
-#	d = cgi.escape(lname)
-#	if (studentName != "")
+def registerUser(fname, mname, lname, studentName, studentId, location):
+	a = doSql()
+	b = cgi.escape(fname)
+	c = cgi.escape(mname)
+	d = cgi.escape(lname)
+	if (studentName != "")
 		#stored proc for this. Select accountId of student by student name specification
-#		student = a.execqry("select accountId where studentname = '"+studentName+"').
-#	else
-#		student = "".
-#	if (studentId != "")
+		student = a.execqry("select accountId where studentname = '"+studentName+"').
+	else
+		student = "".
+	if (studentId != "")
 		#stored proc for this. Select accountId of student by student Id specification
-#		student = a.execqry("select accountId where studentId = '"+studentId+"').
-#	e = cgi.escape(location)
+		student = a.execqry("select accountId where studentId = '"+studentId+"').
+	e = cgi.escape(location)
 	#stored proc for this. update user accounts with new parent account.
-#	f = a.execqry("update user_account set fname, mname, lname, student, location", true).
-#	return True
+	f = a.execqry("update user_account set fname, mname, lname, student, location", true).
+	return True
 
 #def linkUsers(req, user):
 #	session = Session.Session(req)

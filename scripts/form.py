@@ -2,19 +2,22 @@ from dosql import *
 from mod_python import Session
 import hashlib
 import uuid
+import cgi
 
 def login(req, username, pwd):
 	a = doSql()
 	#Query to retrieve SALT from DATABASE
-	#hashPass = encryptPass(salt,pwd)
-	#salt = a.execqry("select getsalt('"+username+"')", False)
+	salt = a.execqry("select getsalt('"+username+"')", False)[0][0]
 	x = str(salt)
 	hashPass = encryptPass(x, pwd)
-    	f = a.execqry("select login('"+hashPass+"', '"+username+"')", False)[0][0]
+	hashPass_ = cgi.escape(hashPass)
+    	f = a.execqry("select login('"+hashPass_+"', '"+username+"')", False)[0][0]
 	session = Session.Session(req)
 	if (f == 'TRUE'):
 		return "<html><body onload='location.href=\"../../html/about/index.html\"'></body></html>"
 	else:
+		session['invalid'] = salt
+		session.save()
 		return "<html><body onload='location.href=\"../../scripts/login\"'></body></html>"
 
 def section(req, sec, sy, subj, code):
