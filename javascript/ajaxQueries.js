@@ -683,3 +683,16 @@ function changepass(newpass, oldpass){
 	});
 }
 
+function registerUser(username, password, email, firstname, middle, lastname){
+	$.post('../scripts/queries/registerUser',{username:uname, password:pwd, email:email, firstname:fname, middle:mname, lastname:lname},function(data){
+	if(data == 'true'{
+	alert("success");
+			}
+	else {
+		alert("No.");
+		}
+	});
+}
+
+}
+

@@ -27,9 +27,20 @@ def index(req):
 			<input type="text" name="username"/>
 
 			<label for="txtEmail">Password</label>
-			<input type="password" name="pwd" id="user_pass"/>
+			<input type="password" name="pwd" id="user_pass"/>	
+<div>
+				<table>
+					<tr>
+					<td>
+						<input type="submit" value="Log In" class="submit_button"/>
+					</td> 
+					<td>
+						<a href="../html/registration.html">Signup</a>
+					</td>
+					</tr>
+				</table>	
+			</div>
 
-			<input type="submit" value="Log In" class="submit_button"/> 	
 
 		</form> 
 		</div>
