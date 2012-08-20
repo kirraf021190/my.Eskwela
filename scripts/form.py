@@ -7,27 +7,15 @@ def login(req, username, pwd):
 	a = doSql()
 	#Query to retrieve SALT from DATABASE
 	#hashPass = encryptPass(salt,pwd)
-    	f = a.execqry("select login('"+username+"', '"+pwd+"')", False)[0][0]
-	s = f.split(',')
+	#salt = a.execqry("select getsalt('"+username+"')", False)
+	x = str(salt)
+	hashPass = encryptPass(x, pwd)
+    	f = a.execqry("select login('"+hashPass+"', '"+username+"')", False)[0][0]
 	session = Session.Session(req)
-	if(f != 'invalid'):
-		
-		session['id'] = s[0]
-		session['name'] = s[1]+" "+s[2]+" "+s[3]
-		
-		if(s[4] == 'faculty'):
-			session['college'] = s[5]
-			session['dept'] = s[6]
-			session.save()
-			return "<html><body onload='location.href=\"../../html/ind.html\"'></body></html>"
-		else:
-			session.save()
-			return "wala pay student nga page"
-
+	if (f == 'TRUE'):
+		return "<html><body onload='location.href=\"../../html/about/index.html\"'></body></html>"
 	else:
-		session['invalid'] = "Incorrect Username or Password!"
-		session.save()
-		return "<html><body onload='location.href=\"../login\"'></body></html>"
+		return "<html><body onload='location.href=\"../../scripts/login\"'></body></html>"
 
 def section(req, sec, sy, subj, code):
 	session = Session.Session(req)
