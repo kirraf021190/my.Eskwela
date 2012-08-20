@@ -8,7 +8,7 @@ class doSql(object):
     errmsg ="" 
     #methods
     def __init__(self): #constructor
-        self._cxn = psycopg2.connect("dbname='myeskwela' user='kalel' host='localhost' password='tikitiki'")
+        self._cxn = psycopg2.connect("dbname='myeskwela2' user='kalel' host='localhost' password='tikitiki'")
         self._cur = self._cxn.cursor()
 
     def __del__(self): #destructor
