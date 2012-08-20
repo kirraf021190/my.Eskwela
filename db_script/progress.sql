@@ -217,45 +217,6 @@ end;$$;
 ALTER FUNCTION public.change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) OWNER TO postgres;
 
 --
--- Name: changepass(text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION changepass(id text, oldhash text, newhash text, newsalt text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare
-
-    id alias for $1;
-
-    oldhash_ alias for $2;
-
-    newhash_ alias for $3;
-
-    newsalt_ alias for $4;
-
-    usr text;
-
-begin
-
-    SELECT INTO usr username FROM useraccounts WHERE userid = id and hash = oldhash_;
-
-    if usr isnull then
-
-        return 'false';
-
-    else
-
-        UPDATE useraccounts SET salt = newsalt_, hash = newhash_ WHERE username = usr;
-
-        return 'true';
-
-    end if;
-
-end;$_$;
-
-
-ALTER FUNCTION public.changepass(id text, oldhash text, newhash text, newsalt text) OWNER TO postgres;
-
---
 -- Name: clistwithpercent(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1698,6 +1659,24 @@ end;$_$;
 ALTER FUNCTION public.requestlink(parentid integer, studentidnum text) OWNER TO postgres;
 
 --
+-- Name: student_attendance(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_attendance(student_id text, section_code text, school_year text) RETURNS SETOF timestamp without time zone
+    LANGUAGE plpgsql
+    AS $$DECLARE
+    stamps TIMESTAMP;
+BEGIN
+    FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = true LOOP
+        RETURN NEXT stamps;
+    END LOOP;
+    RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.student_attendance(student_id text, section_code text, school_year text) OWNER TO postgres;
+
+--
 -- Name: todec(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1825,7 +1804,7 @@ SET default_with_oids = false;
 
 CREATE TABLE attendance (
     id text NOT NULL,
-    section_code text NOT NULL,
+    section text NOT NULL,
     schoolyear text NOT NULL,
     time_ timestamp without time zone NOT NULL,
     confirmed boolean
@@ -1915,7 +1894,7 @@ ALTER TABLE public.student OWNER TO postgres;
 --
 
 CREATE VIEW student_load AS
-    SELECT DISTINCT attendance.section_code, attendance.id, attendance.schoolyear FROM attendance ORDER BY attendance.id;
+    SELECT DISTINCT attendance.section AS section_code, attendance.id, attendance.schoolyear FROM attendance ORDER BY attendance.id;
 
 
 ALTER TABLE public.student_load OWNER TO postgres;
@@ -1993,7 +1972,7 @@ ALTER TABLE ONLY useraccounts ALTER COLUMN userid SET DEFAULT nextval('username_
 --
 
 ALTER TABLE ONLY attendance
-    ADD CONSTRAINT att_pk PRIMARY KEY (id, section_code, schoolyear, time_);
+    ADD CONSTRAINT att_pk PRIMARY KEY (id, section, schoolyear, time_);
 
 
 --
@@ -2057,7 +2036,7 @@ ALTER TABLE ONLY attendance
 --
 
 ALTER TABLE ONLY attendance
-    ADD CONSTRAINT att_sc_fk FOREIGN KEY (section_code) REFERENCES subject(section_code) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT att_sc_fk FOREIGN KEY (section) REFERENCES subject(section_code) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
