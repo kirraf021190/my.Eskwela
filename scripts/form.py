@@ -7,18 +7,6 @@ import cgi
 def login(req, username, pwd):
 	a = doSql()
 	#Query to retrieve SALT from DATABASE
-<<<<<<< HEAD
-	salt = a.execqry("select getsalt('"+username+"')", True)
-	hashPass = encryptPass(salt,pwd)
-    f = a.execqry("select login('"+username+"', '"+hashPass+"')", True)
-	session = Session.Session(req)
-	if(f is None):
-		return 'False'
-	else:
-		session['id'] = f
-		session.save()
-		return "<html><body onload='location.href=\"../html/about/index.html\"'></body></html>"
-=======
 	salt = a.execqry("select getsalt('"+username+"')", False)[0][0]
 	x = str(salt)
 	hashPass = encryptPass(x, pwd)
@@ -31,7 +19,6 @@ def login(req, username, pwd):
 		session['invalid'] = salt
 		session.save()
 		return "<html><body onload='location.href=\"../../scripts/login\"'></body></html>"
->>>>>>> cab5a055e7f10fe537028e09299f994f1fd8ead8
 
 def section(req, sec, sy, subj, code):
 	session = Session.Session(req)
