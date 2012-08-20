@@ -11,6 +11,45 @@ SET client_min_messages = warning;
 SET search_path = public, pg_catalog;
 
 --
+-- Name: addparent(text, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION addparent(text, text, text, text, text, text, text) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$declare
+
+     username_ alias for $1;
+
+     salt_ alias for $2;
+
+     hash_ alias for $3;
+
+     fname_ alias for $4;
+
+     mname_ alias for $5;
+
+     lname_ alias for $6;
+
+     email_ alias for $7;
+
+     tempnum integer;
+
+begin
+
+     INSERT INTO useraccounts VALUES(username_, salt_, hash_);
+
+     SELECT INTO  tempnum userid FROM useraccounts WHERE username = username_;
+
+     INSERT INTO parent VALUES(fname_,mname_,lname_,email_,tempnum);
+
+     return 'true';
+
+end;$_$;
+
+
+ALTER FUNCTION public.addparent(text, text, text, text, text, text, text) OWNER TO postgres;
+
+--
 -- Name: answer(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -22,7 +61,7 @@ CREATE FUNCTION answer(text, text, text) RETURNS text
 
         id_ alias for $1;
 
-        exid_ alias for $2; --exam id shall be 21011 where 2 (1 - prelim, 3 - final) is midterm 101 for csc 101 and 1 for set number
+        exid_ alias for $2; --exam id shall be 21011 where 2 (1 - prelim, 3 - final) is midterm 10111 for csc 101 and 1 for set number
 
         ans_ alias for $3;
 
@@ -179,6 +218,7 @@ ALTER FUNCTION public.ccard(text, text) OWNER TO postgres;
 CREATE FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) RETURNS text
     LANGUAGE plpgsql
     AS $$declare
+
    usr text;
 
 begin
@@ -201,6 +241,45 @@ end;$$;
 
 
 ALTER FUNCTION public.change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) OWNER TO postgres;
+
+--
+-- Name: changepass(text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION changepass(id text, oldhash text, newhash text, newsalt text) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$declare
+
+    id alias for $1;
+
+    oldhash_ alias for $2;
+
+    newhash_ alias for $3;
+
+    newsalt_ alias for $4;
+
+    usr text;
+
+begin
+
+    SELECT INTO usr username FROM useraccounts WHERE userid = id and hash = oldhash_;
+
+    if usr isnull then
+
+        return 'false';
+
+    else
+
+        UPDATE useraccounts SET salt = newsalt_, hash = newhash_ WHERE username = usr;
+
+        return 'true';
+
+    end if;
+
+end;$_$;
+
+
+ALTER FUNCTION public.changepass(id text, oldhash text, newhash text, newsalt text) OWNER TO postgres;
 
 --
 -- Name: clistwithpercent(text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1651,12 +1730,19 @@ ALTER FUNCTION public.requestlink(parentid integer, studentidnum text) OWNER TO 
 CREATE FUNCTION student_absence(student_id text, section_code text, school_year text) RETURNS SETOF timestamp without time zone
     LANGUAGE plpgsql
     AS $$DECLARE
+
     stamps TIMESTAMP;
+
 BEGIN
+
     FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = false LOOP
+
         RETURN NEXT stamps;
+
     END LOOP;
+
     RETURN;
+
 END;$$;
 
 
@@ -1669,12 +1755,19 @@ ALTER FUNCTION public.student_absence(student_id text, section_code text, school
 CREATE FUNCTION student_attendance(student_id text, section_code text, school_year text) RETURNS SETOF timestamp without time zone
     LANGUAGE plpgsql
     AS $$DECLARE
+
     stamps TIMESTAMP;
+
 BEGIN
+
     FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = true LOOP
+
         RETURN NEXT stamps;
+
     END LOOP;
+
     RETURN;
+
 END;$$;
 
 
@@ -1847,6 +1940,21 @@ CREATE TABLE linkedaccounts (
 ALTER TABLE public.linkedaccounts OWNER TO postgres;
 
 --
+-- Name: parent; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE parent (
+    fname text,
+    mname text,
+    lname text,
+    email text,
+    acctnumber integer
+);
+
+
+ALTER TABLE public.parent OWNER TO postgres;
+
+--
 -- Name: performance; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -1965,10 +2073,91 @@ ALTER SEQUENCE username_userid_seq OWNED BY useraccounts.userid;
 
 
 --
+-- Name: username_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('username_userid_seq', 4, true);
+
+
+--
 -- Name: userid; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY useraccounts ALTER COLUMN userid SET DEFAULT nextval('username_userid_seq'::regclass);
+
+
+--
+-- Data for Name: attendance; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO attendance VALUES ('2009-2992', 'CSC828N', '2009-2012', '2012-08-20 18:04:41.572908', true);
+INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:07:11.577434', true);
+INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:19:07.020833', true);
+INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:19:11.260883', true);
+INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:26:12.767996', true);
+INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:34:16.908578', false);
+
+
+--
+-- Data for Name: exam; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- Data for Name: linkedaccounts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- Data for Name: parent; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- Data for Name: performance; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- Data for Name: stuanswer; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- Data for Name: student; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO student VALUES ('2010-7171', 'Shadowstrider', 'BSCS III');
+INSERT INTO student VALUES ('2009-2992', 'huhuhu, hdhdh', 'BSGH III');
+INSERT INTO student VALUES ('2009-2977', 'hijhuhu, hdhdh', 'BSGH III');
+
+
+--
+-- Data for Name: subject; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO subject VALUES ('CSC828N', 'undergrad', 'LR5', '2009-2010', '1:00-2:00');
+
+
+--
+-- Data for Name: sy; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO sy VALUES ('2009-2010');
+INSERT INTO sy VALUES ('2009-2011');
+INSERT INTO sy VALUES ('2009-2012');
+
+
+--
+-- Data for Name: useraccounts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO useraccounts VALUES ('encube', 'uud7', 'hhd77dhe', 1);
 
 
 --
