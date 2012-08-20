@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <head>
+        <title>my.Eskwela - HOME</title>
+       	 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        	<link rel="stylesheet" href="css/style.css" type="text/css" charset="utf-8"/>
+        	<script type="text/javascript" src="jquery-1.3.2.js"></script>
+    </head>
+	<script type="text/javascript">
+$(document).ready(function() {	
+	$('#navigation li a:not(:first)').addClass('inactive');
+	$('.tab_content:not(:first)').hide();	
+	
+	$('#navigation li a').click(function(){		
+		var t = $(this).attr('href');
+		if($(this).hasClass('inactive')){ //added to not animate when active
+			$('#navigation li a').addClass('inactive');		
+			$(this).removeClass('inactive');
+			$('.tab_content').hide();
+			$(t).show('fast');	
+		}			
+		return false;
+	}) //end click	
+});
+</script>
+<script type="text/javascript">
+            $(function() {
+                $('#navigation a').stop().animate({'marginLeft':'85px'},1000);
+
+                $('#navigation > li').hover(
+                    function () {
+                        $('a',$(this)).stop().animate({'marginLeft':'2px'},200);
+                    },
+                    function () {
+                        $('a',$(this)).stop().animate({'marginLeft':'85px'},200);
+                    }
+                );
+            });
+ 
+    </script>
+	<style>
+			body{
+				background-image:url(images/pic.jpg);
+				font-family:Arial;
+				height:300px;
+				margin-left: 170px;
+				margin-top:100px;
+				background-repeat: repeat;
+			}
+			.header
+			{
+				width:600px;
+				height:56px;
+				position:absolute;
+				top:0px;
+				left:25%;
+			   
+			}
+			a.back{
+				width:256px;
+				height:73px;
+				position:fixed;
+				bottom:15px;
+				right:15px;
+				
+			}
+			.scroll{
+				width:133px;
+				height:61px;
+				position:fixed;
+				bottom:15px;
+				left:150px;   
+			}	
+			
+	</style>
+  	  <body>
+			<div class="header"></div>
+       		<div class="scroll"></div>
+		 		<div class="tabs">
+						<img src="images/logo_index.png" id="logo" /> 
+							 <ul id="navigation">
+								<li class="home"><a  href="#home" title="Home"></a></li>
+								<li class="about"><a href="#about" title="About Me"></a></li>
+								<li class="courses"><a href="#courses" title="My Courses"></a></li>
+							</ul>
+					<div id="home" class="tab_content">	
+					welcome user!
+					</div>
+					
+					<div id="about" class="tab_content">
+						<img src="images/placeholder.png" id="id"/>
+					</div>
+					
+					<div id="courses" class="tab_content">
+						gsrsggfd
+					</div>
+  			  </div>
+   	 </body>
+	<!--$(document).ready(function () {
+    $("div.tabs a").click(function (event) {
+        var id = $(this).attr("href");
+        $(id).show();
+        event.preventDefault();
+    });
+});-->
+</html>
