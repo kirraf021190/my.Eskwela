@@ -8,47 +8,7 @@ SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
-
 SET search_path = public, pg_catalog;
-
---
--- Name: addparent(text, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION addparent(text, text, text, text, text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare
-     username_ alias for $1;
-     salt_ alias for $2;
-     hash_ alias for $3;
-     fname_ alias for $4;
-     mname_ alias for $5;
-     lname_ alias for $6;
-     email_ alias for $7;
-     tempnum integer;
-
-begin
-     INSERT INTO useraccounts VALUES(username_, salt_, hash_);
-     SELECT INTO  tempnum userid FROM useraccounts WHERE username = username_;
-     INSERT INTO parent VALUES(fname_,mname_,lname_,email_,tempnum);
-     return 'true';
-end;$_$;
-
-
-ALTER FUNCTION public.addparent(text, text, text, text, text, text, text) OWNER TO postgres;
 
 --
 -- Name: answer(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -219,7 +179,6 @@ ALTER FUNCTION public.ccard(text, text) OWNER TO postgres;
 CREATE FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) RETURNS text
     LANGUAGE plpgsql
     AS $$declare
-
    usr text;
 
 begin
@@ -1370,7 +1329,7 @@ ALTER FUNCTION public.insupsy(text) OWNER TO postgres;
 -- Name: login(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION login(text, text) RETURNS text
+CREATE FUNCTION login(text, text) RETURNS integer
     LANGUAGE plpgsql
     AS $_$declare
 
@@ -1378,21 +1337,13 @@ CREATE FUNCTION login(text, text) RETURNS text
 
      username_ alias for $2;
 
-     num_ text;
+     num_ int;
 
 begin
 
     SELECT INTO num_ userid FROM useraccounts WHERE username = username_ AND hash = hash_;
 
-    if num_ isnull then
-
-       return 'FALSE';
-
-    else
-
-       return 'TRUE';
-
-    end if;
+    return num_;
 
 end;$_$;
 
@@ -1694,6 +1645,24 @@ end;$_$;
 ALTER FUNCTION public.requestlink(parentid integer, studentidnum text) OWNER TO postgres;
 
 --
+-- Name: student_absence(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_absence(student_id text, section_code text, school_year text) RETURNS SETOF timestamp without time zone
+    LANGUAGE plpgsql
+    AS $$DECLARE
+    stamps TIMESTAMP;
+BEGIN
+    FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = false LOOP
+        RETURN NEXT stamps;
+    END LOOP;
+    RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.student_absence(student_id text, section_code text, school_year text) OWNER TO postgres;
+
+--
 -- Name: student_attendance(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1878,21 +1847,6 @@ CREATE TABLE linkedaccounts (
 ALTER TABLE public.linkedaccounts OWNER TO postgres;
 
 --
--- Name: parent; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE parent (
-    fname text,
-    mname text,
-    lname text,
-    email text,
-    acctnumber integer
-);
-
-
-ALTER TABLE public.parent OWNER TO postgres;
-
---
 -- Name: performance; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -1932,11 +1886,8 @@ ALTER TABLE public.stuanswer OWNER TO postgres;
 
 CREATE TABLE student (
     id text NOT NULL,
-    fname text,
-    mname text,
-    lname text,
-    courseyear text,
-    acctnumber integer
+    name_ text,
+    courseyear text
 );
 
 
@@ -1985,7 +1936,7 @@ ALTER TABLE public.sy OWNER TO postgres;
 CREATE TABLE useraccounts (
     username text,
     salt text,
-    hash text,
+    hashed_password text,
     userid integer NOT NULL
 );
 
@@ -2014,100 +1965,10 @@ ALTER SEQUENCE username_userid_seq OWNED BY useraccounts.userid;
 
 
 --
--- Name: username_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('username_userid_seq', 4, true);
-
-
---
 -- Name: userid; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY useraccounts ALTER COLUMN userid SET DEFAULT nextval('username_userid_seq'::regclass);
-
-
---
--- Data for Name: attendance; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY attendance (id, section_code, schoolyear, time_, confirmed) FROM stdin;
-\.
-
-
---
--- Data for Name: exam; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY exam (examid, schoolyear, answer, points, maxscore, isallow) FROM stdin;
-\.
-
-
---
--- Data for Name: linkedaccounts; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY linkedaccounts (parentid, studentidnum, verified) FROM stdin;
-\.
-
-
---
--- Data for Name: parent; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY parent (fname, mname, lname, email, acctnumber) FROM stdin;
-kalels	reyes	mom	kalel@yahoo.com	4
-\.
-
-
---
--- Data for Name: performance; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY performance (id, section_code, schoolyear, period, score, mult, description, maxscore) FROM stdin;
-\.
-
-
---
--- Data for Name: stuanswer; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY stuanswer (id, schoolyear, examid, answer, time_, ansfrom) FROM stdin;
-\.
-
-
---
--- Data for Name: student; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY student (id, fname, mname, lname, courseyear, acctnumber) FROM stdin;
-\.
-
-
---
--- Data for Name: subject; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY subject (section_code, type_, room, schoolyear, schedule) FROM stdin;
-\.
-
-
---
--- Data for Name: sy; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY sy (schoolyear) FROM stdin;
-\.
-
-
---
--- Data for Name: useraccounts; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY useraccounts (username, salt, hash, userid) FROM stdin;
-ADMIN	0457dea5c1cd443ca6692282c0780f72	2ecf49dcb3dea8b9777dfdef11ed2593ba12367eecbbb8100b75e3c2464e8239ab72cfa9a0d357285da4749dffd18f76c97a9219ffb85715a6c5c75c3832d889	1
-mrsreyes	asdf	fdsa	4
-\.
 
 
 --
