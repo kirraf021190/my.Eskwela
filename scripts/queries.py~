@@ -276,8 +276,8 @@ def registerUser(req, uname, pwd, email, fname, mname, lname):
 	d = cgi.escape(fname)
 	e = cgi.escape(mname)
 	g = cgi.escape(lname)
-	salt = generateSalt()
-	hashPass = encryptPass(salt, pwd)
+	salt = form.generateSalt()
+	hashPass = form.encryptPass(salt, pwd)
 	#stored proc for this. update user accounts with new parent account.
 	f = a.execqry("SELECT addparent('"+b+"', '"+salt+"', '"+hashPass+"', '"+d+"', '"+e+"', '"+g+"', '"+c+"')", True)
 	return f

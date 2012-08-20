@@ -10,7 +10,7 @@
 					    <script type="text/javascript" src="js/jquery.inputfocus-0.9.min.js"></script>
 					    <script type="text/javascript" src="js/reg.js"></script>
 					    <script type="text/javascript" src="js/min.js"></script>
-					    <script type="text/javascript" src="js/ajaxQueries.js"></script>
+					    <script type="text/javascript" src="../javascript/ajaxQueries.js"></script>
 		</head>
 	
 	<body>
