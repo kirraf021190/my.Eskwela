@@ -8,6 +8,20 @@ SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
 SET search_path = public, pg_catalog;
 
 --
@@ -17,33 +31,20 @@ SET search_path = public, pg_catalog;
 CREATE FUNCTION addparent(text, text, text, text, text, text, text) RETURNS text
     LANGUAGE plpgsql
     AS $_$declare
-
      username_ alias for $1;
-
      salt_ alias for $2;
-
      hash_ alias for $3;
-
      fname_ alias for $4;
-
      mname_ alias for $5;
-
      lname_ alias for $6;
-
      email_ alias for $7;
-
      tempnum integer;
 
 begin
-
      INSERT INTO useraccounts VALUES(username_, salt_, hash_);
-
      SELECT INTO  tempnum userid FROM useraccounts WHERE username = username_;
-
      INSERT INTO parent VALUES(fname_,mname_,lname_,email_,tempnum);
-
      return 'true';
-
 end;$_$;
 
 
@@ -61,7 +62,7 @@ CREATE FUNCTION answer(text, text, text) RETURNS text
 
         id_ alias for $1;
 
-        exid_ alias for $2; --exam id shall be 21011 where 2 (1 - prelim, 3 - final) is midterm 10111 for csc 101 and 1 for set number
+        exid_ alias for $2; --exam id shall be 21011 where 2 (1 - prelim, 3 - final) is midterm 101 for csc 101 and 1 for set number
 
         ans_ alias for $3;
 
@@ -217,37 +218,6 @@ ALTER FUNCTION public.ccard(text, text) OWNER TO postgres;
 
 CREATE FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) RETURNS text
     LANGUAGE plpgsql
-    AS $$declare
-
-   usr text;
-
-begin
-
-    SELECT INTO usr username FROM useraccounts WHERE userid = id and hashed_password = oldHashedPassword;
-
-    if usr isnull then
-
-        return 'false';
-
-    else
-
-        UPDATE useraccounts SET salt = newSalt, hashed_password = newHashedPassword WHERE username = usr;
-
-        return 'true';
-
-    end if;
-
-end;$$;
-
-
-ALTER FUNCTION public.change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) OWNER TO postgres;
-
---
--- Name: changepass(text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION changepass(id text, oldhash text, newhash text, newsalt text) RETURNS text
-    LANGUAGE plpgsql
     AS $_$declare
 
     id alias for $1;
@@ -279,7 +249,14 @@ begin
 end;$_$;
 
 
-ALTER FUNCTION public.changepass(id text, oldhash text, newhash text, newsalt text) OWNER TO postgres;
+ALTER FUNCTION public.change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) IS 'Accepts userid, old hash, new hash, new salt';
+
 
 --
 -- Name: clistwithpercent(text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -684,6 +661,30 @@ $$;
 ALTER FUNCTION public.getcurrsem() OWNER TO postgres;
 
 --
+-- Name: getemail(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getemail(userid integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$declare 
+     emailadd text;
+
+begin 
+     SELECT INTO emailadd email FROM parent WHERE acctnumber = userid;
+     return emailadd;
+end;$$;
+
+
+ALTER FUNCTION public.getemail(userid integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getemail(userid integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getemail(userid integer) IS 'Accepts userid; returns email';
+
+
+--
 -- Name: getexamanswer(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -717,6 +718,31 @@ $_$;
 
 
 ALTER FUNCTION public.getexamanswer(text, text) OWNER TO postgres;
+
+--
+-- Name: getid(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getid(username_ text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$declare
+     userid_ integer;
+
+begin
+     SELECT INTO userid_ userid FROM useraccounts WHERE username = username_;
+     return userid_;
+
+end;$$;
+
+
+ALTER FUNCTION public.getid(username_ text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getid(username_ text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getid(username_ text) IS 'Accepts username; returns userid';
+
 
 --
 -- Name: getmaxscore(text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -839,6 +865,43 @@ end;$_$;
 
 
 ALTER FUNCTION public.getsalt(text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getsalt(text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getsalt(text) IS 'Accepts username; returns salt';
+
+
+--
+-- Name: getsaltbyid(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getsaltbyid(integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$declare 
+
+     id_ alias for $1;
+
+     salt_ text;
+
+begin 
+
+     SELECT INTO salt_ salt from useraccounts where userid = id_;
+
+return salt_;
+
+end$_$;
+
+
+ALTER FUNCTION public.getsaltbyid(integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getsaltbyid(integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getsaltbyid(integer) IS 'Accepts userid; returns salt';
+
 
 --
 -- Name: getschedule(text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1408,7 +1471,7 @@ ALTER FUNCTION public.insupsy(text) OWNER TO postgres;
 -- Name: login(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION login(text, text) RETURNS integer
+CREATE FUNCTION login(text, text) RETURNS text
     LANGUAGE plpgsql
     AS $_$declare
 
@@ -1416,18 +1479,33 @@ CREATE FUNCTION login(text, text) RETURNS integer
 
      username_ alias for $2;
 
-     num_ int;
+     num_ text;
 
 begin
 
     SELECT INTO num_ userid FROM useraccounts WHERE username = username_ AND hash = hash_;
 
-    return num_;
+    if num_ isnull then
+
+       return 'FALSE';
+
+    else
+
+       return 'TRUE';
+
+    end if;
 
 end;$_$;
 
 
 ALTER FUNCTION public.login(text, text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION login(text, text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION login(text, text) IS 'Accepts hash, username';
+
 
 --
 -- Name: max_attendance(text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1724,25 +1802,70 @@ end;$_$;
 ALTER FUNCTION public.requestlink(parentid integer, studentidnum text) OWNER TO postgres;
 
 --
+-- Name: FUNCTION requestlink(parentid integer, studentidnum text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION requestlink(parentid integer, studentidnum text) IS 'Accepts parent userid, student idnum';
+
+
+--
+-- Name: resetpass(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION resetpass(text, text, text) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$declare
+
+    username_ alias for $1;
+
+    newsalt_ alias for $2;
+
+    newhash_ alias for $3;
+
+
+    usr text;
+
+begin
+
+    SELECT INTO usr username FROM useraccounts WHERE username = username_;
+
+    if usr isnull then
+
+        return 'false';
+
+    else
+
+        UPDATE useraccounts SET salt = newsalt_, hash = newhash_ WHERE username = usr;
+
+        return 'true';
+
+    end if;
+
+end;$_$;
+
+
+ALTER FUNCTION public.resetpass(text, text, text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION resetpass(text, text, text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION resetpass(text, text, text) IS 'Accepts username, new salt, new hash';
+
+
+--
 -- Name: student_absence(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
 CREATE FUNCTION student_absence(student_id text, section_code text, school_year text) RETURNS SETOF timestamp without time zone
     LANGUAGE plpgsql
     AS $$DECLARE
-
-    stamps TIMESTAMP;
-
-BEGIN
-
-    FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = false LOOP
-
-        RETURN NEXT stamps;
-
-    END LOOP;
-
-    RETURN;
-
+ stamps TIMESTAMP;	
+BEGIN	
+FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = false LOOP
+RETURN NEXT stamps;
+END LOOP;
+ RETURN;
 END;$$;
 
 
@@ -1755,19 +1878,12 @@ ALTER FUNCTION public.student_absence(student_id text, section_code text, school
 CREATE FUNCTION student_attendance(student_id text, section_code text, school_year text) RETURNS SETOF timestamp without time zone
     LANGUAGE plpgsql
     AS $$DECLARE
-
-    stamps TIMESTAMP;
-
+stamps TIMESTAMP;	
 BEGIN
-
-    FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = true LOOP
-
-        RETURN NEXT stamps;
-
-    END LOOP;
-
-    RETURN;
-
+ FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section = section_code and schoolyear = school_year and confirmed = true LOOP	
+ RETURN NEXT stamps;	
+  END LOOP;
+  RETURN;
 END;$$;
 
 
@@ -1994,8 +2110,11 @@ ALTER TABLE public.stuanswer OWNER TO postgres;
 
 CREATE TABLE student (
     id text NOT NULL,
-    name_ text,
-    courseyear text
+    fname text,
+    mname text,
+    lname text,
+    courseyear text,
+    acctnumber integer
 );
 
 
@@ -2044,7 +2163,7 @@ ALTER TABLE public.sy OWNER TO postgres;
 CREATE TABLE useraccounts (
     username text,
     salt text,
-    hashed_password text,
+    hash text,
     userid integer NOT NULL
 );
 
@@ -2076,7 +2195,7 @@ ALTER SEQUENCE username_userid_seq OWNED BY useraccounts.userid;
 -- Name: username_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('username_userid_seq', 4, true);
+SELECT pg_catalog.setval('username_userid_seq', 10, true);
 
 
 --
@@ -2090,74 +2209,93 @@ ALTER TABLE ONLY useraccounts ALTER COLUMN userid SET DEFAULT nextval('username_
 -- Data for Name: attendance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO attendance VALUES ('2009-2992', 'CSC828N', '2009-2012', '2012-08-20 18:04:41.572908', true);
-INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:07:11.577434', true);
-INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:19:07.020833', true);
-INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:19:11.260883', true);
-INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:26:12.767996', true);
-INSERT INTO attendance VALUES ('2009-2977', 'CSC828N', '2009-2012', '2012-08-20 18:34:16.908578', false);
+COPY attendance (id, section, schoolyear, time_, confirmed) FROM stdin;
+\.
 
 
 --
 -- Data for Name: exam; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY exam (examid, schoolyear, answer, points, maxscore, isallow) FROM stdin;
+\.
 
 
 --
 -- Data for Name: linkedaccounts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY linkedaccounts (parentid, studentidnum, verified) FROM stdin;
+\.
 
 
 --
 -- Data for Name: parent; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY parent (fname, mname, lname, email, acctnumber) FROM stdin;
+kalels	reyes	mom	kalel@yahoo.com	4
+johnny	the	boss	bawss@gmail.com	5
+Kevin Eric	Ridao	Siangco	shdwstrider@gmail.com	7
+test	ing	ni	renegade_0512@yahoo.com	8
+Eddie	B.	Singko	kalelreyes@gmail.com	9
+the	only	boss	renegade_0512@yahoo.com	10
+\.
 
 
 --
 -- Data for Name: performance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY performance (id, section_code, schoolyear, period, score, mult, description, maxscore) FROM stdin;
+\.
 
 
 --
 -- Data for Name: stuanswer; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY stuanswer (id, schoolyear, examid, answer, time_, ansfrom) FROM stdin;
+\.
 
 
 --
 -- Data for Name: student; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO student VALUES ('2010-7171', 'Shadowstrider', 'BSCS III');
-INSERT INTO student VALUES ('2009-2992', 'huhuhu, hdhdh', 'BSGH III');
-INSERT INTO student VALUES ('2009-2977', 'hijhuhu, hdhdh', 'BSGH III');
+COPY student (id, fname, mname, lname, courseyear, acctnumber) FROM stdin;
+\.
 
 
 --
 -- Data for Name: subject; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO subject VALUES ('CSC828N', 'undergrad', 'LR5', '2009-2010', '1:00-2:00');
+COPY subject (section_code, type_, room, schoolyear, schedule) FROM stdin;
+\.
 
 
 --
 -- Data for Name: sy; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO sy VALUES ('2009-2010');
-INSERT INTO sy VALUES ('2009-2011');
-INSERT INTO sy VALUES ('2009-2012');
+COPY sy (schoolyear) FROM stdin;
+\.
 
 
 --
 -- Data for Name: useraccounts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO useraccounts VALUES ('encube', 'uud7', 'hhd77dhe', 1);
+COPY useraccounts (username, salt, hash, userid) FROM stdin;
+ADMIN	0457dea5c1cd443ca6692282c0780f72	2ecf49dcb3dea8b9777dfdef11ed2593ba12367eecbbb8100b75e3c2464e8239ab72cfa9a0d357285da4749dffd18f76c97a9219ffb85715a6c5c75c3832d889	1
+mrsreyes	asdf	fdsa	4
+razor0512	c42501e4552b4f72b8512abc72e2c18d	a8e52a4c08639ff544bc259334cd262c8abf8f81705116ad1f38ff6c14bcb1f5fc51e4f7688d99793be703d8189c33015d40baec9d6006f7b75577a5ec8444ba	7
+ascii	resetpass	testing	5
+testing	2b77c8f65dfa4630a2891b5abcfd108a	ca1512686010f3b5af97080bfb865d5ef9c90d1ac9790f34aace27cfe9b859a4f76287b740c05beb3052b3b4af21d6397194b0fffa37e6d847c47c84e7296327	8
+myAkawnt	cd82657a9a934150ab6f1775e8444e3d	a6a3e68bb03329d2a7be97a33bfc4e5b3f571a317d4d32e1827ee438ce13caf4ea5595b9fa6428381c3d7dc0461f46b1dd4de7a9b435a08ed60a0478efe8857f	9
+theboss	fa18d68c63774d86a7424bebd2b7e897	0c1a15af933dfc470cf2f92efca2cd0313c0da76e0dd0d86b441b1a117a30307be5d24fd3465b5364edae521a0b58441c1026511f6cb5cc58e022dd15a25f5eb	10
+\.
 
 
 --

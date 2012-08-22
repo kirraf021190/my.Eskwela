@@ -125,23 +125,19 @@ $(function(){
     });
 
 
-    /*$('#submit_fourth').click(function(){
+   $('#submit_fourth').click(function(){
         registerUser(
             $('#username').val(),
             $('#password').val(),
             $('#email').val(),
             $('#firstname').val(), $('#midname').val(), $('#lastname').val()
 		);
+    })
+  /*  $('#submit_fourth').click(function(){
+        registerUser();
     });*/
+   
 
-	function registerUser(username, password, email, firstname, middle, lastname){
-	$.post('../../scripts/queries/registerUser',{uname:username, pwd:password, email:email, fname:firstname, mname:middle, lname:lastname},function(data){
-	if(data == 'true'){
-	alert("success");
-			}
-	else {
-		alert("No.");
-		}
-	});
-}
+
+
 });

@@ -3,7 +3,7 @@ import cgi
 from mod_python import Session
 import time
 import os
-from form import *
+import form
 
 def getClasses(req):
 	session = Session.Session(req)
@@ -245,41 +245,48 @@ def addAttendance(req, idArray, section):
 		#f = e.execqry("SELECT addattend('"+c+"')", True)
 
 	return True
-
-	
-def changepass(req, newpass_, oldpass_):
+		
+def changepassword(req, oldpass, newpass):
 	session = Session.Session(req)
-	e = doSql()
-	b = cgi.escape(newpass_)
-	c = cgi.escape(oldpass_)	
-	#Query to retrieve SALT from DATABASE
-	#oldHashPass = encryptPass(salt,c)
-	#newSalt = generateSalt()
-	#newHashPass = encryptPass(newSalt,b)
-	f = a.execqry("SELECT changepass('"+session['id']+"','"+b+"','"+c+"')", True)
-	return f
-	
-def resetPassword(req):
-	session = Session.Session(req)
-	randPassword = os.urandom(string_length)
-	#salt = generateSalt()
-	#hashPass = encryptPass(salt, randPassword)
 	a = doSql()
-	f = a.execqry("update user_account set password = '"+randPassword+"' where username = '"+f+"'", true)
-	f = a.execqry("SELECT changepass('"+randPassword+"','"+f+"')", True)
-	return True
+	x = a.execqry("select getsalt('"+session['id']+"')", False)[0][0]
+	oldsalt = str(x)	
+	newsalt = form.generateSalt()
+	oldhash = form.encryptPass(oldsalt, oldpass)
+	newhash = form.encryptPass(newsalt, newpass)
+	f = a.execqry("SELECT change_password('"+session['id']+"','"+oldhash+"','"+newhash+"','"+newsalt+"')", True)[0][0]
+	if (f == 'true'):
+	    return 'success'
+	else:
+		return 'invalid password'
 
-def registerUser(req, uname, pwd, email, fname, mname, lname):
+def resetpassword(req, username):
+	session = Session.Session(req)
+	a = doSql()
+	randPassword = os.urandom(5)
+	newsalt = form.generateSalt()
+	newhash = form.encryptPass(newsalt, randPassword)
+	f = a.execqry("SELECT resetpass('"+username+"','"+newsalt+"','"+newhash+"')", True)[0][0]
+	if (f == 'true'):
+		i = a.execqry("select getid('"+username+"')", False)[0][0]
+		e = a.execqry("select getemail('"+str(i)+"')", False)[0][0]
+		useremail = str(e)
+		form.sendemail(from_addr = 'myeskwela.noreply@gmail.com', to_addr_list = [useremail], cc_addr_list = [useremail], subject = 'Password Reset', message = 'Your new password is ' + randPassword, login = 'myeskwela.noreply@gmail.com', password = 'myeskwela')
+		return 'sucess'
+	else:
+		return 'user does not exist'
+
+def registerUser(req,uname, pwd, email, fname, mname, lname):
 	a = doSql()
 	b = cgi.escape(uname)
 	c = cgi.escape(email)
 	d = cgi.escape(fname)
 	e = cgi.escape(mname)
 	g = cgi.escape(lname)
-	salt = generateSalt()
-	hashPass = encryptPass(salt, pwd)
+	salt = form.generateSalt()
+	hashPass = form.encryptPass(salt, pwd)
 	#stored proc for this. update user accounts with new parent account.
-	f = a.execqry("SELECT addparent('"+b+"', '"+salt+"', '"+hashPass+"', '"+d+"', '"+e+"', '"+g+"', '"+c+"')", True)
+	f = a.execqry("SELECT addparent('"+b+"','"+salt+"','"+hashPass+"','"+d+"','"+e+"','"+g+"','"+c+"')", True)[0][0]
 	return f
 
 #def linkUsers(req, user):
@@ -292,7 +299,7 @@ def registerUser(req, uname, pwd, email, fname, mname, lname):
 def showSubjects(req, idnum):
 	a = doSql()
 	b = cgi.escape(idnum)
-	f = a.execqry("SELECT * enrolledsubj where idnum = '"+b+"')
+	f = a.execqry("SELECT * enrolledsubj where idnum = '"+b+"')")
 	return f
 
 def getGradeSubject(req, idnum, subj):
@@ -300,4 +307,10 @@ def getGradeSubject(req, idnum, subj):
 	b = cgi.escape(idnum)
 	c = cgi.escape(subj)
 	f = a.eecqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
+	return f
+
+def test(req):
+	a = doSql()
+	#f = a.eecqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
+	f = 'fuck you'
 	return f
