@@ -309,7 +309,7 @@ def getGradeSubject(req, idnum, subj):
 	f = a.execqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
 	return f
 
-def setGrade(req, quiz, prelims, midterms, finals, attendance, others)
+def setGrade(req, quiz, prelims, midterms, finals, attendance, others, subjectID)
 	a = doSql()
 	b = cgi.escape(quiz)
 	c = cgi.escape(prelims)
@@ -317,4 +317,5 @@ def setGrade(req, quiz, prelims, midterms, finals, attendance, others)
 	e = cgi.escape(finals)
 	f = cgi.escape(attendance)
 	g = cgi.escape(others)
+	h = cgi.escape(subjectID)
 	#stored proc please
