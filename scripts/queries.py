@@ -306,11 +306,15 @@ def getGradeSubject(req, idnum, subj):
 	a = doSql()
 	b = cgi.escape(idnum)
 	c = cgi.escape(subj)
-	f = a.eecqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
+	f = a.execqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
 	return f
 
-def test(req):
+def setGrade(req, quiz, prelims, midterms, finals, attendance, others)
 	a = doSql()
-	#f = a.eecqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
-	f = 'fuck you'
-	return f
+	b = cgi.escape(quiz)
+	c = cgi.escape(prelims)
+	d = cgi.escape(midterms)
+	e = cgi.escape(finals)
+	f = cgi.escape(attendance)
+	g = cgi.escape(others)
+	#stored proc please
