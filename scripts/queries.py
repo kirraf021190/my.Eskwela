@@ -319,3 +319,10 @@ def setGrade(req, quiz, prelims, midterms, finals, attendance, others, subjectID
 	g = cgi.escape(others)
 	h = cgi.escape(subjectID)
 	#stored proc please
+
+def inputGrade(req, subject, testNum, score)
+	a = doSql()
+	b = cgi.escape(subject)
+	c = cgi.escape(testNum)
+	d = cgi.escape(score)
+	f = storedproc() #storedproc dari ric
