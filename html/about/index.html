@@ -9,6 +9,7 @@
 			  <script type="text/javascript" src="../../javascript/jquery/js/jquery-ui-1.8.12.custom.min.js"></script>
 			  <script type="text/javascript" src="../../javascript/apMessage.js"></script>
 			  <script type="text/javascript" src="../../javascript/glob.js"></script>
+			  <script type="text/javascript" src="../../javascript/javascriptz.js"></script>
 
 				<script type="text/javascript">
 					$(function() {
@@ -40,7 +41,7 @@
 				</script>
 	</head>
 
-	<body>
+	<body onload = "getStudentInfo()">
 
 		<div class="header">
 			<table style="width: 100%">
@@ -68,7 +69,7 @@
 						<button id="change">Change Password</button>
 								<table>
 											
-									<table class="table_teacherinfo" id="teacherInfo">
+									<table class="table_teacherinfo" id = "userinfo">
 										<tr>
 											<td rowspan="10" class="picturecell">
 												<img src="images/placeholder.png"/>
@@ -83,15 +84,11 @@
 											<td class="td_teacherinfo">&nbsp;</td>
 										</tr>
 										<tr>
-											<td id="td_teacherlabel">Course:</td>
+											<td id="td_teacherlabel">Course and Year:</td>
 											<td class="td_teacherinfo">&nbsp;</td>
 										</tr>
 										<tr>
-											<td id="td_teacherlabel">College:</td>
-											<td class="td_teacherinfo">&nbsp;</td>
-										</tr>
-										<tr>
-											<td id="td_teacherlabel">College:</td>
+											<td id="td_teacherlabel">Email</td>
 											<td class="td_teacherinfo">&nbsp;</td>
 										</tr>
 											
@@ -201,14 +198,14 @@
 										<table class="table_classlists" id="classList">
 											<tr>
 												<th id="td_code">Code</th>
-												<th id="td_section">Section</th>
-												<th id="td_desc">Description</th>
-												<th id="td_day">Day</th>
-												<th id="td_time">Time</th>
-												<th id="td_room">Room</th>
-												<th id="td_type">Type</th>
-												<th id="td_units">Units</th>
-												<th id="td_action">Action</th>
+	    <th id="td_section">Section</th>
+	    <th id="td_desc">Description</th>
+	    <th id="td_time">Schedule</th>
+	    <th id="td_room">Room</th>
+	    <th id="td_type">Type</th>
+	    <th id="td_units">Units</th>
+	    <th id="td_prof" width = 150px>Prof</th>
+	    <th id="td_action">Action</th>
 											</tr>	
 											<tr>
 												<td id="td_code">Code</td>

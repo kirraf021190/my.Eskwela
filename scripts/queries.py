@@ -18,6 +18,12 @@ def getTeacherInfo(req):
 	#session.delete() #end session
         return session['name']+"$"+session['id']+"$"+session['dept']+"$"+session['college']+"$"+f
 
+def getStudentInfo(req):
+	session = Session.Session(req)
+	a = doSql()
+	f = a.execqry("select getinfo('"+str(session['id'])+"')", False)[0][0]
+	return f
+
 def getSectionStudents(req):
 	session = Session.Session(req) 
 	a = doSql()
@@ -309,7 +315,7 @@ def getGradeSubject(req, idnum, subj):
 	f = a.execqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
 	return f
 
-def setGrade(req, quiz, prelims, midterms, finals, attendance, others, subjectID)
+def setGrade(req, quiz, prelims, midterms, finals, attendance, others, subjectID):
 	a = doSql()
 	b = cgi.escape(quiz)
 	c = cgi.escape(prelims)
@@ -318,4 +324,5 @@ def setGrade(req, quiz, prelims, midterms, finals, attendance, others, subjectID
 	f = cgi.escape(attendance)
 	g = cgi.escape(others)
 	h = cgi.escape(subjectID)
-	#stored proc please
+	x = a.execqry("SELECT setgrade('"+quiz+"','"+prelim+"', '"+midterm+"', '"+finals+"', '"+attendance+"', '"+others+"', '"+subjectID+"')", True)[0][0]
+	return x

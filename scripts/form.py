@@ -12,9 +12,11 @@ def login(req, username, pwd):
 	x = str(salt)
 	hashPass = encryptPass(x, pwd)
 	hashPass_ = cgi.escape(hashPass)
-    	f = a.execqry("select login('"+hashPass_+"', '"+username+"')", False)[0][0]
+  	f = a.execqry("select login('"+hashPass_+"', '"+username+"')", False)[0][0]
 	session = Session.Session(req)
 	if (f == 'TRUE'):
+		session['id'] = a.execqry("select getid('"+username+"')", False)[0][0]
+		session.save()
 		return "<html><body onload='location.href=\"../../html/about/index.html\"'></body></html>"
 	else:
 		session['invalid'] = salt
