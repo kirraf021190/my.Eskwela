@@ -324,5 +324,16 @@ def setGrade(req, quiz, prelims, midterms, finals, attendance, others, subjectID
 	f = cgi.escape(attendance)
 	g = cgi.escape(others)
 	h = cgi.escape(subjectID)
+<<<<<<< HEAD
 	x = a.execqry("SELECT setgrade('"+quiz+"','"+prelim+"', '"+midterm+"', '"+finals+"', '"+attendance+"', '"+others+"', '"+subjectID+"')", True)[0][0]
 	return x
+=======
+	#stored proc please
+
+def inputGrade(req, subject, testNum, score)
+	a = doSql()
+	b = cgi.escape(subject)
+	c = cgi.escape(testNum)
+	d = cgi.escape(score)
+	f = storedproc() #storedproc dari ric
+>>>>>>> c12f3beb566de0495f3b6500ae112583f7bce64a
