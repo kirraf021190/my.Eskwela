@@ -337,3 +337,10 @@ def inputGrade(req, subject, testNum, score)
 	d = cgi.escape(score)
 	f = storedproc() #storedproc dari ric
 >>>>>>> c12f3beb566de0495f3b6500ae112583f7bce64a
+
+def getAttendance(req, subject, accID)
+	a = doSql()
+	b = cgi.escape(subject)
+	c = cgi.escape(accID)
+	f = storedproc()
+	return f
