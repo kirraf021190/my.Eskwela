@@ -517,6 +517,21 @@ $_$;
 ALTER FUNCTION public.confattendance(text, text, text, boolean) OWNER TO postgres;
 
 --
+-- Name: debug(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION debug(integ integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$BEGIN
+     INSERT INTO debug values(integ);
+     return 'true';
+END;
+$$;
+
+
+ALTER FUNCTION public.debug(integ integer) OWNER TO postgres;
+
+--
 -- Name: detperiod(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -743,6 +758,24 @@ ALTER FUNCTION public.getid(username_ text) OWNER TO postgres;
 
 COMMENT ON FUNCTION getid(username_ text) IS 'Accepts username; returns userid';
 
+
+--
+-- Name: getinfo(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getinfo(userid integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+     info text;
+
+BEGIN 
+     SELECT into info fname||' '||mname||' '||lname||' '||','||id||','||courseyear||','||email from student where acctnumber = userid;
+     return info;
+
+END;$$;
+
+
+ALTER FUNCTION public.getinfo(userid integer) OWNER TO postgres;
 
 --
 -- Name: getmaxscore(text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -976,6 +1009,27 @@ $_$;
 
 
 ALTER FUNCTION public.getstuans(text, text, text, integer) OWNER TO postgres;
+
+--
+-- Name: getstudclasses(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getstudclasses(userid integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$DECLARE 
+     temp text;
+     classes text;
+
+BEGIN
+ classes = '';
+ FOR temp IN SELECT subject.subj_code || '$' || subject.section_code || '$' || subject.description || '$' || subject.schedule || '$' ||  subject.room ||  '$' || subject.type_ ||  '$' || faculty.fname || ' ' || faculty.lname FROM subject,enrolled,student,faculty WHERE subject.section_code = enrolled.section_code AND enrolled.studentid = student.id AND student.acctnumber = userid AND subject.profid = faculty.id loop
+classes = classes || temp || '@';
+end loop; 
+return classes;
+END;$_$;
+
+
+ALTER FUNCTION public.getstudclasses(userid integer) OWNER TO postgres;
 
 --
 -- Name: getstuscore(text, text, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1854,6 +1908,21 @@ COMMENT ON FUNCTION resetpass(text, text, text) IS 'Accepts username, new salt, 
 
 
 --
+-- Name: setgrade(integer, integer, integer, integer, integer, integer, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION setgrade(quiz_ integer, prelim_ integer, midterm_ integer, finals_ integer, attendance_ integer, others_ integer, subjectid_ text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$BEGIN 
+      INSERT INTO gradingsystem values(quiz_, prelim_, midterm_, finals_, attendance_, others_, subjectid_);
+      return 'true';
+
+END;$$;
+
+
+ALTER FUNCTION public.setgrade(quiz_ integer, prelim_ integer, midterm_ integer, finals_ integer, attendance_ integer, others_ integer, subjectid_ text) OWNER TO postgres;
+
+--
 -- Name: student_absence(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -2027,6 +2096,18 @@ CREATE TABLE attendance (
 ALTER TABLE public.attendance OWNER TO postgres;
 
 --
+-- Name: enrolled; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE enrolled (
+    studentid text,
+    section_code text
+);
+
+
+ALTER TABLE public.enrolled OWNER TO postgres;
+
+--
 -- Name: exam; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2041,6 +2122,40 @@ CREATE TABLE exam (
 
 
 ALTER TABLE public.exam OWNER TO postgres;
+
+--
+-- Name: faculty; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE faculty (
+    id text,
+    fname text,
+    mname text,
+    lname text,
+    department text,
+    acctnumber integer,
+    email text
+);
+
+
+ALTER TABLE public.faculty OWNER TO postgres;
+
+--
+-- Name: gradingsystem; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE gradingsystem (
+    quiz integer,
+    prelim integer,
+    midterm integer,
+    finals integer,
+    attendance integer,
+    others integer,
+    subjectid text
+);
+
+
+ALTER TABLE public.gradingsystem OWNER TO postgres;
 
 --
 -- Name: linkedaccounts; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -2114,7 +2229,8 @@ CREATE TABLE student (
     mname text,
     lname text,
     courseyear text,
-    acctnumber integer
+    acctnumber integer,
+    email text
 );
 
 
@@ -2139,7 +2255,10 @@ CREATE TABLE subject (
     type_ text DEFAULT 'Lec'::text,
     room text,
     schoolyear text,
-    schedule text
+    schedule text,
+    subj_code text,
+    description text,
+    profid text
 );
 
 
@@ -2195,7 +2314,7 @@ ALTER SEQUENCE username_userid_seq OWNED BY useraccounts.userid;
 -- Name: username_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('username_userid_seq', 10, true);
+SELECT pg_catalog.setval('username_userid_seq', 11, true);
 
 
 --
@@ -2214,10 +2333,40 @@ COPY attendance (id, section, schoolyear, time_, confirmed) FROM stdin;
 
 
 --
+-- Data for Name: enrolled; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY enrolled (studentid, section_code) FROM stdin;
+2010-7171	C2S
+2006-7532	C2S
+2010-7171	CS24
+\.
+
+
+--
 -- Data for Name: exam; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY exam (examid, schoolyear, answer, points, maxscore, isallow) FROM stdin;
+\.
+
+
+--
+-- Data for Name: faculty; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY faculty (id, fname, mname, lname, department, acctnumber, email) FROM stdin;
+123456	Gm	Root	Admin	Computer Science	1	renegade_0512@yahoo.com
+55534	five	lima	singko	IT	8	renegade_0512@yahoo.com
+\.
+
+
+--
+-- Data for Name: gradingsystem; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY gradingsystem (quiz, prelim, midterm, finals, attendance, others, subjectid) FROM stdin;
+20	20	20	20	10	10	2010-7171
 \.
 
 
@@ -2236,10 +2385,10 @@ COPY linkedaccounts (parentid, studentidnum, verified) FROM stdin;
 COPY parent (fname, mname, lname, email, acctnumber) FROM stdin;
 kalels	reyes	mom	kalel@yahoo.com	4
 johnny	the	boss	bawss@gmail.com	5
-Kevin Eric	Ridao	Siangco	shdwstrider@gmail.com	7
 test	ing	ni	renegade_0512@yahoo.com	8
 Eddie	B.	Singko	kalelreyes@gmail.com	9
 the	only	boss	renegade_0512@yahoo.com	10
+testing	this	shit	asdf@gmail.com	11
 \.
 
 
@@ -2263,7 +2412,9 @@ COPY stuanswer (id, schoolyear, examid, answer, time_, ansfrom) FROM stdin;
 -- Data for Name: student; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY student (id, fname, mname, lname, courseyear, acctnumber) FROM stdin;
+COPY student (id, fname, mname, lname, courseyear, acctnumber, email) FROM stdin;
+2010-7171	Kevin Eric	Ridao	Siangco	BSCS II	7	shdwstrider@gmail.com
+2006-7532	debug	debug	debug	BSDBG I	69	debugme@gmail.com
 \.
 
 
@@ -2271,7 +2422,9 @@ COPY student (id, fname, mname, lname, courseyear, acctnumber) FROM stdin;
 -- Data for Name: subject; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY subject (section_code, type_, room, schoolyear, schedule) FROM stdin;
+COPY subject (section_code, type_, room, schoolyear, schedule, subj_code, description, profid) FROM stdin;
+C2S	Lec	LR1	2012-2013	WF 10:30-12:00	CSC 101	Programming I	123456
+CS24	Lec	LR6	2012-2013	TTH 9:00-10:30	CSC 102	Programming II	55534
 \.
 
 
@@ -2280,6 +2433,7 @@ COPY subject (section_code, type_, room, schoolyear, schedule) FROM stdin;
 --
 
 COPY sy (schoolyear) FROM stdin;
+2012-2013
 \.
 
 
@@ -2295,6 +2449,7 @@ ascii	resetpass	testing	5
 testing	2b77c8f65dfa4630a2891b5abcfd108a	ca1512686010f3b5af97080bfb865d5ef9c90d1ac9790f34aace27cfe9b859a4f76287b740c05beb3052b3b4af21d6397194b0fffa37e6d847c47c84e7296327	8
 myAkawnt	cd82657a9a934150ab6f1775e8444e3d	a6a3e68bb03329d2a7be97a33bfc4e5b3f571a317d4d32e1827ee438ce13caf4ea5595b9fa6428381c3d7dc0461f46b1dd4de7a9b435a08ed60a0478efe8857f	9
 theboss	fa18d68c63774d86a7424bebd2b7e897	0c1a15af933dfc470cf2f92efca2cd0313c0da76e0dd0d86b441b1a117a30307be5d24fd3465b5364edae521a0b58441c1026511f6cb5cc58e022dd15a25f5eb	10
+uutest	74c4264724d5423286522f5e13c6167f	b1d2f808e0cf2f64896c009c5e89836ee851e5daea062f3c4c467e04f6b9c1b83944845b77436a3f1f050900f7857b28eb3cdaef12048e968a3e15e0f4579819	11
 \.
 
 
@@ -2355,6 +2510,14 @@ ALTER TABLE ONLY sy
 
 
 --
+-- Name: useraccounts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY useraccounts
+    ADD CONSTRAINT useraccounts_pkey PRIMARY KEY (userid);
+
+
+--
 -- Name: att_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2384,6 +2547,14 @@ ALTER TABLE ONLY attendance
 
 ALTER TABLE ONLY exam
     ADD CONSTRAINT exam_sy_fk FOREIGN KEY (schoolyear) REFERENCES sy(schoolyear) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: faculty_acctnumber_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY faculty
+    ADD CONSTRAINT faculty_acctnumber_fkey FOREIGN KEY (acctnumber) REFERENCES useraccounts(userid);
 
 
 --
