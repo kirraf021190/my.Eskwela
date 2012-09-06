@@ -25,6 +25,20 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 SET search_path = public, pg_catalog;
 
 --
+-- Name: addattend(text, text, text, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION addattend(studentid text, sec text, sy text, currtime timestamp without time zone) RETURNS text
+    LANGUAGE plpgsql
+    AS $$BEGIN
+     INSERT INTO attendance (id,section,schoolyear,time_) VALUES(studentid,sec,sy,currtime);
+     return TRUE;
+END$$;
+
+
+ALTER FUNCTION public.addattend(studentid text, sec text, sy text, currtime timestamp without time zone) OWNER TO postgres;
+
+--
 -- Name: addparent(text, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -517,6 +531,23 @@ $_$;
 ALTER FUNCTION public.confattendance(text, text, text, boolean) OWNER TO postgres;
 
 --
+-- Name: countenrolled(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION countenrolled(section text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+     rowcount integer;
+
+BEGIN
+     SELECT INTO rowcount COUNT(*) FROM enrolled WHERE section_code = section;
+     return rowcount;
+END;$$;
+
+
+ALTER FUNCTION public.countenrolled(section text) OWNER TO postgres;
+
+--
 -- Name: debug(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -573,6 +604,43 @@ $_$;
 
 
 ALTER FUNCTION public.detperiod(integer) OWNER TO postgres;
+
+--
+-- Name: getaccounttype(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getaccounttype(userid integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+     temp text;
+     type text;
+
+BEGIN
+     SELECT INTO temp * FROM student WHERE acctnumber = userid;
+     IF temp isnull then
+               SELECT INTO temp * FROM faculty WHERE acctnumber = userid;
+               IF temp isnull then
+                     return 'invalid';
+               end IF;
+               return 'faculty';
+     end IF;
+     return 'student';
+
+END;
+
+               
+     
+$$;
+
+
+ALTER FUNCTION public.getaccounttype(userid integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getaccounttype(userid integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getaccounttype(userid integer) IS 'Accepts userid; returns user type';
+
 
 --
 -- Name: getconf(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -770,12 +838,23 @@ CREATE FUNCTION getinfo(userid integer) RETURNS text
 
 BEGIN 
      SELECT into info fname||' '||mname||' '||lname||' '||','||id||','||courseyear||','||email from student where acctnumber = userid;
+          IF info isnull then
+               SELECT into info fname||' '||mname||' '||lname||' '||','||id||','||department||','||email from faculty where acctnumber = userid;
+               return info;
+          end IF;
      return info;
 
 END;$$;
 
 
 ALTER FUNCTION public.getinfo(userid integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getinfo(userid integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getinfo(userid integer) IS 'accepts user id; returns user info';
+
 
 --
 -- Name: getmaxscore(text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1019,17 +1098,32 @@ CREATE FUNCTION getstudclasses(userid integer) RETURNS text
     AS $_$DECLARE 
      temp text;
      classes text;
-
+     type text;
+     
 BEGIN
  classes = '';
+ type = getaccounttype(userid);
+IF type = 'student' then
  FOR temp IN SELECT subject.subj_code || '$' || subject.section_code || '$' || subject.description || '$' || subject.schedule || '$' ||  subject.room ||  '$' || subject.type_ ||  '$' || faculty.fname || ' ' || faculty.lname FROM subject,enrolled,student,faculty WHERE subject.section_code = enrolled.section_code AND enrolled.studentid = student.id AND student.acctnumber = userid AND subject.profid = faculty.id loop
 classes = classes || temp || '@';
 end loop; 
+ELSEIF type = 'faculty' then
+FOR temp IN SELECT subject.subj_code || '$' || subject.section_code || '$' || subject.description || '$' || subject.schedule || '$' ||  subject.room ||  '$' || subject.type_  FROM subject,faculty WHERE subject.profid = faculty.id AND faculty.acctnumber = userid loop
+classes = classes || temp || '@';
+end loop; 
+END IF;
 return classes;
 END;$_$;
 
 
 ALTER FUNCTION public.getstudclasses(userid integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getstudclasses(userid integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getstudclasses(userid integer) IS 'Accepts user id; returns student classes';
+
 
 --
 -- Name: getstuscore(text, text, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -2089,7 +2183,7 @@ CREATE TABLE attendance (
     section text NOT NULL,
     schoolyear text NOT NULL,
     time_ timestamp without time zone NOT NULL,
-    confirmed boolean
+    confirmed boolean DEFAULT false
 );
 
 
@@ -2139,6 +2233,19 @@ CREATE TABLE faculty (
 
 
 ALTER TABLE public.faculty OWNER TO postgres;
+
+--
+-- Name: grades; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE grades (
+    section_code text,
+    examid text,
+    studentid text
+);
+
+
+ALTER TABLE public.grades OWNER TO postgres;
 
 --
 -- Name: gradingsystem; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -2329,6 +2436,7 @@ ALTER TABLE ONLY useraccounts ALTER COLUMN userid SET DEFAULT nextval('username_
 --
 
 COPY attendance (id, section, schoolyear, time_, confirmed) FROM stdin;
+2010-7171	C2S	2012-2013	2012-09-05 08:01:59	f
 \.
 
 
@@ -2362,11 +2470,18 @@ COPY faculty (id, fname, mname, lname, department, acctnumber, email) FROM stdin
 
 
 --
+-- Data for Name: grades; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY grades (section_code, examid, studentid) FROM stdin;
+\.
+
+
+--
 -- Data for Name: gradingsystem; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY gradingsystem (quiz, prelim, midterm, finals, attendance, others, subjectid) FROM stdin;
-20	20	20	20	10	10	2010-7171
 \.
 
 
@@ -2459,6 +2574,14 @@ uutest	74c4264724d5423286522f5e13c6167f	b1d2f808e0cf2f64896c009c5e89836ee851e5da
 
 ALTER TABLE ONLY attendance
     ADD CONSTRAINT att_pk PRIMARY KEY (id, section, schoolyear, time_);
+
+
+--
+-- Name: exam_examid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY exam
+    ADD CONSTRAINT exam_examid_key UNIQUE (examid);
 
 
 --
@@ -2555,6 +2678,38 @@ ALTER TABLE ONLY exam
 
 ALTER TABLE ONLY faculty
     ADD CONSTRAINT faculty_acctnumber_fkey FOREIGN KEY (acctnumber) REFERENCES useraccounts(userid);
+
+
+--
+-- Name: grades_examid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grades
+    ADD CONSTRAINT grades_examid_fkey FOREIGN KEY (examid) REFERENCES exam(examid);
+
+
+--
+-- Name: grades_section_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grades
+    ADD CONSTRAINT grades_section_code_fkey FOREIGN KEY (section_code) REFERENCES subject(section_code);
+
+
+--
+-- Name: grades_studentid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grades
+    ADD CONSTRAINT grades_studentid_fkey FOREIGN KEY (studentid) REFERENCES student(id);
+
+
+--
+-- Name: gradingsystem_subjectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY gradingsystem
+    ADD CONSTRAINT gradingsystem_subjectid_fkey FOREIGN KEY (subjectid) REFERENCES subject(section_code);
 
 
 --
