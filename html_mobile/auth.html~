@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> my.Eskwela! </title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!-- We need to load everything so that para ma load daan on DOM -->
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	
+	<script type='text/javascript' src='../javascript/jquery171.js'></script>
+	<script type='text/javascript' src='../javascript/jqueryui.js'></script>
+	<script type='text/javascript' src='../javascript/jquerymobile110.js'></script>
+	<script type='text/javascript' src='../javascript/mobile.js'></script>
+	<!-- End Load  -->
+	
+</head>
+<body>
+
+	<div data-role='page' class='mainpage'> <!-- class='loginpage'> -->
+		<div data-role='content'>
+			<div id='login-image-holder' align='center'>
+				<img src='img/logo_index.png' />
+			</div><br />
+			<div id='login-field-cont'>
+				<ul data-role='listview' data-inset='true'>
+					<li>
+						<input type='text' id='login-username-fld' style='margin-bottom:1%;' placeholder='Your My.IIT Username' />
+					</li>
+					<li>
+						<input type='password' id='login-password-fld' placeholder='Password' />
+					</li>
+				</ul>
+				<div id='login-btn-container'>
+					<button id='login-btn'>Login to my.Eskwela!</button>
+				</div>
+			</div>
+					
+		</div>
+	</div>
+</body>
+</html>

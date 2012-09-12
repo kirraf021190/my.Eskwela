@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> my.Eskwela! </title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!-- We need to load everything so that para ma load daan on DOM -->
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	
+	<script type='text/javascript' src='../javascript/jquery171.js'></script>
+	<script type='text/javascript' src='../javascript/jqueryui.js'></script>
+	<script type='text/javascript' src='../javascript/jquerymobile110.js'></script>
+	<script type='text/javascript' src='../javascript/mobile.js'></script>
+	<!-- End Load  -->
+	
+</head>
+<body>
+
+	<div data-role='page' class='mainpage'>
+		<div data-role='header' data-theme='c'>
+			<a href='#' data-rel='back'>Back</a>
+			<h1> My Attendance Stats</h1>
+		</div>
+		<div data-role='content' class='ui-body ui-body-c'>
+			<div id='attendance-info-content'>
+				<h3> Course Name - Section </h3>
+				<div class='ui-grid-a'>
+					<div class='ui-block-a'>
+						<b>Description:</b>
+						Course Description of the Course
+						<br />
+						<b>Schedule:</b>
+						MWF (12:00-9:00)
+						<br />
+						<b>Instructor:</b>
+						Prof. Eddie B. Singko
+					</div>
+					<div class='ui-block-b'>
+						<b><i>Attendance Overview</i></b><br />
+						<b> Attendances: </b> 10/12 <br />
+						<b> Status: </b> Regular <br />
+						<b> Last Class Attended: </b> 09/09/11 <br />
+					</div>
+				</div>			
+			</div><br />
+			<div class='ui-grid-a'>
+				<div class='ui-block-a'>
+					<a href='#view-attendance-table' data-rel='dialog' data-role='button'> View My Attendance Table</a>
+				</div>
+				<div class='ui-block-b'>				
+					<a href='#send-records-to-email' data-rel='dialog' data-role='button'> Send Stats to Email</a>
+				</div>			
+			</div>		
+		</div>
+	</div>
+	<div id='send-records-to-email' data-role='page'>
+		<div data-role='header'>
+			<a href='#' data-role='close'></a>
+			<h1>Send my stats to email</h1>		
+		</div>
+		<div data-role='content'>
+			Your current stats has been sent to your G.MSUIIT email! (<i>kiethmark.bandiola@g.msuiit.edu.ph</i>)
+			<a href='#' data-role='button' data-rel='back'>Okay!</a>
+		</div>
+	</div>
+	
+	<script type="text/javascript" >
+		$(function(){
+			var location = _server.serverLocation + "scripts/m/get-my-attendance-stats.py",
+				 queryString = sessionStorage.getItem("query"),
+				 //Supposedly, naa pay sessionID.
+				 attendanceRequest = $.ajax({
+					url:location, data:{
+						query: queryString 
+					}
+			});
+			
+			attendanceRequest.fail(function(){
+				$.mobile.changePage('dialog_html/network-error.html', {transition:'flip', role:'dialog'});
+			});
+			
+			attendanceRequest.done(function(data){
+				$('#attendance-info-content').html(data);
+			});
+			
+			
+		});
+		</script>
+
+	
+</body>
+</html>

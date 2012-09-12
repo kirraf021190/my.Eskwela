@@ -1,0 +1,130 @@
+html{
+	background: url(../img/bg.JPG) no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+body, body h5{
+	font-family: Myriad Pro;
+}
+
+.mainpage {
+	background: url(../img/bg.JPG) no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+	
+}
+
+.loginpage{
+	background: url(../img/login_bg.JPG) no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+.ui-dialog-background {
+	opacity: 0.5;
+	display: block !important;
+	-webkit-transition: opacity 0.5s ease-in;
+}
+
+#main-app-header { margin-top:1%;}
+
+/*** Login Page Theming ***/
+
+#login-container {
+	background-color: grey;	
+}
+
+#login-button-holder h2, p{ padding:0px; margin:0px; }
+#login-button-holder .ui-block-a{ 
+	border-right: 1px #000 solid;
+	
+	margin-left:8%; width:40%; 
+}
+#login-button-holder .ui-block-b{ 
+	width:40%; margin-left:5%;
+}
+
+#login-image-holder { margin-top:25%; }
+#login-image-holder img { width:80%; }
+
+#login-button-holder p{
+	font-size:80%;	
+}
+
+#auth-main-footer p{
+	font-weight: normal;
+}
+
+#login-field-cont{ margin-top:10%; }
+
+#login-field-cont li{
+	 padding:2px 5px 5px 5px; 	
+}
+
+#login-field-cont input{
+	border:none; background:none;
+	
+	-webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+}
+
+	
+/** Main Menu Theming **/
+
+#main-menu-basic-info-cont img {
+	width:45%; border: 5px #fff solid;
+	box-shadow: 0px 0px 10px #000; 	
+}
+
+#main-menu-basic-info-cont h2 { 
+	/* border-bottom:1px #eee dotted; */
+}
+
+#main-menu-basic-info-cont #basic-info-content{
+	text-shadow: 0 1px 0 #333; color:white;
+}
+
+#main-menu-adv-info {
+	color:white; text-shadow: none; font-size:85%;
+}
+
+#main-menu-adv-info .ui-grid-a {
+	border-bottom:1px white dotted; margin-bottom:6px; padding-bottom: 3px;
+}
+
+#main-menu-adv-info .ui-grid-a .ui-block-a{
+	width:40%; font-weight: bold;
+}
+
+/* Circle-circle */
+.cirkol {
+    display: block;
+    height: 60px;
+    width: 60px;
+    background-color: white;
+    -moz-border-radius: 60px;
+    -webkit-border-radius: 60px;
+    -khtml-border-radius: 60px;
+    border-radius: 60px;
+    
+    margin-top:-35%; z-index: -20; position:absolute;
+    margin-left: 41%;
+}
+
+/** Stats Theming **/
+
+#stat-main-menu-cont{
+	margin:-6%; overflow:hidden;
+}
+
+#stat-main-menu-cont h3{
+	margin:0px; padding:5px; 
+}

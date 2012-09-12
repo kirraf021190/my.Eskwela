@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> my.Eskwela! </title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!-- We need to load everything so that para ma load daan on DOM -->
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	
+	<script type='text/javascript' src='../javascript/jquery171.js'></script>
+	<script type='text/javascript' src='../javascript/jqueryui.js'></script>
+	<script type='text/javascript' src='../javascript/jquerymobile110.js'></script>
+	<script type='text/javascript' src='../javascript/mobile.js'></script>
+	<!-- End Load  -->
+	
+</head>
+<body>
+
+	<div data-role='page' class='mainpage'>
+		<script>
+		$(function(){
+			$('#f').click(function(){
+				$.mobile.loadPage('http://localhost/eskwela.iit.edu.ph/html_mobile/fragmant1.html',{ 'pageContainer': $('#my-subjects-list') } );
+			});
+		});		
+		</script>
+		<div data-role='header' data-theme='c'>
+			<a href='#' data-rel='back'>Back</a>
+			<h1>Search for my Subjects</h1>
+		</div>
+		<div data-role='content'>
+			<div align='center'>
+			
+				<div id='my-subjects-list' data-role='content' align='center'>
+					jkfljdslkf
+				</div>
+				
+				<button id='f'>jfkdls</button>
+				
+			</div>
+		</div>
+	</div>
+</body>
+</html>

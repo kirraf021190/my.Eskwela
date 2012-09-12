@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> my.Eskwela! </title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!-- We need to load everything so that para ma load daan on DOM -->
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	
+	<script type='text/javascript' src='../javascript/jquery171.js'></script>
+	<script type='text/javascript' src='../javascript/jqueryui.js'></script>
+	<script type='text/javascript' src='../javascript/jquerymobile110.js'></script>
+	<script type='text/javascript' src='../javascript/mobile.js'></script>
+	<!-- End Load  -->
+	
+</head>
+<body>
+
+	<div data-role='page' class='mainpage'>
+		<div data-role='header' data-theme='c'>
+			<a href='#' data-rel='back'>Back</a>
+			<h1>Search for my Students</h1>
+		</div>
+		<div data-role='content'>
+			<div align='center'>
+			
+				<div id='my-child-list' align='center'>
+				
+				</div>
+				
+			</div>
+		</div>
+		
+		<script type="text/javascript" >
+		$(function(){
+			var location = _server.serverLocation + "scripts/m/get-child.py",
+				 acctID   = _sessionHandler.getAcctID(),
+				 //Supposedly, naa pay sessionID.
+				 subjectListRequest = $.ajax({
+					url:location, data:{
+						userAccountID:acctID 
+					}
+			});
+			
+			subjectListRequest.fail(function(){
+				$.mobile.changePage('dialog_html/network-error.html', {transition:'flip', role:'dialog'});
+			});
+			
+			subjectListRequest.done(function(data){
+				var ul = $(data);
+				$('#my-child-list').append(ul);
+				ul.listview();
+			});
+			
+			/** This is for Subject Picker Buttons **/
+			$('#student-subjects-list-object li a').click(function(){
+				//var subjectSectionID = $(this).attr("id");
+				//alert(subjectSectionID);
+				alert(":P");
+			});
+			
+		});
+		</script>
+	</div>
+</body>
+</html>

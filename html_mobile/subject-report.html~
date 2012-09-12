@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> my.Eskwela! </title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!-- We need to load everything so that para ma load daan on DOM -->
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	
+	<script type='text/javascript' src='../javascript/jquery171.js'></script>
+	<script type='text/javascript' src='../javascript/jqueryui.js'></script>
+	<script type='text/javascript' src='../javascript/jquerymobile110.js'></script>
+	<script type='text/javascript' src='../javascript/mobile.js'></script>
+	<script type='text/javascript' src='../javascript/jquery-easing.js'></script>
+	<!-- End Load  -->
+	
+</head>
+<body>
+
+	<div data-role='page' class='mainpage' data-theme='c'>
+		<style>
+		#basic-stat-cont {
+			margin-top:-5%; padding-bottom:5%;
+		}				
+		#basic-stat-cont .ui-grid-a{
+			font-size:90%; font-weight:normal; width:80%;
+		}
+		.ui-select{
+			width:93%;
+		}
+		</style>
+		<div data-role='header' data-theme='c' align='center'>
+			<a href='#' data-rel='back'>Back</a>
+			<img src='img/logo-head.png' id='main-app-header'/>
+		</div> 
+		<div data-role='content' >
+			<div id='content-cont'>
+			
+			</div>	
+			
+			<script type="text/javascript" >
+			$(function(){
+			/**
+				var role = "STUDENT", acct = "";
+				if (role == "STUDENT"){
+					acct = 
+				} else if (role == "PARENT"){
+				
+				}		 **/	
+				var acct = _sessionHandler.getAcctID();
+				var ssid = _queryHandler.getSubjectSectionID(),
+					 location = _server.serverLocation + "scripts/m/student-attendance-report.py",
+					 request = $.ajax({
+					 	url:location, data:{ subjSectID: ssid, acctID:acct } //, acctID:acct,  }
+				});
+				
+				request.done(function(data){
+					$('#content-cont').html(data).trigger('create');
+					
+					//$('#stats-main-info-cont').html(data);
+				});
+				
+				
+			});
+
+			</script>
+		</div>
+		<div data-role='footer' data-theme='c' data-position='fixed' data-fullscreen='false'>
+			<div style='background-color:white;height:3px;'>
+				&nbsp		
+			</div>
+			<div align='center'><span class='cirkol'></span></div>
+			<div data-role='navbar'>
+				<ul>
+					<li><a href='#' data-icon='gear'>Settings</a></li>
+					<li><a href='#' class='ui-btn-active' data-icon='grid'>Stats</a></li>
+					<li><a href='index.html' data-icon='home'>Home</a></li>
+					<li><a href='#' data-icon='info'>About</a></li>
+					<li><a href='dialog_html/logout.html' data-icon='back' data-rel='dialog'>Logout</a></li>				
+				</ul>			
+			</div>		
+		</div>
+	</div>	
+</body>
+</html>

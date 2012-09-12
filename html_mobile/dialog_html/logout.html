@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- Load CSS -->
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	<!-- End Load CSS -->
+	
+</head>
+<body id='main-body-container'>
+
+<div id='login-prompt' data-role='page'>
+		<div data-role='header' data-theme='c'>
+			<h1> Confirm Logout? </h1>		
+		</div>
+		<div data-role='content'>
+			Are you sure do you want to logout?
+			<div class='ui-grid-a'>
+					<div class='ui-block-a'>
+						<a href='Javascript:_sessionHandler.logoutAction()' data-role='button'>Yes</a>
+					</div>
+					<div class='ui-block-b'>
+						<a href='#' data-rel='back' data-role='button'>No</a>
+					</div>
+				</div>
+		</div>	
+	</div>	
+	
+	
+</body>
+</html>

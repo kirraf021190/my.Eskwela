@@ -1,0 +1,58 @@
+import pg, string
+
+def index(req):
+    string = ''
+
+    #Connect to Database
+    db = pg.connect('myEskwela', 'localhost', 5432, None, None, 'postgres', 'password')
+    
+    if (authenticate(req, db) == "TRUE"):
+         sessionID = "TEST_SESSION_ID1"
+         userID    = "2009-1625" #generate_user_id(req, db)
+         userRole  = "STUDENT"
+         
+         string = '{"status":"valid", "sessionID":"'+sessionID+'", "userID":"'+userID+'", "userRole":"'+userRole+'"}'
+    else:
+         string = '{"status":"invalid"}'
+
+    #Close DB
+    db.close()
+    return string
+
+
+def authenticate(r, d):
+    form = r.form #extracts the form data f
+    username = form['username'] #gets the POST/GET variable "username"
+    password = form['password'] #gets the POST/GET variable "password"
+
+    #Getting information for the user... TODO: Salt this...
+    queryString = "SELECT login('"+username+"', '"+password+"')"
+    query = d.query(queryString)
+    result = query.dictresult()
+
+    return result[0]['login']
+
+def generate_user_id(r, d):
+    #extract data from form
+    form = r.form
+    username = form['username']
+
+    #get userID (not the ID#)
+    queryString = "SELECT getid('"+username+"')"
+    query = d.query(queryString)
+    result = query.dictresult()
+    userID = result[0]['getid']
+
+    #Optional: For release 1
+    queryString2 = "SELECT getinfo("+str(userID)+")"
+    query2 = d.query(queryString2)
+    result2 = query2.dictresult()
+    info = result2[0]['getinfo']
+
+    infoTemp = string.split(info, ',')
+    return infoTemp[1]
+
+# TODO: generate_user_info
+    
+def generate_user_id(req, db):
+	
