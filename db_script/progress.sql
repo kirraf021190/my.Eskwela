@@ -11,2208 +11,316 @@ SET client_min_messages = warning;
 SET search_path = public, pg_catalog;
 
 --
--- Name: addattend(text, text, text, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: account_role(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION addattend(studentid text, sec text, sy text, currtime timestamp without time zone) RETURNS text
-    LANGUAGE plpgsql
-    AS $$BEGIN
-     INSERT INTO attendance (id,section,schoolyear,time_) VALUES(studentid,sec,sy,currtime);
-     return TRUE;
-END$$;
-
-
-ALTER FUNCTION public.addattend(studentid text, sec text, sy text, currtime timestamp without time zone) OWNER TO postgres;
-
---
--- Name: addparent(text, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION addparent(text, text, text, text, text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare
-
-     username_ alias for $1;
-
-     salt_ alias for $2;
-
-     hash_ alias for $3;
-
-     fname_ alias for $4;
-
-     mname_ alias for $5;
-
-     lname_ alias for $6;
-
-     email_ alias for $7;
-
-     tempnum integer;
-
-begin
-
-     INSERT INTO useraccounts VALUES(username_, salt_, hash_);
-
-     SELECT INTO  tempnum userid FROM useraccounts WHERE username = username_;
-
-     INSERT INTO parent VALUES(fname_,mname_,lname_,email_,tempnum);
-
-     return 'true';
-
-end;$_$;
-
-
-ALTER FUNCTION public.addparent(text, text, text, text, text, text, text) OWNER TO postgres;
-
---
--- Name: answer(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION answer(text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-     declare
-
-        id_ alias for $1;
-
-        exid_ alias for $2; --exam id shall be 21011 where 2 (1 - prelim, 3 - final) is midterm 101 for csc 101 and 1 for set number
-
-        ans_ alias for $3;
-
-        exans record;
-
-        score numeric;
-
-        mscore numeric;
-
-        i int;
-
-        name_ text;
-
-        skode text;
-
-        msg text;
-
-        subj text;
-
-        semid_ text;
-
-        axes boolean;
-
-        pts int;
-
-     begin
-
-         score = 0;
-
-         semid_ = getcurrsem();
-
-         select into axes isallow from exam where examid = exid_ and schoolyear = semid_;
-
-         if axes then
-
-         	if ins2ans(id_, semid_, exid_,ans_) = 'OK' then
-
-			name_ = tounistring(getname(id_));
-
-			select into skode section_code from student_load where id = id_ and schoolyear = semid_ and section_code like '%LEC';
-
-                	-- and time is in the range of subject time.. this is the case when students enrolled in >1 subjects
-
-			select into exans * from exam where schoolyear = semid_ and examid = exid_;
-
-                	mscore = exans.maxscore;
-
-         		for i in 1..length(exans.answer) loop
-
-				if substring(exans.answer,i,1) = substring(ans_,i,1) then
-
-					pts = todec(substring(exans.points,i,1));
-
-				else
-
-					pts = 0;     
-
-				end if;
-
-				score = score + pts;
-
-			end loop;
-
-                	subj = getsubject(skode, semid_);--'CSC' || substring(exid_,2,3);
-
-			perform insupsperf(id_, skode, semid_, substring(exid_, 1,1)::int,score, 1, 'EXMLEC', exans.maxscore);
-
-                	msg = name_ || E'\n' || subj || E'\n' || 'SCORE: ' || score::text || '/' || mscore::text || E'\n' ||
-
-                       	'GRADE: ' || computeGrade(id_, semid_, subj) || E'\n' ||
-
-                       	'NOTE:GRADE is not final.' || E'\nFor queries,pls. see your instructor.';
-
-         	else
-
-            		msg = 'You can submit answer only once.';
-
-         	end if;
-
-            else
-
-               msg = 'Exam is not opened for answering.';
-
-            end if; 
-
-         return msg;
-
-     end;
-
-  $_$;
-
-
-ALTER FUNCTION public.answer(text, text, text) OWNER TO postgres;
-
---
--- Name: ccard(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION ccard(text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	id_ alias for $1;
-
-  	period_ alias for $2;
-
-        perf_ record;
-
-        att_ record;
-
-        card text;
-
-        b text;
-
-  begin
-
-       card = tounistring(getname(id_)) || '\n';   
-
-       FOR perf_ in select 3 as period,  description,score, mult,maxscore from performance where detperiod(period) = period_ and schoolyear = getcurrsem() and id = id_ order by description desc LOOP
-
-              card = card || detperiod(perf_.period) || ' ' || perf_.description || ' ' || perf_.score * perf_.mult || '/' || perf_.maxscore || '\n';
-
-       END LOOP;
-
-       FOR att_ in select distinct 3 as period, 'ATND ' || getsubject(section_code, getcurrsem()) || '-' || 
-
-                substr(section_code, length(section_code) -2, 
-
-               length(section_code )) as description,my_attendance(id,getsubject(section_code, getcurrsem()),
-
-               '%' || substr(section_code, length(section_code) -2 , length(section_code ))) as score, max_attendance(getsubject(section_code, getcurrsem()),
-
-               '%' || substr(section_code, length(section_code) -2 , length(section_code ))) as maxscore from student_load where id = id_ LOOP
-
-          card = card || detperiod(att_.period) || ' ' || att_.description || ' ' || att_.score || '/' || att_.maxscore || '\n';
-
-      END LOOP;
-
-        return card;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.ccard(text, text) OWNER TO postgres;
-
---
--- Name: change_password(integer, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare
-
-    id alias for $1;
-
-    oldhash_ alias for $2;
-
-    newhash_ alias for $3;
-
-    newsalt_ alias for $4;
-
-    usr text;
-
-begin
-
-    SELECT INTO usr username FROM useraccounts WHERE userid = id and hash = oldhash_;
-
-    if usr isnull then
-
-        return 'false';
-
-    else
-
-        UPDATE useraccounts SET salt = newsalt_, hash = newhash_ WHERE username = usr;
-
-        return 'true';
-
-    end if;
-
-end;$_$;
-
-
-ALTER FUNCTION public.change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) OWNER TO postgres;
-
---
--- Name: FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION change_password(id integer, oldhashedpassword text, newhashedpassword text, newsalt text) IS 'Accepts userid, old hash, new hash, new salt';
-
-
---
--- Name: clistwithpercent(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION clistwithpercent(text, OUT text, OUT text, OUT numeric, OUT numeric, OUT numeric, OUT text) RETURNS SETOF record
-    LANGUAGE sql
-    AS $_$
-
-    select id, getname(id), sum(score * mult), 
-
-       getmaxscore($1,getcurrsem()),
-
-      (sum(score * mult) / getmaxscore($1, getcurrsem())) * 100 as d, computegrade(id, getcurrsem(), $1) from performance where 
-
-       schoolyear = getcurrsem() and
-
-       getsubject(section_code,getcurrsem()) = $1 
-
-       group by id order by d desc;
-
-$_$;
-
-
-ALTER FUNCTION public.clistwithpercent(text, OUT text, OUT text, OUT numeric, OUT numeric, OUT numeric, OUT text) OWNER TO postgres;
-
---
--- Name: clistwithpercent(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION clistwithpercent(text, text, OUT text, OUT text, OUT numeric, OUT numeric, OUT numeric, OUT text) RETURNS SETOF record
-    LANGUAGE sql
-    AS $_$
-
-    select id, getname(id), sum(score * mult), 
-
-       getmaxscore($1,$2),
-
-      (sum(score * mult) / getmaxscore($1, $2)) * 100 as d, computegrade(id, $2, $1) from performance where 
-
-       schoolyear = $2 and
-
-       getsubject(section_code,schoolyear) = $1 
-
-       group by id order by d desc;
-
-$_$;
-
-
-ALTER FUNCTION public.clistwithpercent(text, text, OUT text, OUT text, OUT numeric, OUT numeric, OUT numeric, OUT text) OWNER TO postgres;
-
---
--- Name: clistwithpercentname(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION clistwithpercentname(text, text, OUT text, OUT text, OUT numeric, OUT numeric, OUT numeric, OUT text) RETURNS SETOF record
-    LANGUAGE sql
-    AS $_$
-
-     select id, getname(id) as n, sum(score * mult), 
-
-        getmaxscore($1,$2),
-
-        (sum(score * mult) / getmaxscore($1, $2)) * 100 as d, computegrade(id, $2, $1) from performance where 
-
-        schoolyear = $2 and
-
-        getsubject(section_code,schoolyear) = $1 
-
-        group by id order by n asc;
-
-$_$;
-
-
-ALTER FUNCTION public.clistwithpercentname(text, text, OUT text, OUT text, OUT numeric, OUT numeric, OUT numeric, OUT text) OWNER TO postgres;
-
---
--- Name: computegrade(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION computegrade(text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-    declare
-
-       id_ alias for $1;
-
-       sem_ alias for $2;
-
-       subject alias for $3;
-
-       scores record;
-
-       percentage numeric;
-
-       initgrd numeric;
-
-       grd text;
-
-       mxscore numeric;
-
-    begin
-
-        select into scores sum(score * mult) as mscore 
-
-               from performance where id = id_ and schoolyear = sem_ and getsubject(section_code, sem_) = subject;
-
-        mxscore = getmaxscore(subject, sem_);
-
-        if not scores.mscore isnull then
-
-          if scores.mscore > 0 then
-
-             percentage = (scores.mscore::numeric / mxscore::numeric) * 100;
-
-             --return percentage;
-
-             if percentage >= 95 then
-
-                 initgrd = 1.0;
-
-             elsif percentage >= 90.0 and percentage <= 94.9 then
-
-                 initgrd = 1.25;
-
-             elsif percentage >= 85.0 and percentage <= 89.9 then
-
-                 initgrd = 1.5;
-
-             elsif percentage >= 80.0 and percentage <= 84.9 then
-
-                  initgrd = 1.75;
-
-             elsif percentage >= 75.0 and percentage <= 79.9 then
-
-                  initgrd = 2.00;
-
-             elsif percentage >= 70.0 and percentage <= 74.9 then
-
-                  initgrd = 2.25;
-
-             elsif percentage >= 60.0 and percentage <= 69.9 then 
-
-                  initgrd = 2.50;
-
-             elsif percentage > 50.0 and percentage <= 59.9 then
-
-                  initgrd = 2.75;
-
-             elsif percentage <= 50.0 then     
-
-                  initgrd = 3.0 + (50.0 - percentage) / 10;
-
-                  if initgrd > 5.0 then
-
-                     initgrd = 5.0;
-
-                  end if;
-
-             end if;
-
-             grd = round(initgrd,2)::text;
-
-          else
-
-               grd = '5.00';
-
-          end if;
-
-        else
-
-          grd = 'NOT FOUND!';
-
-        end if;     
-
-        return grd;
-
-    end;
-
-$_$;
-
-
-ALTER FUNCTION public.computegrade(text, text, text) OWNER TO postgres;
-
---
--- Name: computepercent(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION computepercent(text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-    declare
-
-       id_ alias for $1;
-
-       sem_ alias for $2;
-
-       subject alias for $3;
-
-       pers numeric;
-
-    begin
-
-       select into pers (sum(score * mult) / getmaxscore(subject, sem_)) * 100 
-
-          from performance where id = id_ and schoolyear = sem_ and 
-
-          getsubject(section_code, sem_) = subject; 
-
-      if pers isnull then
-
-          pers = 0.0;
-
-      end if;    
-
-      return pers;
-
-    end;
-
-$_$;
-
-
-ALTER FUNCTION public.computepercent(text, text, text) OWNER TO postgres;
-
---
--- Name: confirm_attendance(text, text, text, boolean); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION confirm_attendance(text, text, text, boolean) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$  declare
-
-  	id_ alias for $1;
-
-   	skode alias for $2;
-
-        sy_ alias for $3;
-
-        conf alias for $4;
-
-        b text;
-
-  begin
-
-        update attendance set confirmed = conf where id = id_ and schoolyear = sy_ and section_code = skode;
-
-        return;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.confirm_attendance(text, text, text, boolean) OWNER TO postgres;
-
---
--- Name: FUNCTION confirm_attendance(text, text, text, boolean); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION confirm_attendance(text, text, text, boolean) IS 'inserting entry to attendance at current school year and current time';
-
-
---
--- Name: confirm_student_attendance(text, text, boolean); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION confirm_student_attendance(student_id text, section_code_arg text, confirmation boolean) RETURNS text
-    LANGUAGE plpgsql
-    AS $$begin
-    INSERT INTO attendance (id, section_code, schoolyear, time_, confirmed) values (student_id, section_code_arg, get_current_school_year(), now(), confirmation);
-
-    return 'OK';
-
-end;$$;
-
-
-ALTER FUNCTION public.confirm_student_attendance(student_id text, section_code_arg text, confirmation boolean) OWNER TO postgres;
-
---
--- Name: countenrolled(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION countenrolled(section text) RETURNS integer
+CREATE FUNCTION account_role(account_name_arg text) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
-     rowcount integer;
-
+ role TEXT;
 BEGIN
-     SELECT INTO rowcount COUNT(*) FROM enrolled WHERE section_code = section;
-     return rowcount;
+ SELECT INTO role account_roles.role FROM account INNER JOIN account_roles ON (account.id = account_roles.account_id) WHERE account.name = account_name_arg;
+ RETURN role;
 END;$$;
 
 
-ALTER FUNCTION public.countenrolled(section text) OWNER TO postgres;
+ALTER FUNCTION public.account_role(account_name_arg text) OWNER TO postgres;
 
 --
--- Name: debug(integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: FUNCTION account_role(account_name_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION debug(integ integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $$BEGIN
+COMMENT ON FUNCTION account_role(account_name_arg text) IS 'input: account name
+returns the role of the account user';
 
-     INSERT INTO debug values(integ);
-
-     return 'true';
-
-END;
-
-$$;
-
-
-ALTER FUNCTION public.debug(integ integer) OWNER TO postgres;
 
 --
--- Name: detperiod(integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: account_role_id(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION detperiod(integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	per alias for $1;
-
-        s text;
-
-  begin
-
-        IF per = 1 THEN 
-
-     	      s = 'PLM';
-
-        ELsIF per = 2 THEN 
-
-              s = 'MTM';
-
-        ELsIF per = 3 THEN 
-
-              s = '';   
-
-        ELSE 
-
-              s = 'FIN';
-
-       END IF;
-
-        return s;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.detperiod(integer) OWNER TO postgres;
-
---
-<<<<<<< HEAD
--- Name: getaccounttype(integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getaccounttype(userid integer) RETURNS text
+CREATE FUNCTION account_role_id(account_name_arg text) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
-     temp text;
-     type text;
-
+ role_id TEXT;
 BEGIN
-     SELECT INTO temp * FROM student WHERE acctnumber = userid;
-     IF temp isnull then
-               SELECT INTO temp * FROM faculty WHERE acctnumber = userid;
-               IF temp isnull then
-                     return 'invalid';
-               end IF;
-               return 'faculty';
-     end IF;
-     return 'student';
-
-END;
-
-               
-     
-$$;
-
-
-ALTER FUNCTION public.getaccounttype(userid integer) OWNER TO postgres;
-
---
--- Name: FUNCTION getaccounttype(userid integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION getaccounttype(userid integer) IS 'Accepts userid; returns user type';
-
-
---
--- Name: getconf(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
-=======
--- Name: enroll(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
->>>>>>> c598af8518c2bae8b47985d1128957287fbcc650
---
-
-CREATE FUNCTION enroll(student_id text, section_code_arg text, school_year_arg text) RETURNS text
-    LANGUAGE plpgsql
-    AS $$BEGIN
-    INSERT INTO enrolled VALUES(student_id, section_code_arg, school_year_arg);
-    return 'OK';
-END$$;
-
-
-ALTER FUNCTION public.enroll(student_id text, section_code_arg text, school_year_arg text) OWNER TO postgres;
-
---
--- Name: get_current_school_year(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION get_current_school_year() RETURNS text
-    LANGUAGE plpgsql
-    AS $$
-  declare
-
-        b text;
-
-  begin
-
-	select into b max(schoolyear) from sy;
-
-        if b isnull then
-
-             b = 'NOT FOUND!!!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$$;
-
-
-ALTER FUNCTION public.get_current_school_year() OWNER TO postgres;
-
---
--- Name: get_current_subject(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION get_current_subject(student_id text, school_year_arg text) RETURNS SETOF text
-    LANGUAGE plpgsql
-    AS $$DECLARE
-
-sections TEXT;
-
-BEGIN
-
- FOR sections in SELECT section_code FROM enrolled WHERE studentid = student_id and school_year = school_year_arg LOOP
-
- RETURN NEXT sections;
-
-  END LOOP;
-
-  RETURN;
-
+ SELECT INTO role_id account_roles.role_id FROM account_roles INNER JOIN account ON (account_roles.account_id = account.id) WHERE account.name = account_name_arg;
+ RETURN role_id;
 END;$$;
 
 
-ALTER FUNCTION public.get_current_subject(student_id text, school_year_arg text) OWNER TO postgres;
+ALTER FUNCTION public.account_role_id(account_name_arg text) OWNER TO postgres;
 
 --
--- Name: get_faculty_name_of_faculty_id(text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: FUNCTION account_role_id(account_name_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION get_faculty_name_of_faculty_id(faculty_id text) RETURNS text
+COMMENT ON FUNCTION account_role_id(account_name_arg text) IS 'input: account name
+returns the role_id of the account user';
+
+
+--
+-- Name: current_term(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION current_term() RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
-    first_name TEXT;
-    mid_name TEXT;
-    last_name TEXT;
+ term_id_output INTEGER;
 BEGIN
-    SELECT INTO first_name, mid_name, last_name  fname, mname, lname FROM faculty WHERE id = faculty_id;
-    RETURN first_name || ' ' || mid_name || ' ' || last_name;
-
+ SELECT INTO term_id_output max(id) FROM term;
+ RETURN term_id_output;
 END;$$;
 
 
-ALTER FUNCTION public.get_faculty_name_of_faculty_id(faculty_id text) OWNER TO postgres;
+ALTER FUNCTION public.current_term() OWNER TO postgres;
 
 --
--- Name: get_subject_code_of_section_code(text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: FUNCTION current_term(); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION get_subject_code_of_section_code(section_code_arg text) RETURNS text
+COMMENT ON FUNCTION current_term() IS 'returns current terms id';
+
+
+--
+-- Name: faculty_information(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION faculty_information(faculty_id_arg text) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
-    subject_code TEXT;
-
+ first_name_output TEXT;
+ middle_name_output TEXT;
+ last_name_output TEXT;
+ department_name_output TEXT;
+ email_output TEXT;
 BEGIN
-    SELECT INTO subject_code subj_code FROM subject WHERE section_code = section_code_arg;
-    IF subject_code isnull THEN
-        return 'UNIDENTIFIED SECTION CODE';
-    ELSE
-        return subject_code;
-    END IF;
+ SELECT INTO first_name_output, middle_name_output, last_name_output, department_name_output, email_output faculty.first_name, faculty.middle_name, faculty.last_name, department.name, faculty.email FROM faculty INNER JOIN department ON (faculty.department_id = department.id) WHERE faculty.id = faculty_id_arg;
+ RETURN first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || department_name_output || '#' || email_output;
 END;$$;
 
 
-ALTER FUNCTION public.get_subject_code_of_section_code(section_code_arg text) OWNER TO postgres;
+ALTER FUNCTION public.faculty_information(faculty_id_arg text) OWNER TO postgres;
 
 --
--- Name: get_subject_information(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: FUNCTION faculty_information(faculty_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION get_subject_information(subject_code_arg text, section_code_arg text) RETURNS record
-    LANGUAGE plpgsql
-    AS $$DECLARE
-    result RECORD;
-BEGIN
-    SELECT INTO result * FROM subject WHERE subj_code = subject_code_arg and section_code = section_code_arg;
-    return result;
-END;$$;
+COMMENT ON FUNCTION faculty_information(faculty_id_arg text) IS 'input: faculty id
+returns faculty information
+ format: first name - middle name - last name - department name - email
+ delimiter: #';
 
-
-ALTER FUNCTION public.get_subject_information(subject_code_arg text, section_code_arg text) OWNER TO postgres;
-
---
--- Name: getconf(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getconf(text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	id_ alias for $1;
-
-   	skode alias for $2;
-
-        sy_ alias for $3;
-
-        b text;
-
-  begin
-
-	select into b confirmed from attendance where id = id_ and schoolyear = sy_ and section_code = skode;
-
-        if b isnull then
-
-              b = 'NOT FOUND!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getconf(text, text, text) OWNER TO postgres;
-
---
--- Name: getcourseyear(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getcourseyear(text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	id_ alias for $1;
-
-        b text;
-
-  begin
-
-	select into b courseyear from student where id = id_;
-
-        if b isnull then
-
-             b = 'NOT FOUND!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getcourseyear(text) OWNER TO postgres;
-
---
--- Name: getemail(integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getemail(userid integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $$declare 
-
-     emailadd text;
-
-begin 
-
-     SELECT INTO emailadd email FROM parent WHERE acctnumber = userid;
-
-     return emailadd;
-
-end;$$;
-
-
-ALTER FUNCTION public.getemail(userid integer) OWNER TO postgres;
-
---
--- Name: FUNCTION getemail(userid integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION getemail(userid integer) IS 'Accepts userid; returns email';
-
-
---
--- Name: getexamanswer(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getexamanswer(text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-       exid alias for $1;
-
-       sy_ alias for $2;
-
-       res text;
-
-  begin
-
-       select into res answer || ',' || points from exam where examid = exid and schoolyear = sy_;
-
-       if res isnull then
-
-          raise exception 'EXAM ID is NOT FOUND!!!';
-
-       end if;
-
-       return res;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getexamanswer(text, text) OWNER TO postgres;
-
---
--- Name: getid(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getid(username_ text) RETURNS integer
-    LANGUAGE plpgsql
-    AS $$declare
-
-     userid_ integer;
-
-begin
-
-     SELECT INTO userid_ userid FROM useraccounts WHERE username = username_;
-
-     return userid_;
-
-end;$$;
-
-
-ALTER FUNCTION public.getid(username_ text) OWNER TO postgres;
-
---
--- Name: FUNCTION getid(username_ text); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION getid(username_ text) IS 'Accepts username; returns userid';
-
-
---
--- Name: getinfo(integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getinfo(userid integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $$DECLARE
-
-     info text;
-
-BEGIN 
-
-     SELECT into info fname||' '||mname||' '||lname||' '||','||id||','||courseyear||','||email from student where acctnumber = userid;
-<<<<<<< HEAD
-          IF info isnull then
-               SELECT into info fname||' '||mname||' '||lname||' '||','||id||','||department||','||email from faculty where acctnumber = userid;
-               return info;
-          end IF;
-=======
-
->>>>>>> c598af8518c2bae8b47985d1128957287fbcc650
-     return info;
-
-END;$$;
-
-
-ALTER FUNCTION public.getinfo(userid integer) OWNER TO postgres;
-
---
--- Name: FUNCTION getinfo(userid integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION getinfo(userid integer) IS 'accepts user id; returns user info';
-
-
---
--- Name: getmaxscore(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getmaxscore(text, text) RETURNS numeric
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-     subj_ alias for $1;
-
-     sy_ alias for $2;
-
-     s record;
-
-  begin
-
-     select into s id, sum(maxscore) as d   from performance where getsubject(section_code, sy_) = subj_ and 
-
-         schoolyear = sy_ group by id order by d desc limit 1;
-
-     return s.d;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getmaxscore(text, text) OWNER TO postgres;
-
---
--- Name: getname(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getname(text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	id_ alias for $1;
-
-        b text;
-
-  begin
-
-	select into b name_ from student where id = id_;
-
-        if b isnull then
-
-             b = 'NOT FOUND!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getname(text) OWNER TO postgres;
-
---
--- Name: getroom(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getroom(text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	skode alias for $1;
-
-        sy alias for $2;
-
-        b text;
-
-  begin
-
-	select into b room from subject where section_code = skode and schoolyear = sy;
-
-        if b isnull then
-
-             b = 'NOT FOUND!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getroom(text, text) OWNER TO postgres;
-
---
--- Name: getsalt(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getsalt(text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare 
-
-     username_ alias for $1;
-
-     salt_ text;
-
-begin 
-
-     SELECT INTO salt_ salt from useraccounts where username = username_;
-
-return salt_;
-
-end;$_$;
-
-
-ALTER FUNCTION public.getsalt(text) OWNER TO postgres;
-
---
--- Name: FUNCTION getsalt(text); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION getsalt(text) IS 'Accepts username; returns salt';
-
-
---
--- Name: getsaltbyid(integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getsaltbyid(integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare 
-
-     id_ alias for $1;
-
-     salt_ text;
-
-begin 
-
-     SELECT INTO salt_ salt from useraccounts where userid = id_;
-
-return salt_;
-
-end$_$;
-
-
-ALTER FUNCTION public.getsaltbyid(integer) OWNER TO postgres;
-
---
--- Name: FUNCTION getsaltbyid(integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION getsaltbyid(integer) IS 'Accepts userid; returns salt';
-
-
---
--- Name: getschedule(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getschedule(text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	skode alias for $1;
-
-        sy alias for $2;
-
-        b text;
-
-  begin
-
-	select into b schedule from subject where section_code = skode and schoolyear = sy;
-
-        if b isnull then
-
-             b = 'NOT FOUND!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getschedule(text, text) OWNER TO postgres;
-
---
--- Name: getstuans(text, text, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getstuans(text, text, text, integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-   declare
-
-      id_ alias for $1;
-
-      exid alias for $2;
-
-      sy_ alias for $3;
-
-      src alias for $4;
-
-      ans text;
-
-   begin 
-
-      select into ans answer from stuanswer where id = id_ and schoolyear = sy_ and examid = exid and ansfrom = src;
-
-      if ans isnull then
-
-          ans = '';
-
-      end if;
-
-      return ans;
-
-   end;
-
-$_$;
-
-
-ALTER FUNCTION public.getstuans(text, text, text, integer) OWNER TO postgres;
-
---
--- Name: getstudclasses(integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getstudclasses(userid integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$DECLARE 
-
-     temp text;
-
-     classes text;
-     type text;
-     
-BEGIN
-
- classes = '';
-<<<<<<< HEAD
- type = getaccounttype(userid);
-IF type = 'student' then
-=======
-
->>>>>>> c598af8518c2bae8b47985d1128957287fbcc650
- FOR temp IN SELECT subject.subj_code || '$' || subject.section_code || '$' || subject.description || '$' || subject.schedule || '$' ||  subject.room ||  '$' || subject.type_ ||  '$' || faculty.fname || ' ' || faculty.lname FROM subject,enrolled,student,faculty WHERE subject.section_code = enrolled.section_code AND enrolled.studentid = student.id AND student.acctnumber = userid AND subject.profid = faculty.id loop
-
-classes = classes || temp || '@';
-
-end loop; 
-<<<<<<< HEAD
-ELSEIF type = 'faculty' then
-FOR temp IN SELECT subject.subj_code || '$' || subject.section_code || '$' || subject.description || '$' || subject.schedule || '$' ||  subject.room ||  '$' || subject.type_  FROM subject,faculty WHERE subject.profid = faculty.id AND faculty.acctnumber = userid loop
-classes = classes || temp || '@';
-end loop; 
-END IF;
-=======
-
->>>>>>> c598af8518c2bae8b47985d1128957287fbcc650
-return classes;
-
-END;$_$;
-
-
-ALTER FUNCTION public.getstudclasses(userid integer) OWNER TO postgres;
-
---
--- Name: FUNCTION getstudclasses(userid integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION getstudclasses(userid integer) IS 'Accepts user id; returns student classes';
-
-
---
--- Name: getstuscore(text, text, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getstuscore(text, text, text, integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-     id_ alias for $1;
-
-     skod alias for $2;
-
-     sy_ alias for $3;
-
-     prd alias for $4;
-
-     sc text;
-
-  begin
-
-     select into sc score::text || '/' || maxscore from performance where id = id_ and section_code = skod and schoolyear = sy_ and period = prd and mult = 1 and description like '%X%';
-
-      if sc isnull then
-
-         sc = '0/0';
-
-      end if;
-
-      return sc;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getstuscore(text, text, text, integer) OWNER TO postgres;
-
---
--- Name: getsubject(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getsubject(text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	skode alias for $1;
-
-        sy alias for $2;
-
-        b text;
-
-  begin
-
-	select into b type_ from subject where section_code = skode and schoolyear = sy;
-
-        if b isnull then
-
-             b = 'NOT FOUND!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getsubject(text, text) OWNER TO postgres;
-
---
--- Name: getsy(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION getsy(text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	sy_ alias for $1;
-
-        b text;
-
-  begin
-
-	select into b schoolyear from sy where schoolyear = sy_;
-
-        if b isnull then
-
-             b = 'NOT FOUND!!!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.getsy(text) OWNER TO postgres;
-
---
--- Name: gettype(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION gettype(text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	skode alias for $1;
-
-        sy alias for $2;
-
-        b text;
-
-  begin
-
-	select into b type_ from subject where section_code = skode and schoolyear = sy;
-
-        if b isnull then
-
-             b = 'NOT FOUND!';
-
-        end if;
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.gettype(text, text) OWNER TO postgres;
-
---
--- Name: ins2ans(text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION ins2ans(text, text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-   declare
-
-      id_ alias for $1;
-
-      sy_ alias for $2;
-
-      exid_ alias for $3;
-
-      ans_ alias for $4;
-
-      b text;
-
-   begin
-
-      select into b id from stuanswer where id = id_ and schoolyear = sy_ and examid = exid_;
-
-      if b isnull then
-
-          b = 'OK';
-
-          insert into stuanswer(id, schoolyear, examid, answer, time_) values (id_, sy_, exid_, ans_, now());
-
-      else
-
-          b = 'DEN';
-
-      end if;
-
-      return b;
-
-   end;
-
-$_$;
-
-
-ALTER FUNCTION public.ins2ans(text, text, text, text) OWNER TO postgres;
-
---
--- Name: ins2ans2(text, text, text, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION ins2ans2(text, text, text, text, integer) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-
-   declare
-
-      id_ alias for $1;
-
-      sy_ alias for $2;
-
-      exid_ alias for $3;
-
-      ans_ alias for $4;
-
-      src_ alias for $5;
-
-      b text;
-
-   begin
-
-      select into b id from stuanswer where id = id_ and schoolyear = sy_ and examid = exid_ and ansfrom = src_;
-
-      if b isnull then
-
-          insert into stuanswer(id, schoolyear, examid, answer, time_, ansfrom) values (id_, sy_, exid_, ans_, now(), src_);
-
-      else
-
-          update stuanswer set answer = ans_ where id = id_ and schoolyear = sy_ and examid = exid_ and ansfrom = src_;
-
-      end if;
-
-   end;
-
-$_$;
-
-
-ALTER FUNCTION public.ins2ans2(text, text, text, text, integer) OWNER TO postgres;
-
---
--- Name: insupattendance(text, text, text, timestamp without time zone, boolean); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION insupattendance(text, text, text, timestamp without time zone, boolean) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	id_ alias for $1;
-
-   	skode alias for $2;
-
-        sy_ alias for $3;
-
-        tym alias for $4;
-
-        conf alias for $5;
-
-        b text;
-
-  begin
-
-	select into b section_code from attendance where id = id_ and schoolyear = sy_ and section_code = skode and time_::date = tym::date;
-
-        if b isnull then
-
-             insert into attendance (id, section_code, schoolyear, time_, confirmed) values (id_, skode, sy_, tym, conf);
-
-        else
-
-             update attendance set time_ = tym, confirmed = conf where id = id_ and schoolyear = sy_ and section_code = skode and time_::date = tym::date;
-
-        end if;
-
-        return 'OK';
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.insupattendance(text, text, text, timestamp without time zone, boolean) OWNER TO postgres;
-
---
--- Name: insupexam(text, text, text, text, numeric); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION insupexam(text, text, text, text, numeric) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-      ex_ alias for $1; -- exam id shall be 21011 where 2 (1 - prelim, 3 - final) is midterm 101 for csc 101 and 1 for set number
-
-      sy_ alias for $2;
-
-      ans_ alias for $3; -- a1a2a3....an
-
-      pts_ alias for $4; -- p1p2p3....pn
-
-      mscore alias for $5;
-
-      b text;
-
-  begin
-
-      select into b ex_ from exam where examid = ex_ and schoolyear = sy_;
-
-      if b isnull then
-
-         insert into exam (examid, schoolyear, answer, points, maxscore) values (ex_, sy_, ans_, pts_,mscore);
-
-      else
-
-         update exam set answer = ans_, points = pts_, maxscore = mscore where examid = ex_ and schoolyear = sy_;
-
-      end if;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.insupexam(text, text, text, text, numeric) OWNER TO postgres;
-
---
--- Name: insups2dent(text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION insups2dent(text, text) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	id_ alias for $1;
-
-   	mname_ alias for $2;
-
-        b text;
-
-  begin
-
-	select into b id from student where id = id_;
-
-        if b isnull then
-
-             insert into student(id, name_) values (id_, mname_);
-
-        else
-
-             update student set name_ = mname_ where id = id_;
-
-        end if;
-
-        return;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.insups2dent(text, text) OWNER TO postgres;
-
---
--- Name: insupsperf(text, text, text, integer, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION insupsperf(text, text, text, integer, numeric, numeric, text, numeric) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	id_ alias for $1;
-
-   	scode_ alias for $2;
-
-        sy_ alias for $3;
-
-        peryod_ alias for $4;
-
-        skor_ alias for $5;
-
-        sign_ alias for $6;
-
-        desc_ alias for $7;
-
-        mscore_ alias for $8;
-
-        b text;
-
-  begin
-
-	select into b id from performance where id = id_ and section_code = scode_ and schoolyear = sy_ and period = peryod_ and description = desc_;
-
-        if b isnull then
-
-             insert into performance(id, section_code, schoolyear, period, score, mult, description, maxscore) values (id_, scode_, sy_, peryod_, skor_, sign_, desc_, mscore_);
-
-        else
-
-             update performance set maxscore = mscore_, score = skor_, mult = sign_  where description = desc_ and id = id_ and section_code = scode_ and schoolyear = sy_ and period = peryod_;
-
-        end if;
-
-        return;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.insupsperf(text, text, text, integer, numeric, numeric, text, numeric) OWNER TO postgres;
-
---
--- Name: insupsubject(text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION insupsubject(text, text, text, text, text) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	skode alias for $1;
-
-   	typ alias for $2;
-
-        rm alias for $3;
-
-        sy alias for $4;
-
-        sked alias for $5;
-
-        b text;
-
-  begin
-
-	select into b section_code from subject where section_code = skode and schoolyear = sy;
-
-        if b isnull then
-
-             insert into subject(section_code, type_, room, schoolyear, schedule) values (skode, typ, rm, sy, sked);
-
-        else
-
-             update subject set type_ = typ, room = rm, schedule = sked where section_code = skode and schoolyear = sy;
-
-        end if;
-
-        return;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.insupsubject(text, text, text, text, text) OWNER TO postgres;
-
---
--- Name: insupsy(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION insupsy(text) RETURNS void
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	sy_ alias for $1;
-
-        b text;
-
-  begin
-
-	select into b schoolyear from sy where schoolyear = sy_;
-
-        if b isnull then
-
-             insert into sy (schoolyear) values (sy_);
-
-        else
-
-             update sy set schoolyear = sy_ where schedue = sy_;
-
-        end if;
-
-        return;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.insupsy(text) OWNER TO postgres;
 
 --
 -- Name: login(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION login(text, text) RETURNS text
+CREATE FUNCTION login(name_arg text, password_arg text) RETURNS text
     LANGUAGE plpgsql
-    AS $_$declare
-
-     hash_ alias for $1;
-
-     username_ alias for $2;
-
-     num_ text;
-
-begin
-
-    SELECT INTO num_ userid FROM useraccounts WHERE username = username_ AND hash = hash_;
-
-    if num_ isnull then
-
-       return 'FALSE';
-
-    else
-
-       return 'TRUE';
-
-    end if;
-
-end;$_$;
+    AS $$DECLARE
+ result TEXT;
+BEGIN
+ SELECT INTO result id FROM account WHERE name = name_arg and password = password_arg;
+ IF result ISNULL THEN
+  RETURN 'FALSE';
+ ELSE
+  RETURN 'TRUE';
+ END IF;
+END;$$;
 
 
-ALTER FUNCTION public.login(text, text) OWNER TO postgres;
+ALTER FUNCTION public.login(name_arg text, password_arg text) OWNER TO postgres;
 
 --
--- Name: FUNCTION login(text, text); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: FUNCTION login(name_arg text, password_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION login(text, text) IS 'Accepts hash, username';
+COMMENT ON FUNCTION login(name_arg text, password_arg text) IS 'input: account, password
+returns: string TRUE if successful, FALSE otherwise';
 
 
 --
--- Name: max_attendance(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: section_faculty(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION max_attendance(text, text) RETURNS text
+CREATE FUNCTION section_faculty(section_id_arg integer) RETURNS text
     LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	subj_ alias for $1;
-
-   	typ_ alias for $2;
-
-        b numeric;
-
-  begin
-
-           select into b max(my_attendance(id, subj_, typ_)::numeric) from attendance 
-
-           where section_code like typ_;
-
-        --select into b count(*) as c from attendance where section_code in
-
-        --          (select section_code from subject where type_ = subj_ and
-
-         --          schoolyear = getcurrsem() and section_code like typ_) 
-
-         --          group by id order by c desc limit 1;
-
-        return b::text;
-
-  end;
-
-$_$;
+    AS $$DECLARE
+ faculty_id_output TEXT;
+BEGIN
+ SELECT INTO faculty_id_output faculty_id FROM assignation WHERE section_id = section_id_arg;
+ IF faculty_id_output ISNULL THEN
+  RETURN 'NOT FOUND';
+ ELSE
+  RETURN faculty_id_output;
+ END IF;
+END;$$;
 
 
-ALTER FUNCTION public.max_attendance(text, text) OWNER TO postgres;
+ALTER FUNCTION public.section_faculty(section_id_arg integer) OWNER TO postgres;
 
 --
--- Name: max_attendance(text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: FUNCTION section_faculty(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION max_attendance(text, text, text, text) RETURNS text
+COMMENT ON FUNCTION section_faculty(section_id_arg integer) IS 'input: section id
+returns id of the faculty assigned to the section.';
+
+
+--
+-- Name: section_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION section_information(section_id_arg integer) RETURNS text
     LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-  	subj_ alias for $1;
-
-   	typ_ alias for $2;
-
-   	id_ alias for $3;
-
-   	sem_ alias for $4;
-
-        myclassmate record;
-
-  begin
-
-       --subj = getsubject(mycodes.section_code, getcurrsem());
-
-       select into myclassmate id, my_attendance(id, subj_, typ_, sem_)::numeric as b from 
-
-                 attendance where schoolyear = sem_ and section_code = typ_ and time_::date in
-
-                         (select time_::date from attendance where id = id_ 
-
-                              and section_code = typ_) order by b desc limit 1;
-
-         --   select into b max(my_attendance(id, subj_, typ_)::numeric) from attendance 
-
-        --   where section_code like typ_;
-
-        --select into b count(*) as c from attendance where section_code in
-
-        --          (select section_code from subject where type_ = subj_ and
-
-         --          schoolyear = getcurrsem() and section_code like typ_) 
-
-         --          group by id order by c desc limit 1;
-
-        return myclassmate.b::text;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.max_attendance(text, text, text, text) OWNER TO postgres;
-
---
--- Name: my_attendance(text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION my_attendance(text, text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-        id_ alias for $1;
-
-  	subj_ alias for $2;
-
-   	typ_ alias for $3;
-
-   	sem_ alias for $4;
-
-        b int;
-
-  begin
-
-        select into b count(*) as c from attendance where id = id_ and 
-
-                  section_code in
-
-                  (select section_code from subject where type_ = subj_ and
-
-                   schoolyear = sem_ and section_code like typ_);
-
-        return b;
-
-  end;
-
-$_$;
-
-
-ALTER FUNCTION public.my_attendance(text, text, text, text) OWNER TO postgres;
-
---
--- Name: myabsences(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION myabsences(text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-  declare
-
-     id_ alias for $1;
-
-     abs text;
-
-     subj text;
-
-     absence record;
-
-     mycodes record;
-
-     def text;
-
-     myclassmate record;
-
-  begin
-
-     abs = ''; 
-
-     def = 'none'; 
-
-     for mycodes in select distinct section_code from attendance where id = id_ and schoolyear = getcurrsem() order by section_code asc loop
-
-       subj = getsubject(mycodes.section_code, getcurrsem());
-
-       abs = abs || mycodes.section_code || '     ';
-
-       select into myclassmate id, my_attendance(id, subj, mycodes.section_code)::numeric as b from 
-
-                 attendance where section_code = mycodes.section_code and time_::date in
-
-                         (select time_::date from attendance where id = id_ 
-
-                              and section_code = mycodes.section_code) order by b desc limit 1;
-
-       --abs = abs || myclassmate.id || E'\n';
-
-       for absence in select time_::date as deyt from attendance where 
-
-            schoolyear = getcurrsem() and section_code = mycodes.section_code 
-
-               and id = myclassmate.id 
-
-                     and time_::date not in 
-
-                           (select time_::date from attendance where 
-
-                               id = id_ and section_code = mycodes.section_code) 
-
-                                 order by deyt asc loop
-
-                     abs = abs || absence.deyt || ', '; --'\n                            ';
-
-                     def = '';
-
-         end loop;
-
-             if def = 'none' then
-
-                 abs = abs || def;
-
-             end if;
-
-             abs = abs || E'\n';
-
-             def = 'none';
-
-      end loop;
-
-      return abs;    
-
-   end;
-
-$_$;
-
-
-ALTER FUNCTION public.myabsences(text) OWNER TO postgres;
-
---
--- Name: mygrade(text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION mygrade(text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$
-
-   declare
-
-      id_ alias for $1;
-
-      stugrade record;
-
-      grdinfo text;
-
-   begin
-
-      grdinfo = tounistring(getname(id_)) || E'\n';
-
-      for stugrade in select  distinct getsubject(section_code,schoolyear) as subj, 
-
-         computegrade(id, getcurrsem(), getsubject(section_code,schoolyear)) as grd from
-
-         performance where id = id_ and schoolyear = getcurrsem() loop
-
-            grdinfo = grdinfo || stugrade.subj || '      ' || stugrade.grd || E'\n';
-
-      end loop;
-
-      grdinfo = grdinfo || 'NOTE:This is not final.' || E'\nFor clarification, please see your instructor.';
-
-      return grdinfo;
-
-   end;
-
-$_$;
-
-
-ALTER FUNCTION public.mygrade(text) OWNER TO postgres;
-
---
--- Name: requestlink(integer, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION requestlink(parentid integer, studentidnum text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare
-
-     parentid_ alias for $1;
-
-     studentidnum_ alias for $2;
-
-     userexist text;
-
-begin
-
-     SELECT INTO userexist id FROM student WHERE id = studentidnum_;
-
-     if userexist isnull then
-
-          return 'false';
-
-     else
-
-          INSERT INTO linkedaccounts values (parentid_,studentidnum_,'false');
-
-          return 'true';
-
-     end if;
-
-end;$_$;
-
-
-ALTER FUNCTION public.requestlink(parentid integer, studentidnum text) OWNER TO postgres;
-
---
--- Name: FUNCTION requestlink(parentid integer, studentidnum text); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION requestlink(parentid integer, studentidnum text) IS 'Accepts parent userid, student idnum';
-
-
---
--- Name: resetpass(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION resetpass(text, text, text) RETURNS text
-    LANGUAGE plpgsql
-    AS $_$declare
-
-    username_ alias for $1;
-
-    newsalt_ alias for $2;
-
-    newhash_ alias for $3;
-
-    usr text;
-
-begin
-
-    SELECT INTO usr username FROM useraccounts WHERE username = username_;
-
-    if usr isnull then
-
-        return 'false';
-
-    else
-
-        UPDATE useraccounts SET salt = newsalt_, hash = newhash_ WHERE username = usr;
-
-        return 'true';
-
-    end if;
-
-end;$_$;
-
-
-ALTER FUNCTION public.resetpass(text, text, text) OWNER TO postgres;
-
---
--- Name: FUNCTION resetpass(text, text, text); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION resetpass(text, text, text) IS 'Accepts username, new salt, new hash';
-
-
---
--- Name: setgrade(integer, integer, integer, integer, integer, integer, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION setgrade(quiz_ integer, prelim_ integer, midterm_ integer, finals_ integer, attendance_ integer, others_ integer, subjectid_ text) RETURNS text
-    LANGUAGE plpgsql
-    AS $$BEGIN 
-
-      INSERT INTO gradingsystem values(quiz_, prelim_, midterm_, finals_, attendance_, others_, subjectid_);
-
-      return 'true';
+    AS $$DECLARE
+ section_name_output TEXT;
+ subject_type_output TEXT;
+ section_time_output TEXT;
+ section_day_output TEXT;
+ room_name_output TEXT;
+ subject_name_output TEXT;
+ subject_unit_output TEXT;
+ subject_description_output TEXT;
+
+BEGIN
+ SELECT INTO section_name_output, subject_name_output, subject_type_output, subject_description_output, section_time_output, section_day_output, room_name_output, subject_unit_output section.name, subject.name, subject.type, subject.description, section.time, section.day, room.name, subject.units FROM section INNER JOIN room ON (section.room_id = room.id) INNER JOIN subject ON (section.subject_id = subject.id) WHERE section.id = section_id_arg;
+
+ RETURN subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || '#' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output;
 
 END;$$;
 
 
-ALTER FUNCTION public.setgrade(quiz_ integer, prelim_ integer, midterm_ integer, finals_ integer, attendance_ integer, others_ integer, subjectid_ text) OWNER TO postgres;
+ALTER FUNCTION public.section_information(section_id_arg integer) OWNER TO postgres;
 
 --
--- Name: student_absence(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: FUNCTION section_information(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION student_absence(student_id text, section_code_arg text, school_year text) RETURNS SETOF timestamp without time zone
+COMMENT ON FUNCTION section_information(section_id_arg integer) IS 'returns section information;
+ format: subject code - section code - subject description - section day - section time - section room - subject units - subject type
+ delimiter: #';
+
+
+--
+-- Name: student_absence_count(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
-
- stamps TIMESTAMP;	
-
-BEGIN	
-
-FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section_code = section_code_arg and schoolyear = school_year and confirmed = false LOOP
-
-RETURN NEXT stamps;
-
-END LOOP;
-
- RETURN;
-
+ count INTEGER;
+BEGIN
+ SELECT INTO count count(*) FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = false;
+ RETURN count;
 END;$$;
 
 
-ALTER FUNCTION public.student_absence(student_id text, section_code_arg text, school_year text) OWNER TO postgres;
+ALTER FUNCTION public.student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) OWNER TO postgres;
 
 --
--- Name: FUNCTION student_absence(student_id text, section_code_arg text, school_year text); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION student_absence(student_id text, section_code_arg text, school_year text) IS 'getting all absences of a student';
+COMMENT ON FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, section id, term id
+returns absence count of student on section in term';
 
 
 --
--- Name: student_attendance(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: student_attendance_count(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION student_attendance(student_id text, section_code_arg text, school_year text) RETURNS SETOF timestamp without time zone
+CREATE FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ count INTEGER;
+BEGIN
+ SELECT INTO count count(*) FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = true;
+ RETURN count;
+END;$$;
+
+
+ALTER FUNCTION public.student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, section id, term id
+returns attendance count of student on section in term';
+
+
+--
+-- Name: student_information(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_information(student_id_arg text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ first_name_output TEXT;
+ middle_name_output TEXT;
+ last_name_output TEXT;
+ course_name_output TEXT;
+ course_code_output TEXT;
+ year_output INTEGER;
+ email_output TEXT;
+BEGIN
+ SELECT INTO first_name_output, middle_name_output, last_name_output, course_name_output,  course_code_output, year_output, email_output student.first_name, student.middle_name, student.last_name, course.name, course.code, student.year, student.email FROM student INNER JOIN course ON (student.course_id = course.id) WHERE student.id = student_id_arg;
+ RETURN first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output;
+END;$$;
+
+
+ALTER FUNCTION public.student_information(student_id_arg text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_information(student_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_information(student_id_arg text) IS 'input: student id
+returns student information
+ format: first name - middle name - last name - course - year - email
+ delimiter: #';
+
+
+--
+-- Name: student_last_attended(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_last_attended(student_id_arg text, section_id_arg integer, term_id_arg integer) RETURNS timestamp without time zone
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ stamp TIMESTAMP;
+BEGIN
+ SELECT INTO stamp max(time) FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg;
+ RETURN stamp;
+END;$$;
+
+
+ALTER FUNCTION public.student_last_attended(student_id_arg text, section_id_arg integer, term_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_last_attended(student_id_arg text, section_id_arg integer, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_last_attended(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, section id, term id
+returns last attendance timestamp';
+
+
+--
+-- Name: student_load(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_load(student_id_arg text, term_id_arg integer) RETURNS SETOF integer
     LANGUAGE plpgsql
     AS $$DECLARE
 
-stamps TIMESTAMP;	
+sections INTEGER;
 
 BEGIN
 
- FOR stamps in SELECT time_ FROM attendance WHERE id = student_id and section_code = section_code_arg and schoolyear = school_year and confirmed = true LOOP	
+ FOR sections in SELECT section_id FROM enroll WHERE student_id = student_id_arg and term_id = term_id_arg LOOP	
 
- RETURN NEXT stamps;	
+ RETURN NEXT sections;	
 
   END LOOP;
 
@@ -2221,364 +329,137 @@ BEGIN
 END;$$;
 
 
-ALTER FUNCTION public.student_attendance(student_id text, section_code_arg text, school_year text) OWNER TO postgres;
+ALTER FUNCTION public.student_load(student_id_arg text, term_id_arg integer) OWNER TO postgres;
 
 --
--- Name: FUNCTION student_attendance(student_id text, section_code_arg text, school_year text); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: FUNCTION student_load(student_id_arg text, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION student_attendance(student_id text, section_code_arg text, school_year text) IS 'getting all attendance';
+COMMENT ON FUNCTION student_load(student_id_arg text, term_id_arg integer) IS 'input: student id, term id
+returns a set of section id''s';
 
 
 --
--- Name: todec(text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: student_sessions_absented(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION todec(text) RETURNS integer
+CREATE FUNCTION student_sessions_absented(student_id_arg text, section_id_arg integer, term_id_arg integer) RETURNS SETOF timestamp without time zone
     LANGUAGE plpgsql
-    AS $_$
+    AS $$DECLARE
 
-   DECLARE
+stamps TIMESTAMP;
 
-      n alias for $1;
+BEGIN
 
-      h int;
+ FOR stamps in SELECT time FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = false LOOP
 
-   BEGIn
+ RETURN NEXT stamps;
 
-   	If n = 'A' Then
+  END LOOP;
 
-     		h = 10;
+  RETURN;
 
-   	end if; 
-
-        If n = 'B' Then
-
-     		h = 11;
-
-   	end if; 
-
-        If n = 'C' Then
-
-     		h = 12;
-
-   	end if; 
-
-        If n = 'D' Then
-
-     		h = 13;
-
-	end if;
-
-	If n = 'E' Then
-
-     		h = 14;
-
-        end if;
-
-	If n = 'F' Then
-
-     		h = 15;
-
-   	end if;
-
-   	IF n = 'O' then
-
-   	        h = 0;
-
-   	end if;
-
-        if not (n = 'A' or n = 'B' or n = 'C' or n = 'D' or n = 'E' or n = 'F' or n = 'O') then
-
-     		h = to_number(n, '99');
-
-   	End If;
-
-  	return h;
-
-    End;
-
-$_$;
+END;$$;
 
 
-ALTER FUNCTION public.todec(text) OWNER TO postgres;
+ALTER FUNCTION public.student_sessions_absented(student_id_arg text, section_id_arg integer, term_id_arg integer) OWNER TO postgres;
 
 --
--- Name: tounistring(text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: student_sessions_attended(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION tounistring(text) RETURNS text
+CREATE FUNCTION student_sessions_attended(student_id_arg text, section_id_arg integer, term_id_arg integer) RETURNS SETOF timestamp without time zone
     LANGUAGE plpgsql
-    AS $_$
+    AS $$DECLARE
 
-  declare
+stamps TIMESTAMP;
 
-  	str_ alias for $1;
+BEGIN
 
-  	c text;
+ FOR stamps in SELECT time FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = true LOOP
 
-        b text;
+ RETURN NEXT stamps;
 
-  begin
+  END LOOP;
 
-        b = '';
+  RETURN;
 
-        For i in 1..Length(str_) loop
-
-            c = substring(str_,i,1);
-
-   	    if c = 'ñ' then
-
-   	       b = b || '~';
-
-            else 
-
-               b = b || c;
-
-   	    end if;
-
-	end loop;
-
-        return b;
-
-  end;
-
-$_$;
+END;$$;
 
 
-ALTER FUNCTION public.tounistring(text) OWNER TO postgres;
+ALTER FUNCTION public.student_sessions_attended(student_id_arg text, section_id_arg integer, term_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_sessions_attended(student_id_arg text, section_id_arg integer, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_sessions_attended(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, section id, term id
+returns set of timestamp of attended session';
+
+
+--
+-- Name: term_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION term_information(term_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ school_year TEXT;
+ semester TEXT;
+BEGIN
+ SELECT INTO semester, school_year semester.semester, school_year.school_year FROM term INNER JOIN semester ON (term.semester_id = semester.id) INNER JOIN school_year ON (term.school_year_id = school_year.id) WHERE term.id = term_id_arg;
+ RETURN school_year || ' ' || semester;
+END;$$;
+
+
+ALTER FUNCTION public.term_information(term_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION term_information(term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION term_information(term_id_arg integer) IS 'input: term id
+returns: the terms information
+ format: [school year] [semester]';
+
 
 SET default_tablespace = '';
 
 SET default_with_oids = false;
 
 --
--- Name: attendance; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: account; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE attendance (
-    id text NOT NULL,
-    section_code text NOT NULL,
-    schoolyear text NOT NULL,
-    time_ timestamp without time zone NOT NULL,
-    confirmed boolean DEFAULT false
+CREATE TABLE account (
+    name text NOT NULL,
+    password text NOT NULL,
+    salt text NOT NULL,
+    id integer NOT NULL
 );
 
 
-ALTER TABLE public.attendance OWNER TO postgres;
+ALTER TABLE public.account OWNER TO postgres;
 
 --
--- Name: enrolled; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: COLUMN account.name; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE TABLE enrolled (
-    studentid text,
-    section_code text,
-    school_year text
-);
+COMMENT ON COLUMN account.name IS 'account name';
 
-
-ALTER TABLE public.enrolled OWNER TO postgres;
 
 --
--- Name: exam; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: COLUMN account.password; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE TABLE exam (
-    examid text NOT NULL,
-    schoolyear text NOT NULL,
-    answer text,
-    points text,
-    maxscore numeric,
-    isallow boolean DEFAULT false
-);
+COMMENT ON COLUMN account.password IS 'hashed password';
 
-
-ALTER TABLE public.exam OWNER TO postgres;
 
 --
--- Name: faculty; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: account_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE faculty (
-    id text,
-    fname text,
-    mname text,
-    lname text,
-    department text,
-    acctnumber integer,
-    email text
-);
-
-
-ALTER TABLE public.faculty OWNER TO postgres;
-
---
--- Name: grades; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE grades (
-    section_code text,
-    examid text,
-    studentid text
-);
-
-
-ALTER TABLE public.grades OWNER TO postgres;
-
---
--- Name: gradingsystem; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE gradingsystem (
-    quiz integer,
-    prelim integer,
-    midterm integer,
-    finals integer,
-    attendance integer,
-    others integer,
-    subjectid text
-);
-
-
-ALTER TABLE public.gradingsystem OWNER TO postgres;
-
---
--- Name: linkedaccounts; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE linkedaccounts (
-    parentid text,
-    studentidnum text,
-    verified boolean
-);
-
-
-ALTER TABLE public.linkedaccounts OWNER TO postgres;
-
---
--- Name: parent; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE parent (
-    fname text,
-    mname text,
-    lname text,
-    email text,
-    acctnumber integer
-);
-
-
-ALTER TABLE public.parent OWNER TO postgres;
-
---
--- Name: performance; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE performance (
-    id text NOT NULL,
-    section_code text NOT NULL,
-    schoolyear text NOT NULL,
-    period integer NOT NULL,
-    score numeric,
-    mult numeric,
-    description text NOT NULL,
-    maxscore numeric
-);
-
-
-ALTER TABLE public.performance OWNER TO postgres;
-
---
--- Name: stuanswer; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE stuanswer (
-    id text NOT NULL,
-    schoolyear text NOT NULL,
-    examid text NOT NULL,
-    answer text,
-    time_ timestamp without time zone,
-    ansfrom integer DEFAULT 0 NOT NULL
-);
-
-
-ALTER TABLE public.stuanswer OWNER TO postgres;
-
---
--- Name: student; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE student (
-    id text NOT NULL,
-    fname text,
-    mname text,
-    lname text,
-    courseyear text,
-    acctnumber integer,
-    email text
-);
-
-
-ALTER TABLE public.student OWNER TO postgres;
-
---
--- Name: student_load; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW student_load AS
-    SELECT DISTINCT attendance.section_code, attendance.id, attendance.schoolyear FROM attendance ORDER BY attendance.id;
-
-
-ALTER TABLE public.student_load OWNER TO postgres;
-
---
--- Name: subject; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE subject (
-    section_code text NOT NULL,
-    type_ text DEFAULT 'Lec'::text,
-    room text,
-    schedule text,
-    subj_code text,
-    description text,
-    profid text
-);
-
-
-ALTER TABLE public.subject OWNER TO postgres;
-
---
--- Name: sy; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE sy (
-    schoolyear text NOT NULL
-);
-
-
-ALTER TABLE public.sy OWNER TO postgres;
-
---
--- Name: useraccounts; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE useraccounts (
-    username text,
-    salt text,
-    hash text,
-    userid integer NOT NULL
-);
-
-
-ALTER TABLE public.useraccounts OWNER TO postgres;
-
---
--- Name: username_userid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE username_userid_seq
+CREATE SEQUENCE account_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -2586,203 +467,1073 @@ CREATE SEQUENCE username_userid_seq
     CACHE 1;
 
 
-ALTER TABLE public.username_userid_seq OWNER TO postgres;
+ALTER TABLE public.account_id_seq OWNER TO postgres;
 
 --
--- Name: username_userid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: account_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE username_userid_seq OWNED BY useraccounts.userid;
-
-
---
--- Name: username_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('username_userid_seq', 11, true);
+ALTER SEQUENCE account_id_seq OWNED BY account.id;
 
 
 --
--- Name: userid; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: account_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY useraccounts ALTER COLUMN userid SET DEFAULT nextval('username_userid_seq'::regclass);
+SELECT pg_catalog.setval('account_id_seq', 4, true);
+
+
+--
+-- Name: account_roles; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE account_roles (
+    account_id integer NOT NULL,
+    role text NOT NULL,
+    role_id text NOT NULL
+);
+
+
+ALTER TABLE public.account_roles OWNER TO postgres;
+
+--
+-- Name: assignation; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE assignation (
+    section_id integer NOT NULL,
+    faculty_id text NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.assignation OWNER TO postgres;
+
+--
+-- Name: assignation_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE assignation_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.assignation_id_seq OWNER TO postgres;
+
+--
+-- Name: assignation_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE assignation_id_seq OWNED BY assignation.id;
+
+
+--
+-- Name: assignation_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('assignation_id_seq', 3, true);
+
+
+--
+-- Name: attendance; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE attendance (
+    section_id integer NOT NULL,
+    term_id integer NOT NULL,
+    "time" timestamp without time zone NOT NULL,
+    confirmed boolean DEFAULT false NOT NULL,
+    id integer NOT NULL,
+    student_id text NOT NULL
+);
+
+
+ALTER TABLE public.attendance OWNER TO postgres;
+
+--
+-- Name: attendance_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE attendance_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.attendance_id_seq OWNER TO postgres;
+
+--
+-- Name: attendance_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE attendance_id_seq OWNED BY attendance.id;
+
+
+--
+-- Name: attendance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('attendance_id_seq', 3, true);
+
+
+--
+-- Name: course; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE course (
+    name text NOT NULL,
+    id integer NOT NULL,
+    code text NOT NULL
+);
+
+
+ALTER TABLE public.course OWNER TO postgres;
+
+--
+-- Name: course_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE course_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.course_id_seq OWNER TO postgres;
+
+--
+-- Name: course_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE course_id_seq OWNED BY course.id;
+
+
+--
+-- Name: course_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('course_id_seq', 4, true);
+
+
+--
+-- Name: department; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE department (
+    id integer NOT NULL,
+    name text NOT NULL
+);
+
+
+ALTER TABLE public.department OWNER TO postgres;
+
+--
+-- Name: department_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE department_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.department_id_seq OWNER TO postgres;
+
+--
+-- Name: department_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE department_id_seq OWNED BY department.id;
+
+
+--
+-- Name: department_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('department_id_seq', 5, true);
+
+
+--
+-- Name: department_name_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE department_name_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.department_name_seq OWNER TO postgres;
+
+--
+-- Name: department_name_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE department_name_seq OWNED BY department.name;
+
+
+--
+-- Name: department_name_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('department_name_seq', 1, false);
+
+
+--
+-- Name: enroll; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE enroll (
+    student_id text NOT NULL,
+    term_id integer NOT NULL,
+    section_id integer NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.enroll OWNER TO postgres;
+
+--
+-- Name: enroll_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE enroll_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.enroll_id_seq OWNER TO postgres;
+
+--
+-- Name: enroll_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE enroll_id_seq OWNED BY enroll.id;
+
+
+--
+-- Name: enroll_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('enroll_id_seq', 3, true);
+
+
+--
+-- Name: faculty; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE faculty (
+    first_name text NOT NULL,
+    middle_name text NOT NULL,
+    last_name text NOT NULL,
+    department_id integer NOT NULL,
+    email text DEFAULT 'none'::text NOT NULL,
+    id text NOT NULL
+);
+
+
+ALTER TABLE public.faculty OWNER TO postgres;
+
+--
+-- Name: grading_system; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE grading_system (
+    quiz integer NOT NULL,
+    preliminary integer NOT NULL,
+    midterm integer NOT NULL,
+    final integer NOT NULL,
+    attendance integer NOT NULL,
+    others integer NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.grading_system OWNER TO postgres;
+
+--
+-- Name: grading_system_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE grading_system_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.grading_system_id_seq OWNER TO postgres;
+
+--
+-- Name: grading_system_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE grading_system_id_seq OWNED BY grading_system.id;
+
+
+--
+-- Name: grading_system_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('grading_system_id_seq', 2, true);
+
+
+--
+-- Name: linked_account; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE linked_account (
+    student_id text NOT NULL,
+    verified boolean DEFAULT false NOT NULL,
+    id integer NOT NULL,
+    parent_id text NOT NULL
+);
+
+
+ALTER TABLE public.linked_account OWNER TO postgres;
+
+--
+-- Name: linked_account_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE linked_account_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.linked_account_id_seq OWNER TO postgres;
+
+--
+-- Name: linked_account_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE linked_account_id_seq OWNED BY linked_account.id;
+
+
+--
+-- Name: linked_account_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('linked_account_id_seq', 2, true);
+
+
+--
+-- Name: parent; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE parent (
+    first_name text NOT NULL,
+    middle_name text NOT NULL,
+    last_name text NOT NULL,
+    email text DEFAULT 'none'::text NOT NULL,
+    id text NOT NULL
+);
+
+
+ALTER TABLE public.parent OWNER TO postgres;
+
+--
+-- Name: room; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE room (
+    name text NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.room OWNER TO postgres;
+
+--
+-- Name: room_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE room_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.room_id_seq OWNER TO postgres;
+
+--
+-- Name: room_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE room_id_seq OWNED BY room.id;
+
+
+--
+-- Name: room_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('room_id_seq', 9, true);
+
+
+--
+-- Name: school_year; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE school_year (
+    school_year text NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.school_year OWNER TO postgres;
+
+--
+-- Name: school_year_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE school_year_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.school_year_id_seq OWNER TO postgres;
+
+--
+-- Name: school_year_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE school_year_id_seq OWNED BY school_year.id;
+
+
+--
+-- Name: school_year_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('school_year_id_seq', 4, true);
+
+
+--
+-- Name: section; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE section (
+    name text NOT NULL,
+    subject_id integer NOT NULL,
+    "time" text NOT NULL,
+    grading_system_id integer NOT NULL,
+    room_id integer NOT NULL,
+    id integer NOT NULL,
+    day text
+);
+
+
+ALTER TABLE public.section OWNER TO postgres;
+
+--
+-- Name: COLUMN section.name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN section.name IS 'section code';
+
+
+--
+-- Name: section_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE section_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.section_id_seq OWNER TO postgres;
+
+--
+-- Name: section_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE section_id_seq OWNED BY section.id;
+
+
+--
+-- Name: section_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('section_id_seq', 2, true);
+
+
+--
+-- Name: semester; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE semester (
+    semester text NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.semester OWNER TO postgres;
+
+--
+-- Name: semester_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE semester_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.semester_id_seq OWNER TO postgres;
+
+--
+-- Name: semester_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE semester_id_seq OWNED BY semester.id;
+
+
+--
+-- Name: semester_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('semester_id_seq', 3, true);
+
+
+--
+-- Name: student; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE student (
+    first_name text NOT NULL,
+    middle_name text NOT NULL,
+    last_name text NOT NULL,
+    course_id integer NOT NULL,
+    year integer NOT NULL,
+    email text DEFAULT 'none'::text NOT NULL,
+    id text NOT NULL
+);
+
+
+ALTER TABLE public.student OWNER TO postgres;
+
+--
+-- Name: subject; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE subject (
+    name text NOT NULL,
+    description text NOT NULL,
+    id integer NOT NULL,
+    units integer,
+    type text
+);
+
+
+ALTER TABLE public.subject OWNER TO postgres;
+
+--
+-- Name: subject_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE subject_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.subject_id_seq OWNER TO postgres;
+
+--
+-- Name: subject_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE subject_id_seq OWNED BY subject.id;
+
+
+--
+-- Name: subject_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('subject_id_seq', 5, true);
+
+
+--
+-- Name: term; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE term (
+    semester_id integer NOT NULL,
+    school_year_id integer NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.term OWNER TO postgres;
+
+--
+-- Name: term_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE term_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.term_id_seq OWNER TO postgres;
+
+--
+-- Name: term_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE term_id_seq OWNED BY term.id;
+
+
+--
+-- Name: term_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('term_id_seq', 5, true);
+
+
+--
+-- Name: user_account_salt_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE user_account_salt_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.user_account_salt_seq OWNER TO postgres;
+
+--
+-- Name: user_account_salt_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE user_account_salt_seq OWNED BY account.salt;
+
+
+--
+-- Name: user_account_salt_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('user_account_salt_seq', 1, false);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY account ALTER COLUMN id SET DEFAULT nextval('account_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY assignation ALTER COLUMN id SET DEFAULT nextval('assignation_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY attendance ALTER COLUMN id SET DEFAULT nextval('attendance_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY course ALTER COLUMN id SET DEFAULT nextval('course_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY department ALTER COLUMN id SET DEFAULT nextval('department_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY enroll ALTER COLUMN id SET DEFAULT nextval('enroll_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grading_system ALTER COLUMN id SET DEFAULT nextval('grading_system_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY linked_account ALTER COLUMN id SET DEFAULT nextval('linked_account_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY room ALTER COLUMN id SET DEFAULT nextval('room_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY school_year ALTER COLUMN id SET DEFAULT nextval('school_year_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY section ALTER COLUMN id SET DEFAULT nextval('section_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY semester ALTER COLUMN id SET DEFAULT nextval('semester_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY subject ALTER COLUMN id SET DEFAULT nextval('subject_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY term ALTER COLUMN id SET DEFAULT nextval('term_id_seq'::regclass);
+
+
+--
+-- Data for Name: account; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO account VALUES ('encube', '2ecf49dcb3dea8b9777dfdef11ed2593ba12367eecbbb8100b75e3c2464e8239ab72cfa9a0d357285da4749dffd18f76c97a9219ffb85715a6c5c75c3832d889', '0457dea5c1cd443ca6692282c0780f72', 2);
+INSERT INTO account VALUES ('razor0512', 'a8e52a4c08639ff544bc259334cd262c8abf8f81705116ad1f38ff6c14bcb1f5fc51e4f7688d99793be703d8189c33015d40baec9d6006f7b75577a5ec8444ba', 'c42501e4552b4f72b8512abc72e2c18d', 3);
+INSERT INTO account VALUES ('mama', 'sjdfakjh3riu3o89uoeifaskdjfasfjalsdkfj aksjf laskdjflaskdjfifruowiaeflaksjfalskdj', 'sdkjflasidf93ur93urowtjuowierlas', 4);
+INSERT INTO account VALUES ('encuberevenant', 'kjlsdf8779a3w8ruiuwhfa8ie7riausehk3wiuyrfkwhjfkaw8eyriu3hkrjwh8f7awo8rh', 'w832749urwer8oq734', 1);
+
+
+--
+-- Data for Name: account_roles; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO account_roles VALUES (2, 'STUDENT', '2009-1625');
+INSERT INTO account_roles VALUES (3, 'STUDENT', '2010-2312');
+INSERT INTO account_roles VALUES (4, 'PARENT', 'P-2373');
+INSERT INTO account_roles VALUES (1, 'FACULTY', '1992-9384');
+
+
+--
+-- Data for Name: assignation; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO assignation VALUES (2, '1992-9384', 2);
+INSERT INTO assignation VALUES (1, '1992-9384', 3);
 
 
 --
 -- Data for Name: attendance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-<<<<<<< HEAD
-COPY attendance (id, section, schoolyear, time_, confirmed) FROM stdin;
-2010-7171	C2S	2012-2013	2012-09-05 08:01:59	f
-\.
-=======
-INSERT INTO attendance VALUES ('2010-7171', 'C2S', '2012-2013', '2012-09-05 08:40:28.431088', true);
-INSERT INTO attendance VALUES ('2010-7171', 'CS24', '2012-2013', '2012-09-05 08:41:54.265363', true);
-INSERT INTO attendance VALUES ('2010-7171', 'CS24', '2012-2013', '2012-09-05 08:49:31.507527', false);
-INSERT INTO attendance VALUES ('2010-7171', 'C2S', '2012-2013', '2012-09-05 08:49:38.712488', false);
-INSERT INTO attendance VALUES ('2010-7171', 'CS24', '2012-2013', '2012-09-05 08:49:42.288594', false);
-INSERT INTO attendance VALUES ('2010-7171', 'C2S', '2012-2013', '2012-09-05 08:49:44.049206', false);
-INSERT INTO attendance VALUES ('2010-7171', 'C2S', '2012-2013', '2012-09-05 08:49:49.88429', true);
-INSERT INTO attendance VALUES ('2010-7171', 'CS24', '2012-2013', '2012-09-05 08:49:55.669182', true);
-INSERT INTO attendance VALUES ('2010-7171', 'C2S', '2012-2013', '2012-09-05 08:49:56.653368', true);
-INSERT INTO attendance VALUES ('2010-7171', 'CS24', '2012-2013', '2012-09-05 08:49:57.513161', true);
->>>>>>> c598af8518c2bae8b47985d1128957287fbcc650
+INSERT INTO attendance VALUES (2, 4, '2012-09-06 17:53:08.547604', true, 2, '2009-1625');
+INSERT INTO attendance VALUES (1, 4, '2012-09-06 17:53:26.646385', true, 3, '2009-1625');
 
 
 --
--- Data for Name: enrolled; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: course; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO enrolled VALUES ('2010-7171', 'C2S', NULL);
-INSERT INTO enrolled VALUES ('2006-7532', 'C2S', NULL);
-INSERT INTO enrolled VALUES ('2010-7171', 'CS24', NULL);
-INSERT INTO enrolled VALUES ('2010-7171', 'C2S', '2012-2013');
-INSERT INTO enrolled VALUES ('2010-7171', 'CS24', '2012-2013');
-INSERT INTO enrolled VALUES ('2006-7532', 'CS24', '2012-2013');
-INSERT INTO enrolled VALUES ('2006-7532', 'C2S', '2012-2013');
+INSERT INTO course VALUES ('Bachelor of Science in Computer Science', 1, 'BSCS');
+INSERT INTO course VALUES ('Bachelor of Science in Information Technology', 2, 'BSIT');
+INSERT INTO course VALUES ('Bachelor of Science in Electrical Engineering', 3, 'BSEE');
+INSERT INTO course VALUES ('Bachelor of Science in Computer Engineering', 4, 'BSEC');
 
 
 --
--- Data for Name: exam; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: department; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO department VALUES (1, 'Computer Science');
+INSERT INTO department VALUES (2, 'Information Technology');
+INSERT INTO department VALUES (3, 'Business Administration');
+INSERT INTO department VALUES (4, 'Electrical Engineering');
+INSERT INTO department VALUES (5, 'Chemical Engineering');
+
+
+--
+-- Data for Name: enroll; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO enroll VALUES ('2009-1625', 4, 2, 1);
+INSERT INTO enroll VALUES ('2009-1625', 4, 1, 3);
 
 
 --
 -- Data for Name: faculty; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO faculty VALUES ('123456', 'Gm', 'Root', 'Admin', 'Computer Science', 1, 'renegade_0512@yahoo.com');
-INSERT INTO faculty VALUES ('55534', 'five', 'lima', 'singko', 'IT', 8, 'renegade_0512@yahoo.com');
+INSERT INTO faculty VALUES ('eddie', 'ince', 'singko', 1, 'sandy@gmail.com', '1992-9384');
 
 
 --
--- Data for Name: grades; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: grading_system; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY grades (section_code, examid, studentid) FROM stdin;
-\.
-
-
---
--- Data for Name: gradingsystem; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-<<<<<<< HEAD
-COPY gradingsystem (quiz, prelim, midterm, finals, attendance, others, subjectid) FROM stdin;
-\.
-=======
-INSERT INTO gradingsystem VALUES (20, 20, 20, 20, 10, 10, '2010-7171');
->>>>>>> c598af8518c2bae8b47985d1128957287fbcc650
+INSERT INTO grading_system VALUES (20, 20, 20, 20, 10, 10, 1);
+INSERT INTO grading_system VALUES (30, 20, 20, 20, 10, 0, 2);
 
 
 --
--- Data for Name: linkedaccounts; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: linked_account; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO linked_account VALUES ('2010-2312', true, 2, 'P-2373');
+INSERT INTO linked_account VALUES ('2009-1625', true, 1, 'P-2373');
 
 
 --
 -- Data for Name: parent; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO parent VALUES ('kalels', 'reyes', 'mom', 'kalel@yahoo.com', 4);
-INSERT INTO parent VALUES ('johnny', 'the', 'boss', 'bawss@gmail.com', 5);
-INSERT INTO parent VALUES ('test', 'ing', 'ni', 'renegade_0512@yahoo.com', 8);
-INSERT INTO parent VALUES ('Eddie', 'B.', 'Singko', 'kalelreyes@gmail.com', 9);
-INSERT INTO parent VALUES ('the', 'only', 'boss', 'renegade_0512@yahoo.com', 10);
-INSERT INTO parent VALUES ('testing', 'this', 'shit', 'asdf@gmail.com', 11);
+INSERT INTO parent VALUES ('hay', 'nako', 'tres', 'mama@yahoo.com', 'P-2373');
 
 
 --
--- Data for Name: performance; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: room; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO room VALUES ('LHA', 1);
+INSERT INTO room VALUES ('LHB', 2);
+INSERT INTO room VALUES ('LHC', 3);
+INSERT INTO room VALUES ('LR1', 4);
+INSERT INTO room VALUES ('LR2', 5);
+INSERT INTO room VALUES ('LR3', 6);
+INSERT INTO room VALUES ('LR4', 7);
+INSERT INTO room VALUES ('Hub Port', 8);
+INSERT INTO room VALUES ('Software Engineering Laboratory', 9);
 
 
 --
--- Data for Name: stuanswer; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: school_year; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO school_year VALUES ('2009-2010', 1);
+INSERT INTO school_year VALUES ('2010-2011', 2);
+INSERT INTO school_year VALUES ('2011-2012', 3);
+INSERT INTO school_year VALUES ('2012-2013', 4);
+
+
+--
+-- Data for Name: section; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO section VALUES ('C2S', 2, '7:30 - 9:00', 1, 1, 1, 'TTH');
+INSERT INTO section VALUES ('CS24', 1, '10:30 - 12:00', 2, 3, 2, 'MS');
+
+
+--
+-- Data for Name: semester; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO semester VALUES ('First Semester', 1);
+INSERT INTO semester VALUES ('Second Semester', 2);
+INSERT INTO semester VALUES ('Summer Semester', 3);
 
 
 --
 -- Data for Name: student; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO student VALUES ('2010-7171', 'Kevin Eric', 'Ridao', 'Siangco', 'BSCS II', 7, 'shdwstrider@gmail.com');
-INSERT INTO student VALUES ('2006-7532', 'debug', 'debug', 'debug', 'BSDBG I', 69, 'debugme@gmail.com');
+INSERT INTO student VALUES ('novo', 'cubero', 'dimaporo', 1, 4, 'sandrevenant@gmail.com', '2009-1625');
+INSERT INTO student VALUES ('johny', 'smith', 'english', 3, 2, 'encuberevenant@gmail.com', '2010-2312');
 
 
 --
 -- Data for Name: subject; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO subject VALUES ('C2S', 'Lec', 'LR1', 'WF 10:30-12:00', 'CSC 101', 'Programming I', '123456');
-INSERT INTO subject VALUES ('CS24', 'Lec', 'LR6', 'TTH 9:00-10:30', 'CSC 102', 'Programming II', '55534');
+INSERT INTO subject VALUES ('CSC 101', 'Basic Programming', 2, 3, 'LEC');
+INSERT INTO subject VALUES ('CSC 155', 'Introduction To Operating System', 4, 3, 'LEC');
+INSERT INTO subject VALUES ('CSC 100', 'Intoduction To Computer Science', 1, 3, 'LEC');
+INSERT INTO subject VALUES ('CSC 102', 'Advance Programming', 3, 3, 'LEC');
+INSERT INTO subject VALUES ('CSC 181', 'Introduction To Software Engineering', 5, 3, 'LEC');
 
 
 --
--- Data for Name: sy; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: term; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO sy VALUES ('2012-2013');
-
-
---
--- Data for Name: useraccounts; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-INSERT INTO useraccounts VALUES ('ADMIN', '0457dea5c1cd443ca6692282c0780f72', '2ecf49dcb3dea8b9777dfdef11ed2593ba12367eecbbb8100b75e3c2464e8239ab72cfa9a0d357285da4749dffd18f76c97a9219ffb85715a6c5c75c3832d889', 1);
-INSERT INTO useraccounts VALUES ('mrsreyes', 'asdf', 'fdsa', 4);
-INSERT INTO useraccounts VALUES ('razor0512', 'c42501e4552b4f72b8512abc72e2c18d', 'a8e52a4c08639ff544bc259334cd262c8abf8f81705116ad1f38ff6c14bcb1f5fc51e4f7688d99793be703d8189c33015d40baec9d6006f7b75577a5ec8444ba', 7);
-INSERT INTO useraccounts VALUES ('ascii', 'resetpass', 'testing', 5);
-INSERT INTO useraccounts VALUES ('testing', '2b77c8f65dfa4630a2891b5abcfd108a', 'ca1512686010f3b5af97080bfb865d5ef9c90d1ac9790f34aace27cfe9b859a4f76287b740c05beb3052b3b4af21d6397194b0fffa37e6d847c47c84e7296327', 8);
-INSERT INTO useraccounts VALUES ('myAkawnt', 'cd82657a9a934150ab6f1775e8444e3d', 'a6a3e68bb03329d2a7be97a33bfc4e5b3f571a317d4d32e1827ee438ce13caf4ea5595b9fa6428381c3d7dc0461f46b1dd4de7a9b435a08ed60a0478efe8857f', 9);
-INSERT INTO useraccounts VALUES ('theboss', 'fa18d68c63774d86a7424bebd2b7e897', '0c1a15af933dfc470cf2f92efca2cd0313c0da76e0dd0d86b441b1a117a30307be5d24fd3465b5364edae521a0b58441c1026511f6cb5cc58e022dd15a25f5eb', 10);
-INSERT INTO useraccounts VALUES ('uutest', '74c4264724d5423286522f5e13c6167f', 'b1d2f808e0cf2f64896c009c5e89836ee851e5daea062f3c4c467e04f6b9c1b83944845b77436a3f1f050900f7857b28eb3cdaef12048e968a3e15e0f4579819', 11);
+INSERT INTO term VALUES (1, 3, 1);
+INSERT INTO term VALUES (2, 3, 2);
+INSERT INTO term VALUES (1, 4, 3);
+INSERT INTO term VALUES (2, 4, 4);
+INSERT INTO term VALUES (3, 4, 5);
 
 
 --
--- Name: att_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: account_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY account
+    ADD CONSTRAINT account_name_key UNIQUE (name);
+
+
+--
+-- Name: account_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY account
+    ADD CONSTRAINT account_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: assignation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY assignation
+    ADD CONSTRAINT assignation_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: attendance_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
 ALTER TABLE ONLY attendance
-    ADD CONSTRAINT att_pk PRIMARY KEY (id, section_code, schoolyear, time_);
+    ADD CONSTRAINT attendance_pkey PRIMARY KEY (id);
 
 
 --
--- Name: exam_examid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: course_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
-ALTER TABLE ONLY exam
-    ADD CONSTRAINT exam_examid_key UNIQUE (examid);
-
-
---
--- Name: examid_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY exam
-    ADD CONSTRAINT examid_pk PRIMARY KEY (examid, schoolyear);
+ALTER TABLE ONLY course
+    ADD CONSTRAINT course_pkey PRIMARY KEY (id);
 
 
 --
--- Name: perf_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: department_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
-ALTER TABLE ONLY performance
-    ADD CONSTRAINT perf_pk PRIMARY KEY (id, section_code, schoolyear, period, description);
+ALTER TABLE ONLY department
+    ADD CONSTRAINT department_pkey PRIMARY KEY (id);
 
 
 --
--- Name: s2ans_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: enroll_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
-ALTER TABLE ONLY stuanswer
-    ADD CONSTRAINT s2ans_pk PRIMARY KEY (id, schoolyear, examid, ansfrom);
+ALTER TABLE ONLY enroll
+    ADD CONSTRAINT enroll_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: faculty_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY faculty
+    ADD CONSTRAINT faculty_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: grading_system_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY grading_system
+    ADD CONSTRAINT grading_system_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: linked_account_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY linked_account
+    ADD CONSTRAINT linked_account_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: parent_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY parent
+    ADD CONSTRAINT parent_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: room_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY room
+    ADD CONSTRAINT room_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: school_year_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY school_year
+    ADD CONSTRAINT school_year_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: section_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY section
+    ADD CONSTRAINT section_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: semester_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY semester
+    ADD CONSTRAINT semester_pkey PRIMARY KEY (id);
 
 
 --
@@ -2798,167 +1549,159 @@ ALTER TABLE ONLY student
 --
 
 ALTER TABLE ONLY subject
-    ADD CONSTRAINT subject_pkey PRIMARY KEY (section_code);
+    ADD CONSTRAINT subject_pkey PRIMARY KEY (id);
 
 
 --
--- Name: sy_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: term_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
-ALTER TABLE ONLY sy
-    ADD CONSTRAINT sy_pkey PRIMARY KEY (schoolyear);
-
-
---
--- Name: useraccounts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY useraccounts
-    ADD CONSTRAINT useraccounts_pkey PRIMARY KEY (userid);
+ALTER TABLE ONLY term
+    ADD CONSTRAINT term_pkey PRIMARY KEY (id);
 
 
 --
--- Name: att_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: account_roles_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY account_roles
+    ADD CONSTRAINT account_roles_account_id_fkey FOREIGN KEY (account_id) REFERENCES account(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: assignation_faculty_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY assignation
+    ADD CONSTRAINT assignation_faculty_id_fkey FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: assignation_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY assignation
+    ADD CONSTRAINT assignation_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: attendance_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY attendance
-    ADD CONSTRAINT att_id_fk FOREIGN KEY (id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT attendance_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: att_sc_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY attendance
-    ADD CONSTRAINT att_sc_fk FOREIGN KEY (section_code) REFERENCES subject(section_code) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: att_sy_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: attendance_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY attendance
-    ADD CONSTRAINT att_sy_fk FOREIGN KEY (schoolyear) REFERENCES sy(schoolyear) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT attendance_student_id_fkey FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: enrolled_school_year_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: attendance_term_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY enrolled
-    ADD CONSTRAINT enrolled_school_year_fkey FOREIGN KEY (school_year) REFERENCES sy(schoolyear) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: enrolled_section_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY enrolled
-    ADD CONSTRAINT enrolled_section_code_fkey FOREIGN KEY (section_code) REFERENCES subject(section_code) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY attendance
+    ADD CONSTRAINT attendance_term_id_fkey FOREIGN KEY (term_id) REFERENCES term(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: enrolled_studentid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: enroll_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY enrolled
-    ADD CONSTRAINT enrolled_studentid_fkey FOREIGN KEY (studentid) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: exam_sy_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY exam
-    ADD CONSTRAINT exam_sy_fk FOREIGN KEY (schoolyear) REFERENCES sy(schoolyear) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY enroll
+    ADD CONSTRAINT enroll_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: faculty_acctnumber_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: enroll_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY enroll
+    ADD CONSTRAINT enroll_student_id_fkey FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: enroll_term_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY enroll
+    ADD CONSTRAINT enroll_term_id_fkey FOREIGN KEY (term_id) REFERENCES term(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: faculty_department_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY faculty
-    ADD CONSTRAINT faculty_acctnumber_fkey FOREIGN KEY (acctnumber) REFERENCES useraccounts(userid);
+    ADD CONSTRAINT faculty_department_id_fkey FOREIGN KEY (department_id) REFERENCES department(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: grades_examid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: linked_account_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY grades
-    ADD CONSTRAINT grades_examid_fkey FOREIGN KEY (examid) REFERENCES exam(examid);
-
-
---
--- Name: grades_section_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY grades
-    ADD CONSTRAINT grades_section_code_fkey FOREIGN KEY (section_code) REFERENCES subject(section_code);
+ALTER TABLE ONLY linked_account
+    ADD CONSTRAINT linked_account_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: grades_studentid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: linked_account_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY grades
-    ADD CONSTRAINT grades_studentid_fkey FOREIGN KEY (studentid) REFERENCES student(id);
-
-
---
--- Name: gradingsystem_subjectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY gradingsystem
-    ADD CONSTRAINT gradingsystem_subjectid_fkey FOREIGN KEY (subjectid) REFERENCES subject(section_code);
+ALTER TABLE ONLY linked_account
+    ADD CONSTRAINT linked_account_student_id_fkey FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: perf_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: section_grading_system_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY performance
-    ADD CONSTRAINT perf_id_fk FOREIGN KEY (id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: perf_sc_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY performance
-    ADD CONSTRAINT perf_sc_fk FOREIGN KEY (section_code) REFERENCES subject(section_code) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY section
+    ADD CONSTRAINT section_grading_system_id_fkey FOREIGN KEY (grading_system_id) REFERENCES grading_system(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: perf_sy_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: section_room_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY performance
-    ADD CONSTRAINT perf_sy_fk FOREIGN KEY (schoolyear) REFERENCES sy(schoolyear) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: s2ans_exid_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY stuanswer
-    ADD CONSTRAINT s2ans_exid_fk FOREIGN KEY (examid, schoolyear) REFERENCES exam(examid, schoolyear) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY section
+    ADD CONSTRAINT section_room_id_fkey FOREIGN KEY (room_id) REFERENCES room(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: s2ans_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: section_subject_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY stuanswer
-    ADD CONSTRAINT s2ans_id_fk FOREIGN KEY (id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY section
+    ADD CONSTRAINT section_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES subject(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: s2ans_sy_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: student_course_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY stuanswer
-    ADD CONSTRAINT s2ans_sy_fk FOREIGN KEY (schoolyear) REFERENCES sy(schoolyear) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY student
+    ADD CONSTRAINT student_course_id_fkey FOREIGN KEY (course_id) REFERENCES course(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: term_school_year_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY term
+    ADD CONSTRAINT term_school_year_id_fkey FOREIGN KEY (school_year_id) REFERENCES school_year(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: term_semester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY term
+    ADD CONSTRAINT term_semester_id_fkey FOREIGN KEY (semester_id) REFERENCES semester(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -2969,86 +1712,6 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON SCHEMA public FROM postgres;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
---
--- Name: attendance; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE attendance FROM PUBLIC;
-REVOKE ALL ON TABLE attendance FROM postgres;
-GRANT ALL ON TABLE attendance TO postgres;
-GRANT SELECT ON TABLE attendance TO students;
-
-
---
--- Name: exam; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE exam FROM PUBLIC;
-REVOKE ALL ON TABLE exam FROM postgres;
-GRANT ALL ON TABLE exam TO postgres;
-GRANT SELECT ON TABLE exam TO students;
-
-
---
--- Name: performance; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE performance FROM PUBLIC;
-REVOKE ALL ON TABLE performance FROM postgres;
-GRANT ALL ON TABLE performance TO postgres;
-GRANT SELECT ON TABLE performance TO students;
-
-
---
--- Name: stuanswer; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE stuanswer FROM PUBLIC;
-REVOKE ALL ON TABLE stuanswer FROM postgres;
-GRANT ALL ON TABLE stuanswer TO postgres;
-GRANT SELECT ON TABLE stuanswer TO students;
-
-
---
--- Name: student; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE student FROM PUBLIC;
-REVOKE ALL ON TABLE student FROM postgres;
-GRANT ALL ON TABLE student TO postgres;
-GRANT SELECT ON TABLE student TO students;
-
-
---
--- Name: student_load; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE student_load FROM PUBLIC;
-REVOKE ALL ON TABLE student_load FROM postgres;
-GRANT ALL ON TABLE student_load TO postgres;
-GRANT SELECT ON TABLE student_load TO students;
-
-
---
--- Name: subject; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE subject FROM PUBLIC;
-REVOKE ALL ON TABLE subject FROM postgres;
-GRANT ALL ON TABLE subject TO postgres;
-GRANT SELECT ON TABLE subject TO students;
-
-
---
--- Name: sy; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE sy FROM PUBLIC;
-REVOKE ALL ON TABLE sy FROM postgres;
-GRANT ALL ON TABLE sy TO postgres;
-GRANT SELECT ON TABLE sy TO students;
 
 
 --
