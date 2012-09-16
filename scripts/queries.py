@@ -295,12 +295,13 @@ def registerUser(req,uname, pwd, email, fname, mname, lname):
 	f = a.execqry("SELECT addparent('"+b+"','"+salt+"','"+hashPass+"','"+d+"','"+e+"','"+g+"','"+c+"')", True)[0][0]
 	return f
 
-#def linkUsers(req, user):
-#	session = Session.Session(req)
-#	user = cgi.escape(user)
-#	a = doSql()
-#	f = a.execqry("select requestlink('"+session['id']+"', '"+user+"', true)	
-#   return f
+def linkUsers(req, parentID, studentID):
+	session = Session.Session(req)
+	parentID = cgi.escape(parentID)
+	studentID = cgi.escape(studentID)
+	a = doSql()
+	f = a.execqry("SELECT linkusers('"+parentID+"', '"+studentID+"', 'False'))
+   	return f
 
 def showSubjects(req, idnum):
 	a = doSql()
@@ -344,3 +345,5 @@ def getAttendance(req, subject, accID)
 	c = cgi.escape(accID)
 	f = storedproc()
 	return f
+
+
