@@ -13,7 +13,8 @@ class Auth:
 
 		q1 = "SELECT getsalt('"+self.username +")"
         
-        query2 = db.query(q1); salt = quesry2.dictresult()
+        query2 = db.query(q1)
+		salt = quesry2.dictresult()
 		hash = encryptPass(salt, self.password)
 		
 		q0 = "SELECT login('"+self.username+"', '"+hash+"')" #edit login to accept hash instead of password
