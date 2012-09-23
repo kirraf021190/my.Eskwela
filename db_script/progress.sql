@@ -135,6 +135,52 @@ Returns: ''true'' (text) if successful';
 
 
 --
+-- Name: addgradeitem(text, integer, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION addgradeitem(name_arg text, max_score_arg integer, grade_cat_arg text, section_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$BEGIN
+     INSERT INTO grade_items (name,max_score,grade_cat,section_id) VALUES (name_arg,max_score_arg, grade_cat_arg,section_id_arg);
+     return 'true';
+END;$$;
+
+
+ALTER FUNCTION public.addgradeitem(name_arg text, max_score_arg integer, grade_cat_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION addgradeitem(name_arg text, max_score_arg integer, grade_cat_arg text, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION addgradeitem(name_arg text, max_score_arg integer, grade_cat_arg text, section_id_arg integer) IS 'WEB INTERFACE
+Accepts: name_arg (text), max_score_arg (integer) , grade_cat_arg (text), section_id_arg (integer)
+Returns: ''true'' (text) if successful
+';
+
+
+--
+-- Name: addstudentgrade(text, integer, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION addstudentgrade(student_id_arg text, score_arg integer, grade_item_arg text, section_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+    temp text;
+
+BEGIN
+    SELECT INTO temp student_id FROM enroll WHERE student_id = student_id_arg AND section_id = section_id_arg AND term_id = getcurrsem();
+     if temp isnull then
+          return 'false';
+     else
+          INSERT INTO studentgrades (student_id,score,grade_item,section_id) VALUES (student_id_arg, score_arg, grade_item_arg,section_id_arg);
+          return 'true';
+     end if;
+END;$$;
+
+
+ALTER FUNCTION public.addstudentgrade(student_id_arg text, score_arg integer, grade_item_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
 -- Name: confirmattendance(text, integer, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -209,6 +255,29 @@ Returns: ''true'' (text) if successful';
 
 
 --
+-- Name: deletegradeitem(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION deletegradeitem(name_arg text, section_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$BEGIN
+     DELETE FROM grade_items WHERE name = name_arg AND section_id = section_id_arg AND term_id = getcurrsem();
+     return 'true';
+END;$$;
+
+
+ALTER FUNCTION public.deletegradeitem(name_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION deletegradeitem(name_arg text, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION deletegradeitem(name_arg text, section_id_arg integer) IS 'WEB INTERFACE
+Accepts: name_arg (text) , section_id_arg (integer)
+Returns: ''true'' (text) if successful';
+
+
+--
 -- Name: editcatweight(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -228,6 +297,29 @@ ALTER FUNCTION public.editcatweight(name_ text, weight_ integer, sec_id integer)
 
 COMMENT ON FUNCTION editcatweight(name_ text, weight_ integer, sec_id integer) IS 'WEB INTERFACE
 Accepts: name_ (text), weight_ (integer), sec_id (integer)
+Returns: ''true'' (text) if successful';
+
+
+--
+-- Name: editmaxscore(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION editmaxscore(name_arg text, max_score_arg integer, section_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$BEGIN
+     UPDATE grade_items SET max_score = max_score_arg WHERE name = name_arg AND section_id = section_id_arg AND term_id = getcurrsem();
+     return 'true';
+END;$$;
+
+
+ALTER FUNCTION public.editmaxscore(name_arg text, max_score_arg integer, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION editmaxscore(name_arg text, max_score_arg integer, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION editmaxscore(name_arg text, max_score_arg integer, section_id_arg integer) IS 'WEB INTERFACE
+Accepts: name_arg (text), max_score_arg (integer), section_id_arg (integer)
 Returns: ''true'' (text) if successful';
 
 
@@ -410,6 +502,37 @@ Returns: ID reference to current semester(integer)';
 
 
 --
+-- Name: getgradeitems(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getgradeitems(section_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$DECLARE
+     temp text;
+     gradeitems text;
+
+BEGIN
+     gradeitems =  '';
+     FOR temp IN SELECT name || '$' || max_score || '$' || grade_cat FROM grade_items WHERE section_id =section_id_arg ORDER BY name loop
+     gradeitems = gradeitems || temp || '@' ;
+     end loop;
+     return gradeitems;
+END;$_$;
+
+
+ALTER FUNCTION public.getgradeitems(section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION getgradeitems(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION getgradeitems(section_id_arg integer) IS 'WEB INTERFACE
+Accepts: section_id_arg (integer)
+Returns: text of grade items with delimiter
+Delimiter: $ for column, @ for row';
+
+
+--
 -- Name: getgradesystem(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -536,6 +659,30 @@ COMMENT ON FUNCTION getsalt(username_ text) IS 'WEB INTERFACE
 Accepts: username (text)
 Returns: salt (text)';
 
+
+--
+-- Name: getstudentgrades(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getstudentgrades(grade_item_arg text, section_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$DECLARE
+temp text;
+studgrade text;
+
+BEGIN
+studgrade = '';
+FOR TEMP IN SELECT student.first_name || ' ' || student.last_name || '$' || student_id || '$' || score FROM studentgrades,student WHERE grade_item = grade_item_arg AND section_id = section_id_arg AND term_id = getcurrsem()  AND student_id =student.id  loop
+studgrade = studgrade || temp || '@';
+end loop;
+return studgrade;
+END;
+
+
+$_$;
+
+
+ALTER FUNCTION public.getstudentgrades(grade_item_arg text, section_id_arg integer) OWNER TO postgres;
 
 --
 -- Name: login(text, text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1077,7 +1224,7 @@ ALTER SEQUENCE attendance_id_seq OWNED BY attendance.id;
 -- Name: attendance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('attendance_id_seq', 14, true);
+SELECT pg_catalog.setval('attendance_id_seq', 31, true);
 
 
 --
@@ -1249,6 +1396,50 @@ CREATE TABLE faculty (
 ALTER TABLE public.faculty OWNER TO postgres;
 
 --
+-- Name: grade_items; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE grade_items (
+    name text,
+    max_score integer,
+    grade_cat text,
+    section_id integer,
+    term_id integer DEFAULT getcurrsem(),
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.grade_items OWNER TO postgres;
+
+--
+-- Name: grade_items_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE grade_items_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.grade_items_id_seq OWNER TO postgres;
+
+--
+-- Name: grade_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE grade_items_id_seq OWNED BY grade_items.id;
+
+
+--
+-- Name: grade_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('grade_items_id_seq', 136, true);
+
+
+--
 -- Name: grading_system; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -1287,7 +1478,7 @@ ALTER SEQUENCE grading_system_id_seq OWNED BY grading_system.id;
 -- Name: grading_system_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grading_system_id_seq', 47, true);
+SELECT pg_catalog.setval('grading_system_id_seq', 115, true);
 
 
 --
@@ -1457,6 +1648,105 @@ CREATE TABLE student (
 ALTER TABLE public.student OWNER TO postgres;
 
 --
+-- Name: studentgrades; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE studentgrades (
+    student_id text NOT NULL,
+    score integer NOT NULL,
+    grade_item text NOT NULL,
+    section_id integer NOT NULL,
+    term_id integer DEFAULT getcurrsem() NOT NULL
+);
+
+
+ALTER TABLE public.studentgrades OWNER TO postgres;
+
+--
+-- Name: studentgrades_grade_item_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE studentgrades_grade_item_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.studentgrades_grade_item_seq OWNER TO postgres;
+
+--
+-- Name: studentgrades_grade_item_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE studentgrades_grade_item_seq OWNED BY studentgrades.grade_item;
+
+
+--
+-- Name: studentgrades_grade_item_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('studentgrades_grade_item_seq', 1, false);
+
+
+--
+-- Name: studentgrades_section_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE studentgrades_section_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.studentgrades_section_id_seq OWNER TO postgres;
+
+--
+-- Name: studentgrades_section_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE studentgrades_section_id_seq OWNED BY studentgrades.section_id;
+
+
+--
+-- Name: studentgrades_section_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('studentgrades_section_id_seq', 1, false);
+
+
+--
+-- Name: studentgrades_term_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE studentgrades_term_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.studentgrades_term_id_seq OWNER TO postgres;
+
+--
+-- Name: studentgrades_term_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE studentgrades_term_id_seq OWNED BY studentgrades.term_id;
+
+
+--
+-- Name: studentgrades_term_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('studentgrades_term_id_seq', 1, false);
+
+
+--
 -- Name: subject; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -1614,6 +1904,13 @@ ALTER TABLE ONLY enroll ALTER COLUMN id SET DEFAULT nextval('enroll_id_seq'::reg
 -- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
+ALTER TABLE ONLY grade_items ALTER COLUMN id SET DEFAULT nextval('grade_items_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
 ALTER TABLE ONLY grading_system ALTER COLUMN id SET DEFAULT nextval('grading_system_id_seq'::regclass);
 
 
@@ -1636,6 +1933,13 @@ ALTER TABLE ONLY school_year ALTER COLUMN id SET DEFAULT nextval('school_year_id
 --
 
 ALTER TABLE ONLY section ALTER COLUMN id SET DEFAULT nextval('section_id_seq'::regclass);
+
+
+--
+-- Name: section_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY studentgrades ALTER COLUMN section_id SET DEFAULT nextval('studentgrades_section_id_seq'::regclass);
 
 
 --
@@ -1704,6 +2008,22 @@ COPY attendance (section_id, term_id, "time", confirmed, id, student_id) FROM st
 2	6	2012-09-20 19:56:18	t	12	2010-7171
 1	6	2012-09-20 22:18:26	t	13	2010-7171
 1	6	2012-09-21 08:58:30	t	14	2010-7171
+2	6	2012-09-22 10:26:20	t	15	2010-7171
+2	6	2012-09-22 14:28:36	t	16	2010-7171
+2	6	2012-09-22 14:28:46	t	17	2010-7171
+3	6	2012-09-22 18:53:01	f	19	2010-7171
+3	6	2012-09-22 18:53:11	f	20	2010-7171
+2	6	2012-09-23 08:11:38	t	21	2010-7171
+2	6	2012-09-23 08:12:26	t	22	2010-7171
+2	6	2012-09-23 08:12:41	t	23	2010-7171
+3	6	2012-09-22 18:52:20	t	18	2010-7171
+3	6	2012-09-23 08:13:33	f	24	2010-7171
+3	6	2012-09-23 08:13:45	f	25	2010-7171
+3	6	2012-09-23 08:14:08	f	26	2010-7171
+3	6	2012-09-23 08:14:11	f	27	2010-7171
+3	6	2012-09-23 08:14:19	f	28	2010-7171
+1	6	2012-09-23 08:14:54	t	29	2010-7171
+1	6	2012-09-23 08:15:15	t	30	2010-7171
 \.
 
 
@@ -1752,18 +2072,37 @@ Eddie	Inc	Singko	1	renegade_0512@yahoo.com	1992-9384	5
 
 
 --
+-- Data for Name: grade_items; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY grade_items (name, max_score, grade_cat, section_id, term_id, id) FROM stdin;
+Quiz 1	45	Quiz	1	6	13
+Assignment 1	50	Assignment	3	6	126
+Quiz	100	Quiz	3	6	127
+Quiz 1	35	Quiz	2	6	129
+Quiz 2	45	Quiz	2	6	132
+Assignment 1	80	Assignment	2	6	134
+Prelim Exam	99	Prelim	1	6	136
+\.
+
+
+--
 -- Data for Name: grading_system; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY grading_system (weight, id, name, section_id) FROM stdin;
-20	41	Prelim	2
-10	42	Date	2
+20	111	Quiz	3
+30	112	Midterm	3
+25	107	Midterm	2
+20	114	Quiz	2
+20	69	Quiz	1
+30	113	Prelim	2
+41	48	Finals	1
+10	78	Assignment	2
 15	22	Prelim	1
 20	44	Midterm	1
-20	23	Prelim	3
-20	15	Assignment	1
-15	26	Finals	3
-10	47	Midterm	2
+20	49	Prelim	3
+30	50	Assignment	3
 \.
 
 
@@ -1817,6 +2156,15 @@ COPY student (first_name, middle_name, last_name, course_id, year, email, id, ac
 johny	smith	english	3	2	encuberevenant@gmail.com	2010-2312	\N
 Novo	Cubero	Dimaporo	1	4	sandrevenant@gmail.com	2009-1625	\N
 Kevin  Eric	Ridao	Siangco	1	3	shdwstrider@gmail.com	2010-7171	3
+\.
+
+
+--
+-- Data for Name: studentgrades; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY studentgrades (student_id, score, grade_item, section_id, term_id) FROM stdin;
+2010-7171	25	Assignment 1	2	6
 \.
 
 
@@ -2096,6 +2444,30 @@ ALTER TABLE ONLY section
 
 ALTER TABLE ONLY student
     ADD CONSTRAINT student_course_id_fkey FOREIGN KEY (course_id) REFERENCES course(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: studentgrades_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY studentgrades
+    ADD CONSTRAINT studentgrades_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id);
+
+
+--
+-- Name: studentgrades_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY studentgrades
+    ADD CONSTRAINT studentgrades_student_id_fkey FOREIGN KEY (student_id) REFERENCES student(id);
+
+
+--
+-- Name: studentgrades_term_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY studentgrades
+    ADD CONSTRAINT studentgrades_term_id_fkey FOREIGN KEY (term_id) REFERENCES term(id);
 
 
 --
