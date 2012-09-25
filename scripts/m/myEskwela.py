@@ -13,32 +13,39 @@ class Auth:
 
 		q1 = "SELECT getsalt('"+self.username +")"
         
-        query2 = db.query(q1); salt = quesry2.dictresult()
+        query2 = db.query(q1)
+		salt = quesry2.dictresult()
 		hash = encryptPass(salt, self.password)
 		
 		q0 = "SELECT login('"+self.username+"', '"+hash+"')" #edit login to accept hash instead of password
-		query = db.query(q0); result = query.dictresult()
+		query = db.query(q0)
+		
+		result = query.dictresult()
         
-		if (result[0]['login'] == "TRUE"):
-            return True
-        else:
-            return False
+			if (result[0]['login'] == "TRUE"):
+				return True
+			else:
+				return False
 			
 	def encryptPass(salt, pwd):
-	hashPass = hashlib.sha512(pwd + salt).hexdigest()
-	return hashPass
+		
+		hashPass = hashlib.sha512(pwd + salt).hexdigest()
+	
+		return hashPass
 			
     #Getting User Role
     def get_user_role_from_username(self, db):
         q0 = "SELECT account_role('"+self.username+"')"
-        query = db.query(q0); result = query.dictresult()
+        query = db.query(q0)
+		result = query.dictresult()
 
         return result[0]['account_role']
 
     #Getting ID Number...
     def get_id_number_from_username(self, db):
         q0 = "SELECT account_role_id('"+self.username+"')"
-        query = db.query(q0); result = query.dictresult()
+        query = db.query(q0)
+		result = query.dictresult()
 
         return result[0]['account_role_id']
 
