@@ -7,18 +7,39 @@ def index(req):
     uname = form['uname']
 
     db = pg.connect('myEskwela', 'localhost', 5432, None, None, 'postgres', 'password')
-    q0 = "SELECT student_information('"+username+"')"
-    query = db.query(q0)
-    result = query.dictresult()
+    #Get Role
+    q = "SELECT account_role('"+uname+"')"
+    query0 = db.query(q)
+    res = query0.dictresult()
+    role = res[0]['account_role']
 
-    info = string.split(result[0]['student_information'], '#')
-    name = info[2]+", "+info[0]+" "+info[1]
+    if (role == "STUDENT"):
+        q0 = "SELECT student_information('"+username+"')"
+        query = db.query(q0)
+        result = query.dictresult()
+
+        info = string.split(result[0]['student_information'], '#')
+        name = info[2]+", "+info[0]+" "+info[1]
+    elif (role == "FACULTY"):
+        q0 = "SELECT faculty_information('"+username+"')"
+        query = db.query(q0)
+        result = query.dictresult()
+
+        info = string.split(result[0]['faculty_information'], '#')
+        name = info[2]+", "+info[0]+" "+info[1]
+    elif (role == "PARENT"):
+        q0 = "SELECT parent_information('"+username+"')"
+        query = db.query(q0)
+        result = query.dictresult()
+
+        info = string.split(result[0]['parent_information'], '#')
+        name = info[2]+", "+info[0]+" "+info[1]
 
 
     
     return """
         <div id='main-menu-basic-info-cont' align='center'>
-				<img src='img/nopic.jpg' />
+				<img src='img/"""+username+""".jpg' />
 				<div id='basic-info-content'>
 					<h2>"""+name+"""</h2>	
 				</div>				
@@ -26,7 +47,7 @@ def index(req):
 			<div id='main-menu-adv-info'>
 				<div class='ui-grid-a'>
 					<div class='ui-block-a'>Account Type:</div>
-					<div class='ui-block-b'>Student</div>
+					<div class='ui-block-b'>"""+role+"""</div>
 				</div>
 				<div class='ui-grid-a'>
 					<div class='ui-block-a'>ID Number:</div>
