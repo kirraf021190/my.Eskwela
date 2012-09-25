@@ -33,24 +33,28 @@
 				//Initialize Query Variable...
 				_queryHandler.initializeQuery();
 				
-				var userRole = "STUDENT", acctID = _sessionHandler.getAcctID();			
+				var userRole = _sessionHandler.getUserRole(), acctID = _sessionHandler.getAcctID();	
 				
-				//Get Role
-				//if (userRole == "STUDENT"){
-				var _location = _server.serverLocation + "scripts/m/get-stat-main-info.py";		
-				//}
+	/*			if (userRole == "PARENT"){
+					var loc = _server.serverLocation + "html_mobile/get-my-children.html";
+					$.mobile.changePage(loc);
+				} else { */
+					var _location = _server.serverLocation + "scripts/m/get-stat-main-info.py";
+					var request = $.ajax({
+						url: _location, data: { role:userRole, acct: acctID }
+					});
+					
+					request.fail(function(){ 
+						$.mobile.changePage('dialog_html/network-error.html', 
+							{transition:'flip', role:'dialog'});
+					});
+					request.done(function(data){
+						var ul = $(data);
+						$('#stats-main-cont').append(ul);
+						ul.listview();
+					});
+				//} //End Else
 				
-				var request = $.ajax({
-					url: _location
-				});
-				
-				request.fail(function(){ $.mobile.changePage('dialog_html/network-error.html', {transition:'flip', role:'dialog'}); });
-			
-				request.done(function(data){
-					var ul = $(data);
-					$('#stats-main-cont').append(ul);
-					ul.listview();
-				});
 			});
 			</script>
 		</div>

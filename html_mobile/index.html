@@ -36,9 +36,9 @@
 			$(function(){
 				var username = sessionStorage.getItem("username")
 				var acct = _sessionHandler.getAcctID();
-				var location = _server.serverLocation + "scripts/m/get-home-info.py";
+				var _location = _server.serverLocation + "scripts/m/get-home-info.py";
 				var request = $.ajax({
-					url: location, data: {acctID:acct, uname:username}
+					url: _location, data: {acctID:acct, uname:username}
 				});
 				
 				request.fail(function(){
