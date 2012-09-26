@@ -7,6 +7,7 @@ def index(req):
     #subjectID = ajaxData[0]
     #sectionID = ajaxData[1]
     sectID  = form['subjSectID']
+    role    = form['userRole']
 
     # Connecting to Database...
     db = pg.connect('myEskwela', 'localhost', 5432, None, None, 'postgres', 'password')
@@ -28,7 +29,7 @@ def index(req):
     #Close
     db.close()
     
-    return """
+    html = """
         <div id='main-menu-adv-info'>
 				<div class='ui-bar-c' style='padding:0% 0% 0% 10%;margin:-6% 0% 5% -10%;width:110%;'>
 					<h3> """+courseName+""" ["""+courseSection+"""] </h3>
@@ -54,10 +55,21 @@ def index(req):
 				
 			</div>
 			<br />
-
-
-
     """
+    if (role == "STUDENT" or role == "PARENT"):
+        html += """
+			<a href='subject-report.html' data-role='button'>View My Attendance Stats</a>
+			<a href='#' data-rel='back' data-role='button'>View My Grade Stats</a>		
+                """
+
+    elif (role == "FACULTY"):
+        html += """
+                        <a href='subj-student-list.html' data-role='button'>View Student Attendance</a>
+			<a href='#' data-rel='back' data-role='button'>Add Grade Churva</a>		
+            """
+
+
+    return html
 
 def get_subject_description(query):
     result = query.dictresult()

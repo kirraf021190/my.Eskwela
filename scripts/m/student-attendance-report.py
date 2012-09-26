@@ -13,10 +13,26 @@ def index(req):
     subjSectArray = get_subj_section_array(subjSectID, db)
 
     #AttendedSessions
-    attendedSessions = get_attended_sessions(acctID, subjSectID, 4, db);
-    lastSession = get_last_session(acctID, subjSectID, 4, db);
+    attendedSessions = get_attended_sessions(acctID, subjSectID, 6, db);
+    lastSession = get_last_session(acctID, subjSectID, 6, db);
         
     html = """
+        <script type='text/javascript'>
+        $(function(){
+            $('#report-actions-tab').change(function(){
+                var option = $(this).val();
+
+                if (option != 0){
+                    //alert(option);
+                    _queryHandler.setRecipientType(option);
+                    $.mobile.changePage('dialog_html/send-stats.html', {role:'dialog', data:option}); 
+                }
+
+                //Set the value back to option=0
+                $(this).val(0);
+            });
+        });
+        </script>
         <div id='basic-cont' class='ui-bar-c' style='padding:0% 0% 0% 10%;margin:-6% 0% 5% -10%;width:110%;'>
           <h4> Attendance Report for """+subjSectArray[0]+"""["""+subjSectArray[1]+"""]</h4>
 			<div id='basic-stat-cont'>
@@ -35,14 +51,14 @@ def index(req):
 						<div class='ui-grid-a'>
 							<div class='ui-block-a'>Last Session Attended:</div>
 							<div class='ui-block-b'>
-								"""+lastSession+"""
+								"""+str(lastSession)+"""
 							</div>
 						</div>
 					</div>
-					<select data-native-menu='false'>
-						<option> Report Actions </option>
-						<option> Send Stats to Email </option>
-						<option> Send Stats to SMS </option>
+					<select id="report-actions-tab" data-native-menu='false'>
+						<option value=0> Report Actions </option>
+						<option value='EMAIL'> Send Stats to Email </option>
+						<option value='SMS'> Send Stats to SMS </option>
 					</select><br />
                 </div>
 			<div id='list-cont'>
@@ -51,14 +67,14 @@ def index(req):
 
     mylist = dict()
 	 
-    q0 = "SELECT student_sessions_attended('"+acctID+"', "+str(subjSectID)+", 4)"
+    q0 = "SELECT student_sessions_attended('"+acctID+"', "+str(subjSectID)+", 6)"
     query = db.query(q0)
     result = query.dictresult()
     if(len(result) != 0):
         for a in result:
             mylist[a['student_sessions_attended']] = "Attended"
 
-    q1 = "SELECT student_sessions_absented('"+acctID+"', "+str(subjSectID)+", 4)"
+    q1 = "SELECT student_sessions_absented('"+acctID+"', "+str(subjSectID)+", 6)"
     query1 = db.query(q1)
     result1 = query1.dictresult()
     if (len(result1) != 0):

@@ -27,18 +27,17 @@
 			<div id='stats-main-info-cont'>
 
 			</div>
-			<a href='subject-report.html' data-role='button'>View My Attendance Stats</a>
-			<a href='#' data-rel='back' data-role='button'>View My Grade Stats</a>		
 			<script type="text/javascript" >
 			$(function(){
 				var ssid = _queryHandler.getSubjectSectionID(),
-					 location = _server.serverLocation + "scripts/m/get-subject-info.py",
+					 role = _sessionHandler.getUserRole(),
+					 _location = _server.serverLocation + "scripts/m/get-subject-info.py",
 					 request = $.ajax({
-					 	url:location, data:{ subjSectID: ssid }
+					 	url:_location, data:{ subjSectID: ssid, userRole:role }
 				});
 				
 				request.done(function(data){
-					$('#stats-main-info-cont').html(data);
+					$('#stats-main-info-cont').html(data).trigger('create');
 				});
 				
 				

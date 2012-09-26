@@ -19,36 +19,33 @@
 <body>
 
 	<div data-role='page' class='mainpage' data-theme='c'>
-		<script type="text/javascript" >
-			$(document).bind('pageinit', function(e){
-				
-			});
-		</script>
 		<div data-role='header' data-theme='c' align='center'>
+			<a href='#' data-rel='back'>Back</a>
 			<img src='img/logo-head.png' id='main-app-header'/>
 		</div> 
-		<div data-role='content' >
-			<div id='content-cont'>
-			
-			
+		<div id='content-cont' data-role='content' >
+			<div id='stats-main-info-cont'>
+				
 			</div>
 			<script type="text/javascript" >
 			$(function(){
-				var username = sessionStorage.getItem("username")
-				var acct = _sessionHandler.getAcctID();
-				var location = _server.serverLocation + "scripts/m/get-home-info.py";
-				var request = $.ajax({
-					url: location, data: {acctID:acct, uname:username}
+				var ssid = _queryHandler.getSubjectSectionID(),
+					 role = _sessionHandler.getUserRole(),
+					 _location = _server.serverLocation + "scripts/m/get-student-list-on-subj.py",
+					 request = $.ajax({
+					 	url:_location, data:{ subjSectID: ssid, userRole:role }
+				});
+				
+				request.done(function(data){
+					$('#stats-main-info-cont').html(data).trigger('create');
 				});
 				
 				request.fail(function(){
-					$.mobile.changePage('dialog_html/network-error.html', {transition:'flip', role:'dialog'});
+					alert("You fail...");
 				});
-			
-				request.done(function(data){ $('#content-cont').html(data); });
+				
 			});
 			</script>
-			
 		</div>
 		<div data-role='footer' data-theme='c' data-position='fixed' data-fullscreen='false'>
 			<div style='background-color:white;height:3px;'>
@@ -58,14 +55,13 @@
 			<div data-role='navbar'>
 				<ul>
 					<li><a href='#' data-icon='gear'>Settings</a></li>
-					<li><a href='stats-main.html' data-icon='grid'>Stats</a></li>
-					<li><a href='#' class='ui-btn-active' data-icon='home'>Home</a></li>
+					<li><a href='#' class='ui-btn-active' data-icon='grid'>Stats</a></li>
+					<li><a href='index.html' data-icon='home'>Home</a></li>
 					<li><a href='#' data-icon='info'>About</a></li>
 					<li><a href='dialog_html/logout.html' data-icon='back' data-rel='dialog'>Logout</a></li>				
 				</ul>			
 			</div>		
 		</div>
-	</div>
-	
+	</div>	
 </body>
 </html>

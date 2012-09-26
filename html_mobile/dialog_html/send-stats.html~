@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- Load CSS -->
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	<!-- End Load CSS -->
+	
+</head>
+<body id='main-body-container'>
+
+	<div data-role='page' class='mainpage'>
+	
+		<div data-role='header'>
+			<h2>Please wait...</h2>
+		</div>
+		<div id='send-content-holder' data-role='content'>
+			<div align='center'>
+				<img src='../img/load.gif' />
+				<h4> Sending stats. Please wait. </h4>
+			</div>
+			
+			<!-- <a href='#' data-rel='back' data-role='button'>OK</a> -->
+		</div>
+		<script type='text/javascript'>
+			$(function(){
+				setTimeout(function(){
+					var loc = _server.serverLocation + "scripts/m/send-stats.py",
+						 rtype = _queryHandler.getRecipientType(),
+						 acct = "2009-0661",
+						 subjSectID = _queryHandler.getSubjectSectionID();
+					var sendRequest = $.ajax({
+						url: loc, data: {
+							r: rtype, a:acct, s: subjSectID						
+						}
+					});
+					
+					sendRequest.fail(function(){
+						var msg = "<h4>Error in sending data to recipient. Please check your network.</h4><a href='#' data-rel='back' data-role='button'>OK</a>";    
+						$('#send-content-holder').html(msg).trigger('create');
+					});
+					
+					sendRequest.done(function(data){
+						var request = jQuery.parseJSON(data);
+						
+						if (request.sent == "false"){
+							var msg = "<h4>Error in sending data to recipientt. Please check your network.</h4><a href='#' data-rel='back' data-role='button'>OK</a>";    
+							$('#send-content-holder').html(msg).trigger('create');
+						} else {
+							var msg = request.msg
+							$('#send-content-holder').html(data).trigger('create');
+						}
+					});
+				}, 1000);
+			});
+		</script>
+	</div>
+	
+</body>
+</html>

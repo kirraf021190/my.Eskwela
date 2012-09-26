@@ -375,6 +375,7 @@ var _statsMod = {
 						$('#stats-main-cont').append(ul);
 						ul.listview();
 					*/
+						alert('been here');
 						$('#stats-main-cont').html(data).trigger('create');
 					});			
 	}
