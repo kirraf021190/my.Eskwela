@@ -109,34 +109,71 @@ returns the role_id of the account user';
 
 
 --
--- Name: add_grade_item(text, integer, double precision, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: add_grade_item(text, integer, double precision); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone) RETURNS integer
+CREATE FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision) RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
  grade_item_id INTEGER;
+ student_id_var TEXT;
 BEGIN
- SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg;
- IF name_arg IN (SELECT name FROM grade_item WHERE name = name_arg) THEN
-  RETURN 0;
- ELSE
-  INSERT INTO grade_item(grading_system_id, name, total_score, date) VALUES(grading_system_id_arg, name_arg, total_score_arg, date_arg);
-  SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg;
+ SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg and grading_system_id = grading_system_id_arg;
+ IF grade_item_id ISNULL THEN
+  INSERT INTO grade_item(grading_system_id, name, total_score, date) VALUES(grading_system_id_arg, name_arg, total_score_arg, now());
+  SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg and grading_system_id = grading_system_id_arg;
+
+  FOR student_id_var IN SELECT enrolled(get_grading_system_section_id(grading_system_id_arg)) LOOP
+   INSERT INTO grade_item_entry(grade_item_id, score, student_id) VALUES(grade_item_id, 0, student_id_var);
+  END LOOP;
+
   RETURN grade_item_id;
+ ELSE
+  RETURN 0;
  END IF;
 END;$$;
 
 
-ALTER FUNCTION public.add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone) OWNER TO postgres;
+ALTER FUNCTION public.add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision) OWNER TO postgres;
 
 --
--- Name: FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone) IS 'input: name of the grade item to be created, grading system id, total score, date
+COMMENT ON FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision) IS 'input: name of the grade item, grading system id where this item belong, total score of this item
 
-output: id of the created grade item or 0 if it already exist';
+output: id of the newly created item, 0 if it already exist';
+
+
+--
+-- Name: add_grade_item_entry(integer, double precision, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ grade_item_entry_id INTEGER;
+BEGIN
+ SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE student_id = student_id_arg AND grade_item_id = grading_item_id_arg;
+ IF grade_item_entry_id ISNULL THEN
+  RETURN 0;
+ ELSE
+  UPDATE grade_item_entry SET score = score_arg WHERE student_id = student_id_arg AND grade_item_id = grading_item_id_arg;
+  SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE student_id = student_id_arg AND grade_item_id = grading_item_id_arg;
+  RETURN grade_item_entry_id;
+ END IF;
+END;$$;
+
+
+ALTER FUNCTION public.add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text) IS 'input: grading item id where this entry belong, score of this entry, id of the student
+
+output: id of the newly created item, 0 if student already have an entry in that grading item';
 
 
 --
@@ -169,34 +206,6 @@ ALTER FUNCTION public.addattend(sec_id integer, timestamp_ timestamp without tim
 COMMENT ON FUNCTION addattend(sec_id integer, timestamp_ timestamp without time zone, stud_id text) IS 'WEB INTERFACE
 
 Accepts: sec_id(int), timestamp_(timestamp w/o time zone), stud_id(text)
-
-Returns: ''true'' (text) if successful';
-
-
---
--- Name: addgradecategory(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION addgradecategory(name_ text, weight_ integer, sec_id integer) RETURNS text
-    LANGUAGE plpgsql
-    AS $$BEGIN
-
-     INSERT INTO grading_system(weight,name,section_id) VALUES(weight_,name_,sec_id);
-
-     return 'true';
-
-END$$;
-
-
-ALTER FUNCTION public.addgradecategory(name_ text, weight_ integer, sec_id integer) OWNER TO postgres;
-
---
--- Name: FUNCTION addgradecategory(name_ text, weight_ integer, sec_id integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION addgradecategory(name_ text, weight_ integer, sec_id integer) IS 'WEB INTERFACE
-
-Accepts: name_ (text), weight_(integer), sec_id (integer)
 
 Returns: ''true'' (text) if successful';
 
@@ -522,6 +531,112 @@ COMMENT ON FUNCTION get_email(id_arg text, role text) IS 'input: id number and r
        role must be any of this (STUDENT, FACULTY, PARENT)
 
 output: email';
+
+
+--
+-- Name: get_grade_item(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grade_item(grading_system_id_arg integer) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ grade_item_id INTEGER;
+BEGIN
+ FOR grade_item_id IN SELECT id FROM grade_item WHERE grading_system_id = grading_system_id_arg LOOP
+  RETURN NEXT grade_item_id;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_grade_item(grading_system_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_grade_item(grading_system_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_grade_item(grading_system_id_arg integer) IS 'input: grading system id
+
+output: id of the grade items that the grading system have';
+
+
+--
+-- Name: get_grade_item_entry(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grade_item_entry(grade_item_id_arg integer) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ grade_item_entry_id INTEGER;
+BEGIN
+ FOR grade_item_entry_id IN SELECT id FROM grade_item_entry WHERE grade_item_id = grade_item_id_arg LOOP
+  RETURN NEXT grade_item_entry_id;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_grade_item_entry(grade_item_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_grade_item_entry(grade_item_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_grade_item_entry(grade_item_id_arg integer) IS 'input: grade item id
+
+output: id of the grade item entries that the grade item have';
+
+
+--
+-- Name: get_grading_system(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grading_system(section_id_arg integer) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ grade_item_id INTEGER;
+BEGIN
+ FOR grade_item_id IN SELECT id FROM grading_system WHERE section_id = section_id_arg LOOP
+  RETURN NEXT grade_item_id;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_grading_system(section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_grading_system(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_grading_system(section_id_arg integer) IS 'input: section id
+
+output: id of the grading systems the the section have';
+
+
+--
+-- Name: get_grading_system_section_id(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grading_system_section_id(grading_system_id_arg integer) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ section_id_output INTEGER;
+BEGIN
+ SELECT INTO section_id_output section_id FROM grading_system WHERE id = grading_system_id_arg;
+ RETURN section_id_output;
+END;$$;
+
+
+ALTER FUNCTION public.get_grading_system_section_id(grading_system_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_grading_system_section_id(grading_system_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_grading_system_section_id(grading_system_id_arg integer) IS 'input: grading system id
+
+output: section id of the grading system where it belong';
 
 
 --
@@ -888,6 +1003,85 @@ COMMENT ON FUNCTION getsalt(username_ text) IS 'WEB INTERFACE
 Accepts: username (text)
 
 Returns: salt (text)';
+
+
+--
+-- Name: grade_item_entry_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ student_id_output TEXT;
+ score_output DOUBLE PRECISION;
+BEGIN
+ SELECT INTO student_id_output, score_output student_id, score FROM grade_item_entry WHERE id = grade_item_entry_id_arg;
+ RETURN student_id_output || '#' || score_output;
+END;$$;
+
+
+ALTER FUNCTION public.grade_item_entry_information(grade_item_entry_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) IS 'input: grade item entry
+
+output: grade item entry information';
+
+
+--
+-- Name: grade_item_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION grade_item_information(grade_item_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ name_output TEXT;
+ total_score_output DOUBLE PRECISION;
+ date_output TIMESTAMP;
+BEGIN
+ SELECT INTO name_output, total_score_output, date_output name, total_score, date FROM grade_item WHERE id = grade_item_id_arg;
+ RETURN name_output || '#' || total_score_output || '#' || date_output;
+END;$$;
+
+
+ALTER FUNCTION public.grade_item_information(grade_item_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION grade_item_information(grade_item_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION grade_item_information(grade_item_id_arg integer) IS 'input: grade item id
+
+output: grade item information';
+
+
+--
+-- Name: grading_system_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION grading_system_information(grading_system_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ name_output TEXT;
+ weight_output DOUBLE PRECISION;
+BEGIN
+ SELECT INTO name_output, weight_output name, weight FROM grading_system WHERE id = grading_system_id_arg;
+ RETURN name_output || '#' || weight_output;
+END;$$;
+
+
+ALTER FUNCTION public.grading_system_information(grading_system_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION grading_system_information(grading_system_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION grading_system_information(grading_system_id_arg integer) IS 'input: grading system id 
+
+output: grading system information';
 
 
 --
@@ -1317,6 +1511,41 @@ returns: the terms information
  format: [school year] [semester]';
 
 
+--
+-- Name: test(text, integer, double precision, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION test(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date_arg timestamp without time zone) RETURNS abstime
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ grade_item_id INTEGER;
+ student_id_var TEXT;
+BEGIN
+ SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg and grading_system_id = grading_system_id_arg;
+ IF grade_item_id ISNULL THEN
+  INSERT INTO grade_item(grading_system_id, name, total_score, date) VALUES(grading_system_id_arg, name_arg, total_score_arg, date_arg);
+  SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg and grading_system_id = grading_system_id_arg;
+
+  FOR student_id_var IN SELECT enrolled(get_grading_system_section_id(grading_system_id_arg)) LOOP
+   INSERT INTO grade_item_entry(grade_item_id, score, student_id) VALUES(grade_item_id, 0, student_id_var);
+  END LOOP;
+
+  RETURN grade_item_id;
+ ELSE
+  RETURN 0;
+ END IF;
+END;$$;
+
+
+ALTER FUNCTION public.test(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date_arg timestamp without time zone) OWNER TO postgres;
+
+--
+-- Name: FUNCTION test(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date_arg timestamp without time zone); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION test(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date_arg timestamp without time zone) IS 'test';
+
+
 SET default_tablespace = '';
 
 SET default_with_oids = false;
@@ -1740,7 +1969,7 @@ ALTER SEQUENCE grade_item_entry_id_seq OWNED BY grade_item_entry.id;
 -- Name: grade_item_entry_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_item_entry_id_seq', 5, true);
+SELECT pg_catalog.setval('grade_item_entry_id_seq', 14, true);
 
 
 --
@@ -1768,7 +1997,7 @@ ALTER SEQUENCE grade_item_id_seq OWNED BY grade_item.id;
 -- Name: grade_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_item_id_seq', 2, true);
+SELECT pg_catalog.setval('grade_item_id_seq', 5, true);
 
 
 --
@@ -1776,7 +2005,7 @@ SELECT pg_catalog.setval('grade_item_id_seq', 2, true);
 --
 
 CREATE TABLE grading_system (
-    weight integer NOT NULL,
+    weight double precision NOT NULL,
     id integer NOT NULL,
     name text,
     section_id integer
@@ -1810,7 +2039,7 @@ ALTER SEQUENCE grading_system_id_seq OWNED BY grading_system.id;
 -- Name: grading_system_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grading_system_id_seq', 47, true);
+SELECT pg_catalog.setval('grading_system_id_seq', 48, true);
 
 
 --
@@ -2299,16 +2528,25 @@ INSERT INTO faculty VALUES ('Eddie', 'Inc', 'Singko', 1, 'renegade_0512@yahoo.co
 
 INSERT INTO grade_item VALUES (1, 41, 'preliminary', 50, '2012-09-26 00:55:48.419224');
 INSERT INTO grade_item VALUES (2, 42, 'Quiz, about algorithm', 20, '2012-09-26 00:56:47.595565');
+INSERT INTO grade_item VALUES (3, 42, 'quiz', 35, '2012-09-26 19:15:56.924893');
+INSERT INTO grade_item VALUES (4, 48, 'quiz', 35, '2012-09-26 19:33:16.56762');
+INSERT INTO grade_item VALUES (5, 41, 'quiz', 40, '2012-09-26 23:32:28.603076');
 
 
 --
 -- Data for Name: grade_item_entry; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO grade_item_entry VALUES (2, 1, 43, '2010-7171');
-INSERT INTO grade_item_entry VALUES (3, 2, 15, '2010-7171');
-INSERT INTO grade_item_entry VALUES (4, 2, 15, '2009-1625');
-INSERT INTO grade_item_entry VALUES (5, 2, 15, '2010-2312');
+INSERT INTO grade_item_entry VALUES (4, 2, 33, '2009-1625');
+INSERT INTO grade_item_entry VALUES (8, 1, 33, '2009-1625');
+INSERT INTO grade_item_entry VALUES (9, 3, 33, '2009-1625');
+INSERT INTO grade_item_entry VALUES (11, 5, 33, '2009-1625');
+INSERT INTO grade_item_entry VALUES (2, 1, 33, '2010-7171');
+INSERT INTO grade_item_entry VALUES (3, 2, 33, '2010-7171');
+INSERT INTO grade_item_entry VALUES (10, 5, 20, '2010-7171');
+INSERT INTO grade_item_entry VALUES (12, 3, 1, '2010-7171');
+INSERT INTO grade_item_entry VALUES (13, 4, 31, '2009-1625');
+INSERT INTO grade_item_entry VALUES (14, 4, 35, '2010-7171');
 
 
 --
@@ -2323,6 +2561,7 @@ INSERT INTO grading_system VALUES (20, 15, 'Assignment', 1);
 INSERT INTO grading_system VALUES (15, 26, 'Finals', 3);
 INSERT INTO grading_system VALUES (10, 47, 'Midterm', 2);
 INSERT INTO grading_system VALUES (10, 42, 'Quiz', 2);
+INSERT INTO grading_system VALUES (25, 48, 'quiz', 3);
 
 
 --
