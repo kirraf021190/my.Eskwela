@@ -109,6 +109,37 @@ returns the role_id of the account user';
 
 
 --
+-- Name: add_grade_item(text, integer, double precision, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ grade_item_id INTEGER;
+BEGIN
+ SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg;
+ IF name_arg IN (SELECT name FROM grade_item WHERE name = name_arg) THEN
+  RETURN 0;
+ ELSE
+  INSERT INTO grade_item(grading_system_id, name, total_score, date) VALUES(grading_system_id_arg, name_arg, total_score_arg, date_arg);
+  SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg;
+  RETURN grade_item_id;
+ END IF;
+END;$$;
+
+
+ALTER FUNCTION public.add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone) OWNER TO postgres;
+
+--
+-- Name: FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, date timestamp without time zone) IS 'input: name of the grade item to be created, grading system id, total score, date
+
+output: id of the created grade item or 0 if it already exist';
+
+
+--
 -- Name: addattend(integer, timestamp without time zone, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -205,14 +236,23 @@ Returns: ''true'' (text) if successful';
 CREATE FUNCTION count_student_enrolled(section_id_arg integer) RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
+
  result INTEGER;
+
 BEGIN
+
  SELECT INTO result count(id) FROM enroll WHERE section_id = section_id_arg;
+
  IF result ISNULL THEN
+
   RETURN 0;
+
  ELSE
+
   RETURN result;
+
  END IF;
+
 END;$$;
 
 
@@ -444,6 +484,82 @@ ALTER FUNCTION public.get_children(parent_id_arg text) OWNER TO postgres;
 COMMENT ON FUNCTION get_children(parent_id_arg text) IS 'intput: parents id
 
 output: childrens id number';
+
+
+--
+-- Name: get_email(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_email(id_arg text, role text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ email_output TEXT;
+BEGIN
+ IF role = 'STUDENT' THEN
+  SELECT INTO email_output email FROM student WHERE id = id_arg;
+ ELSE
+  IF role = 'PARENT' THEN
+   SELECT INTO email_output email FROM parent WHERE id = id_arg;
+  ELSE
+   SELECT INTO email_output email FROM faculty WHERE id = id_arg;
+  END IF;
+ END IF;
+ IF email_output ISNULL THEN
+  RETURN 'ID NOT FOUND UNDER ' || role;
+ ELSE
+  RETURN email_output;
+ END IF;
+END;$$;
+
+
+ALTER FUNCTION public.get_email(id_arg text, role text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_email(id_arg text, role text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_email(id_arg text, role text) IS 'input: id number and role e.g. get_email(''2009-7263'', ''STUDENT'')
+       role must be any of this (STUDENT, FACULTY, PARENT)
+
+output: email';
+
+
+--
+-- Name: get_image_location(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_image_location(id_arg text, role text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ image_location TEXT;
+BEGIN
+ IF role = 'STUDENT' THEN
+  SELECT INTO image_location image_source FROM student WHERE id = id_arg;
+ ELSE
+  IF role = 'PARENT' THEN
+   SELECT INTO image_location image_source FROM parent WHERE id = id_arg;
+  ELSE
+   SELECT INTO image_location image_source FROM faculty WHERE id = id_arg;
+  END IF;
+ END IF;
+ IF image_location ISNULL THEN
+  RETURN 'ID NOT FOUND UNDER ' || role;
+ ELSE
+  RETURN image_location;
+ END IF;
+END;$$;
+
+
+ALTER FUNCTION public.get_image_location(id_arg text, role text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_image_location(id_arg text, role text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_image_location(id_arg text, role text) IS 'input: id number and role e.g. get_image_location(''2009-7263'', ''STUDENT'')
+       role must be any of this (STUDENT, FACULTY, PARENT)
+
+output: image location';
 
 
 --
@@ -944,10 +1060,12 @@ CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg intege
 
 BEGIN
 
- SELECT INTO count count(*) FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = false;
-
- RETURN count;
-
+ SELECT INTO count count(*) FROM student_sessions_absented (student_id_arg, section_id_arg, term_id_arg);
+ IF count ISNULL THEN
+  RETURN 0;
+ ELSE
+  RETURN count;
+ END IF;
 END;$$;
 
 
@@ -974,10 +1092,12 @@ CREATE FUNCTION student_attendance_count(student_id_arg text, section_id_arg int
 
 BEGIN
 
- SELECT INTO count count(*) FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = true;
-
- RETURN count;
-
+ SELECT INTO count count(*) FROM student_sessions_attended (student_id_arg, section_id_arg, term_id_arg);
+ IF count ISNULL THEN
+  RETURN 0;
+ ELSE
+  RETURN count;
+ END IF;
 END;$$;
 
 
@@ -1114,9 +1234,10 @@ stamps TIMESTAMP;
 
 BEGIN
 
- FOR stamps in SELECT time FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = false LOOP
-
- RETURN NEXT stamps;
+ FOR stamps in SELECT DISTINCT time FROM attendance WHERE term_id = term_id_arg AND section_id = section_id_arg LOOP
+ IF stamps NOT IN (SELECT time FROM attendance WHERE student_id = student_id_arg AND section_id = section_id_arg AND term_id = term_id_arg) THEN
+  RETURN NEXT stamps;
+ END IF;
 
   END LOOP;
 
@@ -1139,9 +1260,10 @@ stamps TIMESTAMP;
 
 BEGIN
 
- FOR stamps in SELECT time FROM attendance WHERE student_id = student_id_arg and section_id = section_id_arg and term_id = term_id_arg and confirmed = true LOOP
-
- RETURN NEXT stamps;
+ FOR stamps in SELECT DISTINCT time FROM attendance WHERE term_id = term_id_arg AND section_id = section_id_arg LOOP
+ IF stamps IN (SELECT time FROM attendance WHERE student_id = student_id_arg AND section_id = section_id_arg AND term_id = term_id_arg) THEN
+  RETURN NEXT stamps;
+ END IF;
 
   END LOOP;
 
@@ -1557,33 +1679,47 @@ CREATE TABLE faculty (
     department_id integer NOT NULL,
     email text DEFAULT 'none'::text NOT NULL,
     id text NOT NULL,
-    account_id integer
+    account_id integer,
+    image_source text DEFAULT 'NO_IMAGE'::text NOT NULL
 );
 
 
 ALTER TABLE public.faculty OWNER TO postgres;
 
 --
--- Name: grade_items; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: grade_item; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE grade_items (
-    name text,
-    max_score integer,
-    grade_cat text,
-    section_id integer,
-    term_id integer DEFAULT getcurrsem(),
-    id integer NOT NULL
+CREATE TABLE grade_item (
+    id integer NOT NULL,
+    grading_system_id integer NOT NULL,
+    name text NOT NULL,
+    total_score double precision NOT NULL,
+    date timestamp without time zone NOT NULL
 );
 
 
-ALTER TABLE public.grade_items OWNER TO postgres;
+ALTER TABLE public.grade_item OWNER TO postgres;
 
 --
--- Name: grade_items_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: grade_item_entry; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE SEQUENCE grade_items_id_seq
+CREATE TABLE grade_item_entry (
+    id integer NOT NULL,
+    grade_item_id integer NOT NULL,
+    score double precision NOT NULL,
+    student_id text NOT NULL
+);
+
+
+ALTER TABLE public.grade_item_entry OWNER TO postgres;
+
+--
+-- Name: grade_item_entry_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE grade_item_entry_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1591,20 +1727,48 @@ CREATE SEQUENCE grade_items_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.grade_items_id_seq OWNER TO postgres;
+ALTER TABLE public.grade_item_entry_id_seq OWNER TO postgres;
 
 --
--- Name: grade_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: grade_item_entry_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE grade_items_id_seq OWNED BY grade_items.id;
+ALTER SEQUENCE grade_item_entry_id_seq OWNED BY grade_item_entry.id;
 
 
 --
--- Name: grade_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: grade_item_entry_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_items_id_seq', 141, true);
+SELECT pg_catalog.setval('grade_item_entry_id_seq', 5, true);
+
+
+--
+-- Name: grade_item_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE grade_item_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.grade_item_id_seq OWNER TO postgres;
+
+--
+-- Name: grade_item_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE grade_item_id_seq OWNED BY grade_item.id;
+
+
+--
+-- Name: grade_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('grade_item_id_seq', 2, true);
 
 
 --
@@ -1701,7 +1865,8 @@ CREATE TABLE parent (
     last_name text NOT NULL,
     email text DEFAULT 'none'::text NOT NULL,
     id text NOT NULL,
-    account_id integer
+    account_id integer,
+    image_source text DEFAULT 'NO_IMAGE'::text NOT NULL
 );
 
 
@@ -1810,110 +1975,12 @@ CREATE TABLE student (
     year integer NOT NULL,
     email text DEFAULT 'none'::text NOT NULL,
     id text NOT NULL,
-    account_id integer
+    account_id integer,
+    image_source text DEFAULT 'NO_IMAGE'::text NOT NULL
 );
 
 
 ALTER TABLE public.student OWNER TO postgres;
-
---
--- Name: studentgrades; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE studentgrades (
-    student_id text NOT NULL,
-    score integer NOT NULL,
-    grade_item text NOT NULL,
-    section_id integer NOT NULL,
-    term_id integer DEFAULT getcurrsem() NOT NULL
-);
-
-
-ALTER TABLE public.studentgrades OWNER TO postgres;
-
---
--- Name: studentgrades_grade_item_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE studentgrades_grade_item_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.studentgrades_grade_item_seq OWNER TO postgres;
-
---
--- Name: studentgrades_grade_item_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE studentgrades_grade_item_seq OWNED BY studentgrades.grade_item;
-
-
---
--- Name: studentgrades_grade_item_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('studentgrades_grade_item_seq', 1, false);
-
-
---
--- Name: studentgrades_section_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE studentgrades_section_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.studentgrades_section_id_seq OWNER TO postgres;
-
---
--- Name: studentgrades_section_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE studentgrades_section_id_seq OWNED BY studentgrades.section_id;
-
-
---
--- Name: studentgrades_section_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('studentgrades_section_id_seq', 1, false);
-
-
---
--- Name: studentgrades_term_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE studentgrades_term_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.studentgrades_term_id_seq OWNER TO postgres;
-
---
--- Name: studentgrades_term_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE studentgrades_term_id_seq OWNED BY studentgrades.term_id;
-
-
---
--- Name: studentgrades_term_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('studentgrades_term_id_seq', 1, false);
-
 
 --
 -- Name: subject; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -2080,6 +2147,20 @@ ALTER TABLE ONLY enroll ALTER COLUMN id SET DEFAULT nextval('enroll_id_seq'::reg
 -- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
+ALTER TABLE ONLY grade_item ALTER COLUMN id SET DEFAULT nextval('grade_item_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grade_item_entry ALTER COLUMN id SET DEFAULT nextval('grade_item_entry_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
 ALTER TABLE ONLY grading_system ALTER COLUMN id SET DEFAULT nextval('grading_system_id_seq'::regclass);
 
 
@@ -2209,7 +2290,25 @@ INSERT INTO enroll VALUES ('2009-1625', 6, 2, 7);
 -- Data for Name: faculty; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO faculty VALUES ('Eddie', 'Inc', 'Singko', 1, 'renegade_0512@yahoo.com', '1992-9384', 1);
+INSERT INTO faculty VALUES ('Eddie', 'Inc', 'Singko', 1, 'renegade_0512@yahoo.com', '1992-9384', 1, 'NO_IMAGE');
+
+
+--
+-- Data for Name: grade_item; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO grade_item VALUES (1, 41, 'preliminary', 50, '2012-09-26 00:55:48.419224');
+INSERT INTO grade_item VALUES (2, 42, 'Quiz, about algorithm', 20, '2012-09-26 00:56:47.595565');
+
+
+--
+-- Data for Name: grade_item_entry; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO grade_item_entry VALUES (2, 1, 43, '2010-7171');
+INSERT INTO grade_item_entry VALUES (3, 2, 15, '2010-7171');
+INSERT INTO grade_item_entry VALUES (4, 2, 15, '2009-1625');
+INSERT INTO grade_item_entry VALUES (5, 2, 15, '2010-2312');
 
 
 --
@@ -2217,13 +2316,13 @@ INSERT INTO faculty VALUES ('Eddie', 'Inc', 'Singko', 1, 'renegade_0512@yahoo.co
 --
 
 INSERT INTO grading_system VALUES (20, 41, 'Prelim', 2);
-INSERT INTO grading_system VALUES (10, 42, 'Date', 2);
 INSERT INTO grading_system VALUES (15, 22, 'Prelim', 1);
 INSERT INTO grading_system VALUES (20, 44, 'Midterm', 1);
 INSERT INTO grading_system VALUES (20, 23, 'Prelim', 3);
 INSERT INTO grading_system VALUES (20, 15, 'Assignment', 1);
 INSERT INTO grading_system VALUES (15, 26, 'Finals', 3);
 INSERT INTO grading_system VALUES (10, 47, 'Midterm', 2);
+INSERT INTO grading_system VALUES (10, 42, 'Quiz', 2);
 
 
 --
@@ -2238,7 +2337,7 @@ INSERT INTO linked_account VALUES ('2009-1625', true, 1, 'P-2373');
 -- Data for Name: parent; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO parent VALUES ('hay', 'nako', 'tres', 'mama@yahoo.com', 'P-2373', 4);
+INSERT INTO parent VALUES ('hay', 'nako', 'tres', 'mama@yahoo.com', 'P-2373', 4, 'NO_IMAGE');
 
 
 --
@@ -2264,9 +2363,9 @@ INSERT INTO section VALUES ('C3S2', 4, '4:30-6:00', 3, 'TTh', 'SR');
 -- Data for Name: student; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO student VALUES ('johny', 'smith', 'english', 3, 2, 'encuberevenant@gmail.com', '2010-2312', NULL);
-INSERT INTO student VALUES ('Kevin  Eric', 'Ridao', 'Siangco', 1, 3, 'shdwstrider@gmail.com', '2010-7171', 3);
-INSERT INTO student VALUES ('Novo', 'Cubero', 'Dimaporo', 1, 4, 'sandrevenant@gmail.com', '2009-1625', 2);
+INSERT INTO student VALUES ('johny', 'smith', 'english', 3, 2, 'encuberevenant@gmail.com', '2010-2312', NULL, 'NO_IMAGE');
+INSERT INTO student VALUES ('Kevin  Eric', 'Ridao', 'Siangco', 1, 3, 'shdwstrider@gmail.com', '2010-7171', 3, 'NO_IMAGE');
+INSERT INTO student VALUES ('Novo', 'Cubero', 'Dimaporo', 1, 4, 'sandrevenant@gmail.com', '2009-1625', 2, 'NO_IMAGE');
 
 
 --
@@ -2357,6 +2456,22 @@ ALTER TABLE ONLY enroll
 
 ALTER TABLE ONLY faculty
     ADD CONSTRAINT faculty_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: grade_item_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY grade_item_entry
+    ADD CONSTRAINT grade_item_entry_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: grade_item_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY grade_item
+    ADD CONSTRAINT grade_item_pkey PRIMARY KEY (id);
 
 
 --
@@ -2462,76 +2577,6 @@ ALTER TABLE ONLY assignation
 ALTER TABLE ONLY assignation
     ADD CONSTRAINT assignation_term_id_fkey FOREIGN KEY (term_id) REFERENCES term(id);
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY grade_items ALTER COLUMN id SET DEFAULT nextval('grade_items_id_seq'::regclass);
-
-
---
--- Name: section_id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY studentgrades ALTER COLUMN section_id SET DEFAULT nextval('studentgrades_section_id_seq'::regclass);
-
-
---
--- Data for Name: grade_items; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY grade_items (name, max_score, grade_cat, section_id, term_id, id) FROM stdin;
-Quiz 1	45	Quiz	1	6	13
-Assignment 1	50	Assignment	3	6	126
-Quiz	100	Quiz	3	6	127
-Prelim Exam	99	Prelim	1	6	136
-Quiz 2	50	Quiz	1	6	137
-Assignment 1	45	Assignment	2	6	134
-Quiz 1	41	Quiz	2	6	129
-Quiz 2	56	Quiz	2	6	132
-\.
-
-
---
--- Data for Name: studentgrades; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY studentgrades (student_id, score, grade_item, section_id, term_id) FROM stdin;
-2010-7171	25	Assignment 1	2	6
-\.
-
-
---
--- Name: grade_items_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY grade_items
-    ADD CONSTRAINT grade_items_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id);
-
-
---
--- Name: studentgrades_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY studentgrades
-    ADD CONSTRAINT studentgrades_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id);
-
-
---
--- Name: studentgrades_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY studentgrades
-    ADD CONSTRAINT studentgrades_student_id_fkey FOREIGN KEY (student_id) REFERENCES student(id);
-
-
---
--- Name: studentgrades_term_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY studentgrades
-    ADD CONSTRAINT studentgrades_term_id_fkey FOREIGN KEY (term_id) REFERENCES term(id);
-
 
 --
 -- Name: attendance_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
@@ -2595,6 +2640,30 @@ ALTER TABLE ONLY faculty
 
 ALTER TABLE ONLY faculty
     ADD CONSTRAINT faculty_department_id_fkey FOREIGN KEY (department_id) REFERENCES department(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: grade_item_entry_grade_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grade_item_entry
+    ADD CONSTRAINT grade_item_entry_grade_item_id_fkey FOREIGN KEY (grade_item_id) REFERENCES grade_item(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: grade_item_entry_student_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grade_item_entry
+    ADD CONSTRAINT grade_item_entry_student_id_fkey FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: grade_item_grading_system_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grade_item
+    ADD CONSTRAINT grade_item_grading_system_id_fkey FOREIGN KEY (grading_system_id) REFERENCES grading_system(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
