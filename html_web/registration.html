@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+	<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+		<head>
+			<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+				<title>REGISTRATION</title>
+					<link rel="stylesheet" type="text/css" href="css/reg.css" media="all" />
+					<link rel="stylesheet" type="text/css" href="css/style.css" media="all" />	
+					    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+					    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.min.js"></script>
+					    <script type="text/javascript" src="js/jquery.inputfocus-0.9.min.js"></script>
+					    <script type="text/javascript" src="js/reg.js"></script>
+					    <script type="text/javascript" src="js/min.js"></script>
+					    <script type="text/javascript" src="../javascript/reguser.js"></script>
+		</head>
+	
+	<body>
+		<div id="container">
+        		<form action="#" method="post">
+	
+          		  <!-- #first_step -->
+           			<div id="first_step">
+               				 <div class="form">
+						<input type="text" name="username" id="username" placeholder="username" />
+                    					<label for="username">
+								USERNAME<br/>(At least 4 characters. Uppercase letters, lowercase letters and numbers only.)
+							</label>
+                    
+						<input type="password" name="password" id="password" placeholder="password" />
+                    					<label for="password">
+								PASSWORD<br/>(At least 4 characters. Use a mix of upper and lowercase for a strong password.)
+							</label>
+                    
+						<input type="password" name="cpassword" id="cpassword" placeholder="password" />
+                    					<label for="cpassword">
+								CONFIRM PASSWORD<br/>(Password should match.)
+							</label>
+
+              			</div>      
+					<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+               
+						<input class="submit" type="submit" name="submit_first" id="submit_first" value="" />
+            			</div>      		
+					<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+
+
+
+             <!-- #second_step -->
+            			<div id="second_step">
+					<div class="form">
+					<div>
+					    <input type="text" name="firstname" id="firstname" placeholder="first name" />
+					   	<label for="firstname">
+							FIRST NAME 
+						</label></div>
+
+					<div><input type="text" name="midname" id="midname" placeholder="middle name" />
+					    <label for="midname">MIDDLE NAME 
+						</label></div>
+
+					    <div><input type="text" name="lastname" id="lastname" placeholder="last name" />
+					    	<label for="lastname">LAST NAME 
+						</label></div>
+
+					    <div><input type="text" name="email" id="email" placeholder="email address" />
+					   	 <label for="email">Your email address. We send important administration notices to this address.</label> </div>                   
+					</div> 
+						<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+
+                				<input class="submit" type="submit" name="submit_second" id="submit_second" value="" />
+          			</div>      
+						<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+
+
+            <!-- #third_step -->
+            			<div id="third_step">
+                			<div class="form">
+
+					<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+
+
+					<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+                    
+                			</div>   
+   
+					<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+
+               					<input class="submit" type="submit" name="submit_third" id="submit_third" value="" />
+                
+           			</div>      
+					<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+            
+            
+            <!-- #fourth_step -->
+            			<div id="fourth_step">
+			  		<div class="form">
+					  <font color="grey" size="10">  <h1>SUMMARY</h1>
+						<table>
+							<tr><td>Username</td><td></td></tr>
+							<tr><td>Password</td><td></td></tr>
+							<tr><td>Email</td><td></td></tr>
+							<tr><td>Student Name</td><td></td></tr>
+
+						</table>
+					</div>      
+						<!-- clearfix --><div class="clear"></div><!-- /clearfix -->
+					
+						<input class="send submit" type="submit" name="submit_fourth" id="submit_fourth" value="" />            
+				 </div>
+            
+       			</form>
+		</div>
+	<div id="progress_bar">
+        <div id="progress"></div>
+        <div id="progress_text">0% Complete</div>
+	</div>
+	
+</body>
+</html>
