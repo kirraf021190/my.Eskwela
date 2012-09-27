@@ -1,6 +1,6 @@
 function getStudInfo() {
   getClasses()
-  $.post('../../scripts/queries/getInfo',function(data){
+  $.post('../scripts/queries/getInfo',function(data){
   if(data.length>0){
           info = data.split(",")
           var table = document.getElementById('userinfo') 
@@ -14,7 +14,7 @@ function getStudInfo() {
 
 function getFacInfo() {
   getFacClasses()
-  $.post('../../scripts/queries/getInfo',function(data){
+  $.post('../scripts/queries/getInfo',function(data){
   if(data.length>0){
           info = data.split(",")
           var table = document.getElementById('userinfo') 
@@ -27,7 +27,7 @@ function getFacInfo() {
 	
 }
 function getClasses(){
-    $.post('../../scripts/queries/getClasses',function(data){
+    $.post('../scripts/queries/getClasses',function(data){
        if(data.length>0){
           classes = data.split("@")
           for(i=0; i<classes.length-1; i++){
@@ -82,7 +82,7 @@ function getClasses(){
     });
 }
 function getFacClasses(){
-    $.post('../../scripts/queries/getClasses',function(data){
+    $.post('../scripts/queries/getClasses',function(data){
        if(data.length>0){
           classes = data.split("@")
           for(i=0; i<classes.length-1; i++){
@@ -111,7 +111,7 @@ function getFacClasses(){
 	td6.innerHTML = details[5];
 
 	var td9 = document.createElement('TD')
-	td9.innerHTML = '<center><input type="button" value="View" id="view_button" onclick="location.href=\'../../scripts/form/section?sec='+details[1]+'&scode='+details[6]+'\'"></center>'
+	td9.innerHTML = '<center><input type="button" value="View" id="view_button" onclick="location.href=\'../scripts/form/section?sec='+details[1]+'&scode='+details[6]+'\'"></center>'
 	
 	var td10 = document.createElement('TD')
 	td10.innerHTML = details[6];
@@ -131,11 +131,11 @@ function getFacClasses(){
     });
 }
 function getattend(){
-$.post('../../scripts/queries/getCurrentClass',function(data){
+$.post('../scripts/queries/getCurrentClass',function(data){
 	var inputf = document.getElementById("sections");
 	inputf.value = data;
 });
-$.post('../../scripts/queries/getAttendanceBySubject',function(data){
+$.post('../scripts/queries/getAttendanceBySubject',function(data){
        if(data.length>0){
           classes = data.split("@")
           for(i=0; i<classes.length-1; i++){
@@ -187,7 +187,7 @@ refreshtab();
 
 function addAttendance(idnum){
 
-	$.post('../../scripts/queries/addAttendance',{idnum_:idnum},function(data){
+	$.post('../scripts/queries/addAttendance',{idnum_:idnum},function(data){
 		if(data == 'true') {
 			$.post('../../scripts/queries/getAttendanceBySubject',function(data){
 				if(data.length>0){
@@ -232,7 +232,7 @@ function addAttendance(idnum){
 }
 
 function getgradesystem() {
-	$.post('../../scripts/queries/getGradeSystem',function(data){
+	$.post('../scripts/queries/getGradeSystem',function(data){
        if(data.length>0){
           classes = data.split("@")
           for(i=0; i<classes.length-1; i++){
@@ -293,7 +293,7 @@ function setGradeSystem(name,weight){
 	}
 	
 	if(valid){
-		$.post('../../scripts/queries/setGradeSystem',{name_:name,weight_:weight},function(data){
+		$.post('../scripts/queries/setGradeSystem',{name_:name,weight_:weight},function(data){
 			if(data == 'true') {
 				var row = document.createElement('TR')
 	
@@ -353,7 +353,7 @@ function editweight(v,n){
 		n.parentNode.childNodes[1].revert();
 	}
 	else {
-		$.post('../../scripts/queries/editCatWeight',{name_:n.parentNode.childNodes[0].innerHTML, weight_:n.innerHTML},function(data){
+		$.post('../scripts/queries/editCatWeight',{name_:n.parentNode.childNodes[0].innerHTML, weight_:n.innerHTML},function(data){
 			$().toastmessage('showNoticeToast', n.parentNode.childNodes[0].innerHTML + '  ' + 'updated');
 			$(n).animate().hide().fadeIn(1000, function() { });
 		});
@@ -362,7 +362,7 @@ function editweight(v,n){
 }
 
 function deletecat(n){
-	$.post('../../scripts/queries/deleteCategory',{name_:n.childNodes[0].innerHTML},function(data){
+	$.post('../scripts/queries/deleteCategory',{name_:n.childNodes[0].innerHTML},function(data){
 		if(data == 'true') {
 			$().toastmessage('showErrorToast', n.childNodes[0].innerHTML + '  ' + 'deleted');
 			$(n).animate().fadeOut(400,function(){ 
@@ -375,7 +375,7 @@ function deletecat(n){
 
 function confirmattend(n){
 
-	$.post('../../scripts/queries/confirmAttend',{idnum_:n.childNodes[0].innerHTML,time:n.childNodes[2].innerHTML},function(data){
+	$.post('../scripts/queries/confirmAttend',{idnum_:n.childNodes[0].innerHTML,time:n.childNodes[2].innerHTML},function(data){
 		if(data == 'true') {
 			$().toastmessage('showSuccessToast', 'Attendance Confirmed');		
 			$(n.childNodes[3].childNodes[0].childNodes[0]).animate().fadeOut(400,function() {
@@ -395,7 +395,7 @@ function refreshtab() {
 
 	var tbody = document.getElementById("students_attendance").getElementsByTagName('TBODY')[0];
 	setInterval(function(){
-		$.post('../../scripts/queries/getAttendanceBySubject',function(data){
+		$.post('../scripts/queries/getAttendanceBySubject',function(data){
 			classes = data.split("@");			
 			var n = classes.length - 1;
 				while(n >= 0) {
@@ -451,7 +451,7 @@ function refreshtab() {
  
 function gradecatdropdown (){
 	gradecatlist = document.getElementById("period1");
-	$.post('../../scripts/queries/getGradeSystem',function(data){
+	$.post('../scripts/queries/getGradeSystem',function(data){
 		$(gradecatlist.childNodes).each(function() { 
 			$(this).remove(); 
 		});
@@ -466,7 +466,7 @@ function gradecatdropdown (){
 }
 
 function getgradeitems(){
-	$.post('../../scripts/queries/getGradeItems',function(data){
+	$.post('../scripts/queries/getGradeItems',function(data){
 		if(data.length>0){
 			var tbody = document.getElementById("gradeitemtable").getElementsByTagName('TBODY')[0]
     		classes = data.split("@")
@@ -531,7 +531,7 @@ function addgradeitem(name,maxscore,gradecat){
    		 }
 	}
 	if(valid) {
-		$.post('../../scripts/queries/addGradeItem',{name_:name,maxscore_:maxscore,gradecat_:gradecat},function(data){
+		$.post('../scripts/queries/addGradeItem',{name_:name,maxscore_:maxscore,gradecat_:gradecat},function(data){
 			if(data == 'true') {
 				var row = document.createElement('TR')
 	
@@ -588,7 +588,7 @@ function addgradeitem(name,maxscore,gradecat){
 
 function editmaxscore(v,n){
 	n.innerHTML = v
-		$.post('../../scripts/queries/editMaxScore',{name_:n.parentNode.childNodes[0].innerHTML, maxscore_:n.innerHTML},function(data){
+		$.post('../scripts/queries/editMaxScore',{name_:n.parentNode.childNodes[0].innerHTML, maxscore_:n.innerHTML},function(data){
 			if(data == 'true') {
 				$().toastmessage('showNoticeToast', n.parentNode.childNodes[0].innerHTML + '  ' + 'updated');
 				$(n).animate().hide().fadeIn(1000, function() { });
@@ -597,21 +597,11 @@ function editmaxscore(v,n){
 }
 
 function deletegradeitem(n){
-	$.post('../../scripts/queries/deleteGradeItem',{name_:n.childNodes[0].innerHTML},function(data){
+	$.post('../scripts/queries/deleteGradeItem',{name_:n.childNodes[0].innerHTML},function(data){
 		if(data == 'true') {
 			$().toastmessage('showErrorToast', n.childNodes[0].innerHTML + '  ' + 'deleted');
 			$(n).animate().fadeOut(400,function(){ 
 				$(n).remove()
-			});
-		}
-
-	});
-}
-
-function studentTestAttendance(){
-	$.post('../../scripts/queries/studentTestAttendance',function(data){
-		if(data == 'true') {
-				$().toastmessage('showSuccessToast', 'Attendance Confirmed');
 			});
 		}
 
