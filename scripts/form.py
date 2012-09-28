@@ -7,32 +7,39 @@ import smtplib
 
 def login(req, username, pwd):
 	a = doSql()
+	session = Session.Session(req)
 	#Query to retrieve SALT from DATABASE
 	salt = a.execqry("select getsalt('"+username+"')", False)[0][0]
 	x = str(salt)
+	if (x == 'false'):
+		session['invalid'] = 'Invalid username or password'
+		session.save()
+		return "<html><body onload='location.href=\"../../scripts/login\"'></body></html>"
+		
 	hashPass = encryptPass(x, pwd)
 	hashPass_ = cgi.escape(hashPass)
-  	f = a.execqry("select login('"+hashPass_+"', '"+username+"')", False)[0][0]
-	session = Session.Session(req)
+  	f = a.execqry("select login('"+username+"', '"+hashPass_+"')", False)[0][0]
 	if (f == 'TRUE'):
 		session['id'] = a.execqry("select getid('"+username+"')", False)[0][0]
+		session['usertype'] = a.execqry("select getaccounttype('"+str(session['id'])+"')", False)[0][0]
 		session.save()
-		return "<html><body onload='location.href=\"../../html/about/index.html\"'></body></html>"
+		if (session['usertype'] == 'STUDENT'):
+			return "<html><body onload='location.href=\"../../html_web/index.html\"'></body></html>"
+		else:
+			return "<html><body onload='location.href=\"../../html_web/prof_index.html\"'></body></html>"
+
 	else:
-		session['invalid'] = salt
+		session['invalid'] = 'Invalid username or password'
 		session.save()
 		return "<html><body onload='location.href=\"../../scripts/login\"'></body></html>"
 
-def section(req, sec, sy, subj, code):
+def section(req, sec, scode):
 	session = Session.Session(req)
 	if(checkSession(req, session)):
 		session['class'] = sec
-		session['sy'] = sy
-		session['subj'] = subj
-		session['sCode'] = code
-		
+		session['scode'] = scode
 		session.save()
-		return "<html><body onload='location.href=\"../../html/grades.html\"'></body></html>"
+		return "<html><body onload='location.href=\"../../html_web/view.html\"'></body></html>"
 	else:
 		return "<html><body onload='location.href=\"../login\"'></body></html>"
 
