@@ -51,8 +51,8 @@ ALTER FUNCTION public.account_role(account_name_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION account_role(account_name_arg text) IS 'input: account name
 
-returns the role of the account user
-revised: it uses the table person';
+
+returns text; the role of the account user';
 
 
 --
@@ -72,6 +72,7 @@ CREATE FUNCTION account_role_id(account_name_arg text) RETURNS text
 BEGIN
 
  SELECT INTO role_id person.id FROM person INNER JOIN account ON (account.id = person.account_id) WHERE account.name = account_name_arg;
+
  RETURN role_id;
 
 END;$$;
@@ -85,8 +86,8 @@ ALTER FUNCTION public.account_role_id(account_name_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION account_role_id(account_name_arg text) IS 'input: account name
 
-returns the role_id of the account user
-revised, this uses person';
+
+returns text; the role id of the account user';
 
 
 --
@@ -96,7 +97,9 @@ revised, this uses person';
 CREATE FUNCTION add_attendance(session_id_arg integer, student_id_arg text, time_arg timestamp without time zone) RETURNS boolean
     LANGUAGE plpgsql
     AS $$DECLARE
+
      status_var TEXT;
+
 BEGIN
 
      SELECT INTO status_var status FROM class_session WHERE id = session_id_arg;
@@ -106,8 +109,11 @@ BEGIN
       INSERT INTO attendance (session_id, time, student_id) VALUES(session_id_arg, time_arg, student_id_arg);
 
       return TRUE;
+
      ELSE
+
       return FALSE;
+
      END IF;
 
 END;$$;
@@ -116,89 +122,166 @@ END;$$;
 ALTER FUNCTION public.add_attendance(session_id_arg integer, student_id_arg text, time_arg timestamp without time zone) OWNER TO postgres;
 
 --
+-- Name: FUNCTION add_attendance(session_id_arg integer, student_id_arg text, time_arg timestamp without time zone); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION add_attendance(session_id_arg integer, student_id_arg text, time_arg timestamp without time zone) IS 'input: session id, student id, time
+
+
+returns boolean; TRUE if the attendance if successfully added and FALSE otherwise';
+
+
+--
 -- Name: add_class_session(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
 CREATE FUNCTION add_class_session(section_id_arg integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+
  IF section_id_arg IN (SELECT id FROM section) THEN
+
   INSERT INTO class_session(section_id) VALUES(section_id_arg);
+
   RETURN TRUE;
+
  ELSE
+
   RETURN FALSE;
+
  END IF;
+
 END;$$;
 
 
 ALTER FUNCTION public.add_class_session(section_id_arg integer) OWNER TO postgres;
 
 --
--- Name: add_grade_item(text, integer, double precision); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: FUNCTION add_class_session(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision) RETURNS integer
+COMMENT ON FUNCTION add_class_session(section_id_arg integer) IS 'input: section id
+
+
+returns boolean; TRUE if class session was successfully added and FALSE otherwise';
+
+
+--
+-- Name: add_grade_item(text, integer, double precision, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, timestamp_arg timestamp without time zone) RETURNS boolean
     LANGUAGE plpgsql
     AS $$DECLARE
+
  grade_item_id INTEGER;
+
  student_id_var TEXT;
+
 BEGIN
+
  SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg and grading_system_id = grading_system_id_arg;
+
  IF grade_item_id ISNULL THEN
-  INSERT INTO grade_item(grading_system_id, name, total_score, date) VALUES(grading_system_id_arg, name_arg, total_score_arg, now());
+
+  INSERT INTO grade_item(grading_system_id, name, total_score, date) VALUES(grading_system_id_arg, name_arg, total_score_arg, timestamp_arg);
+
   SELECT INTO grade_item_id id FROM grade_item WHERE name = name_arg and grading_system_id = grading_system_id_arg;
 
   FOR student_id_var IN SELECT enrolled(get_grading_system_section_id(grading_system_id_arg)) LOOP
+
    INSERT INTO grade_item_entry(grade_item_id, score, student_id) VALUES(grade_item_id, 0, student_id_var);
+
   END LOOP;
 
-  RETURN grade_item_id;
+  RETURN TRUE;
+
  ELSE
-  RETURN 0;
+
+  RETURN FALSE;
+
  END IF;
+
 END;$$;
 
 
-ALTER FUNCTION public.add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision) OWNER TO postgres;
+ALTER FUNCTION public.add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, timestamp_arg timestamp without time zone) OWNER TO postgres;
 
 --
--- Name: FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, timestamp_arg timestamp without time zone); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision) IS 'input: name of the grade item, grading system id where this item belong, total score of this item
+COMMENT ON FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, timestamp_arg timestamp without time zone) IS 'input: grade item name, grading system id, total score
 
-output: id of the newly created item, 0 if it already exist';
+
+returns boolean; TRUE if grade item was successfully added and FALSE otherwise';
 
 
 --
 -- Name: add_grade_item_entry(integer, double precision, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text) RETURNS integer
+CREATE FUNCTION add_grade_item_entry(grade_item_id_arg integer, score_arg double precision, student_id_arg text) RETURNS boolean
     LANGUAGE plpgsql
     AS $$DECLARE
+
  grade_item_entry_id INTEGER;
+
 BEGIN
- SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE student_id = student_id_arg AND grade_item_id = grading_item_id_arg;
+
+ SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE student_id = student_id_arg AND grade_item_id = grade_item_id_arg;
+
  IF grade_item_entry_id ISNULL THEN
-  RETURN 0;
+
+  RETURN FALSE;
+
  ELSE
-  UPDATE grade_item_entry SET score = score_arg WHERE student_id = student_id_arg AND grade_item_id = grading_item_id_arg;
-  SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE student_id = student_id_arg AND grade_item_id = grading_item_id_arg;
-  RETURN grade_item_entry_id;
+
+  UPDATE grade_item_entry SET score = score_arg WHERE student_id = student_id_arg AND grade_item_id = grade_item_id_arg;
+
+  RETURN TRUE;
+
  END IF;
+
 END;$$;
 
 
-ALTER FUNCTION public.add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text) OWNER TO postgres;
+ALTER FUNCTION public.add_grade_item_entry(grade_item_id_arg integer, score_arg double precision, student_id_arg text) OWNER TO postgres;
 
 --
--- Name: FUNCTION add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: FUNCTION add_grade_item_entry(grade_item_id_arg integer, score_arg double precision, student_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION add_grade_item_entry(grading_item_id_arg integer, score_arg double precision, student_id_arg text) IS 'input: grading item id where this entry belong, score of this entry, id of the student
+COMMENT ON FUNCTION add_grade_item_entry(grade_item_id_arg integer, score_arg double precision, student_id_arg text) IS 'input: grade item id, score of this entry, id of the student
 
-output: id of the newly created item, 0 if student already have an entry in that grading item';
+
+returns boolean; TRUE if grade item entry was successfully updated and FALSE otherwise';
+
+
+--
+-- Name: class_session_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION class_session_information(session_id_arg integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ session_information TEXT;
+BEGIN
+ SELECT INTO session_information date || '#' || status FROM class_session WHERE id = session_id_arg;
+ RETURN session_information;
+END;$$;
+
+
+ALTER FUNCTION public.class_session_information(session_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION class_session_information(session_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION class_session_information(session_id_arg integer) IS 'input: session id
+
+
+returns text; informations of the session';
 
 
 --
@@ -208,16 +291,33 @@ output: id of the newly created item, 0 if student already have an entry in that
 CREATE FUNCTION confirm_attendance(attendance_id_arg integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+
      IF attendance_id_arg IN (SELECT id FROM attendance WHERE confirmed = FALSE) THEN
-      UPDATE attendance SET confirmed = TRUE WHERE attendance_id = attendance_id_arg;
+
+      UPDATE attendance SET confirmed = TRUE WHERE id = attendance_id_arg;
+
       RETURN TRUE;
+
      ELSE
+
       RETURN FALSE;
+
      END IF;
+
 END;$$;
 
 
 ALTER FUNCTION public.confirm_attendance(attendance_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION confirm_attendance(attendance_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION confirm_attendance(attendance_id_arg integer) IS 'input: grade item id, score of this entry, id of the student
+
+
+returns boolean; TRUE if attendance was successfully confirmed and FALSE otherwise';
+
 
 --
 -- Name: count_student_enrolled(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -254,7 +354,8 @@ ALTER FUNCTION public.count_student_enrolled(section_id_arg integer) OWNER TO po
 
 COMMENT ON FUNCTION count_student_enrolled(section_id_arg integer) IS 'input: section id
 
-output: student count enrolled in the section';
+
+returns integer; number of student enrolled in the given section';
 
 
 --
@@ -282,7 +383,10 @@ ALTER FUNCTION public.current_term() OWNER TO postgres;
 -- Name: FUNCTION current_term(); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION current_term() IS 'returns current terms id';
+COMMENT ON FUNCTION current_term() IS 'input: section id
+
+
+returns integer; id of the current term';
 
 
 --
@@ -292,17 +396,35 @@ COMMENT ON FUNCTION current_term() IS 'returns current terms id';
 CREATE FUNCTION delete_class_session(class_session_id_arg integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+
  IF class_session_id_arg IN (SELECT id FROM class_session) THEN
+
   DELETE FROM class_session WHERE id = class_session_id_arg;
+
   DELETE FROM attendance WHERE session_id = class_session_id_arg;
+
   RETURN TRUE;
+
  ELSE
+
   RETURN FALSE;
+
  END IF;
+
 END;$$;
 
 
 ALTER FUNCTION public.delete_class_session(class_session_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION delete_class_session(class_session_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION delete_class_session(class_session_id_arg integer) IS 'input: class session id
+
+
+returns boolean; TRUE if class session was successfully deleted and FALSE otherwise';
+
 
 --
 -- Name: delete_grade_item(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -311,17 +433,35 @@ ALTER FUNCTION public.delete_class_session(class_session_id_arg integer) OWNER T
 CREATE FUNCTION delete_grade_item(grade_item_id_arg integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+
      IF grade_item_id_arg IN (SELECT id FROM grade_item) THEN
+
       DELETE FROM grade_item WHERE id = grade_item_id_arg;
+
       DELETE FROM grade_item_entry WHERE grade_item_id = grade_item_id_arg;
+
       RETURN TRUE;
+
      ELSE
+
       RETURN FALSE;
+
      END IF;
+
 END;$$;
 
 
 ALTER FUNCTION public.delete_grade_item(grade_item_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION delete_grade_item(grade_item_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION delete_grade_item(grade_item_id_arg integer) IS 'input: grade item id
+
+
+returns boolean; TRUE if grade item was successfully deleted and FALSE otherwise';
+
 
 --
 -- Name: dismiss_class_session(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -330,16 +470,33 @@ ALTER FUNCTION public.delete_grade_item(grade_item_id_arg integer) OWNER TO post
 CREATE FUNCTION dismiss_class_session(class_session_id_arg integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+
  IF class_session_id_arg IN (SELECT id FROM class_session) THEN
+
   UPDATE class_session SET status = 'DISMISSED' WHERE id = class_session_id_arg;
+
   RETURN TRUE;
+
  ELSE
+
   RETURN FALSE;
+
  END IF;
+
 END;$$;
 
 
 ALTER FUNCTION public.dismiss_class_session(class_session_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION dismiss_class_session(class_session_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION dismiss_class_session(class_session_id_arg integer) IS 'input: class session id
+
+
+returns boolean; TRUE if grade item was successfully updated and FALSE otherwise';
+
 
 --
 -- Name: edit_grading_system_weight(integer, double precision); Type: FUNCTION; Schema: public; Owner: postgres
@@ -348,16 +505,33 @@ ALTER FUNCTION public.dismiss_class_session(class_session_id_arg integer) OWNER 
 CREATE FUNCTION edit_grading_system_weight(grading_system_id_arg integer, new_weight_arg double precision) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+
      IF grading_system_id_arg IN (SELECT id FROM grading_system) THEN
+
       UPDATE grading_system SET weight = new_weight_arg WHERE id = grading_system_id_arg;
+
       RETURN TRUE;
+
      ELSE
+
       RETURN FALSE;
+
      END IF;
+
 END;$$;
 
 
 ALTER FUNCTION public.edit_grading_system_weight(grading_system_id_arg integer, new_weight_arg double precision) OWNER TO postgres;
+
+--
+-- Name: FUNCTION edit_grading_system_weight(grading_system_id_arg integer, new_weight_arg double precision); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION edit_grading_system_weight(grading_system_id_arg integer, new_weight_arg double precision) IS 'input: grading system id, new weight
+
+
+returns boolean; TRUE if grading system was successfully updated and FALSE otherwise';
+
 
 --
 -- Name: enrolled(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -390,7 +564,38 @@ ALTER FUNCTION public.enrolled(section_id_arg integer) OWNER TO postgres;
 
 COMMENT ON FUNCTION enrolled(section_id_arg integer) IS 'input: section id
 
-output: setof student id';
+
+returns setof text; id number of the student enrolled in that section';
+
+
+--
+-- Name: enrolled_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION enrolled_information(section_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ id TEXT;
+BEGIN
+ FOR id IN (SELECT enrolled(section_id_arg)) LOOP
+  informations = student_information(id);
+ RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.enrolled_information(section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION enrolled_information(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION enrolled_information(section_id_arg integer) IS 'input: section id
+
+
+returns setof text; informations of the students enrolled in the section';
 
 
 --
@@ -426,13 +631,10 @@ ALTER FUNCTION public.faculty_information(faculty_id_arg text) OWNER TO postgres
 -- Name: FUNCTION faculty_information(faculty_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION faculty_information(faculty_id_arg text) IS 'input: faculty id
+COMMENT ON FUNCTION faculty_information(faculty_id_arg text) IS 'input: section id
 
-returns faculty information
 
- format: first name - middle name - last name - department name - email
-
- delimiter: #';
+returns text; faculty information, format; first name - middle name - last name - department name - email';
 
 
 --
@@ -459,6 +661,46 @@ END;$$;
 
 
 ALTER FUNCTION public.faculty_load(faculty_id_arg text, term_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION faculty_load(faculty_id_arg text, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION faculty_load(faculty_id_arg text, term_id_arg integer) IS 'input: faculty id, term id
+
+
+returns setof integer; id of the section that the faculty handle';
+
+
+--
+-- Name: faculty_load_information(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION faculty_load_information(faculty_id_arg text, term_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ section_id INTEGER;
+BEGIN
+ FOR section_id IN (SELECT faculty_load(faculty_id_arg, term_id_arg)) LOOP
+  informations = section_information(section_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.faculty_load_information(faculty_id_arg text, term_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION faculty_load_information(faculty_id_arg text, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION faculty_load_information(faculty_id_arg text, term_id_arg integer) IS 'input: faculty id, term id
+
+
+returns setof text; informations of the section that the faculty handle';
+
 
 --
 -- Name: get_children(text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -489,9 +731,40 @@ ALTER FUNCTION public.get_children(parent_id_arg text) OWNER TO postgres;
 -- Name: FUNCTION get_children(parent_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION get_children(parent_id_arg text) IS 'intput: parents id
+COMMENT ON FUNCTION get_children(parent_id_arg text) IS 'input: parent id
 
-output: childrens id number';
+
+returns setof text; id of the children of the parent';
+
+
+--
+-- Name: get_children_information(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_children_information(parent_id_arg text) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ child_id TEXT;
+BEGIN
+ FOR child_id IN (SELECT get_children(parent_id_arg)) LOOP
+  informations = student_information(child_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_children_information(parent_id_arg text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_children_information(parent_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_children_information(parent_id_arg text) IS 'input: parent id
+
+
+returns setof text; informations of the children of the parent';
 
 
 --
@@ -507,7 +780,9 @@ section_id_output INTEGER;
 BEGIN
 
  FOR section_id_output in SELECT id FROM class_session WHERE section_id = section_id_arg LOOP
+
   RETURN NEXT section_id_output;
+
   END LOOP;
 
   RETURN;
@@ -518,24 +793,84 @@ END;$$;
 ALTER FUNCTION public.get_class_session(section_id_arg integer) OWNER TO postgres;
 
 --
+-- Name: FUNCTION get_class_session(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_class_session(section_id_arg integer) IS 'input: section id
+
+
+returns setof integer; id of the session that the section have';
+
+
+--
+-- Name: get_class_session_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_class_session_information(section_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ session_id INTEGER;
+BEGIN
+ FOR session_id IN (SELECT get_class_session(section_id_arg)) LOOP
+  informations = class_session_information(session_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;
+$$;
+
+
+ALTER FUNCTION public.get_class_session_information(section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_class_session_information(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_class_session_information(section_id_arg integer) IS 'input: section id
+
+
+returns setof text; informations of the session that the section have';
+
+
+--
 -- Name: get_email(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
 CREATE FUNCTION get_email(id_arg text, role_arg text) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  email_output TEXT;
+
 BEGIN
+
  SELECT INTO email_output email FROM person WHERE id = id_arg AND type = role_arg;
+
  IF email_output ISNULL THEN
+
   RETURN 'ID NOT FOUND UNDER ' || role;
+
  ELSE
+
   RETURN email_output;
+
  END IF;
+
 END;$$;
 
 
 ALTER FUNCTION public.get_email(id_arg text, role_arg text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_email(id_arg text, role_arg text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_email(id_arg text, role_arg text) IS 'input: id, role
+
+
+returns text; email';
+
 
 --
 -- Name: get_grade_item(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -544,12 +879,19 @@ ALTER FUNCTION public.get_email(id_arg text, role_arg text) OWNER TO postgres;
 CREATE FUNCTION get_grade_item(grading_system_id_arg integer) RETURNS SETOF integer
     LANGUAGE plpgsql
     AS $$DECLARE
+
  grade_item_id INTEGER;
+
 BEGIN
+
  FOR grade_item_id IN SELECT id FROM grade_item WHERE grading_system_id = grading_system_id_arg LOOP
+
   RETURN NEXT grade_item_id;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -561,7 +903,8 @@ ALTER FUNCTION public.get_grade_item(grading_system_id_arg integer) OWNER TO pos
 
 COMMENT ON FUNCTION get_grade_item(grading_system_id_arg integer) IS 'input: grading system id
 
-output: id of the grade items that the grading system have';
+
+returns setof integer; id of the grade item that the grade system have';
 
 
 --
@@ -571,12 +914,19 @@ output: id of the grade items that the grading system have';
 CREATE FUNCTION get_grade_item_entry(grade_item_id_arg integer) RETURNS SETOF integer
     LANGUAGE plpgsql
     AS $$DECLARE
+
  grade_item_entry_id INTEGER;
+
 BEGIN
+
  FOR grade_item_entry_id IN SELECT id FROM grade_item_entry WHERE grade_item_id = grade_item_id_arg LOOP
+
   RETURN NEXT grade_item_entry_id;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -588,7 +938,68 @@ ALTER FUNCTION public.get_grade_item_entry(grade_item_id_arg integer) OWNER TO p
 
 COMMENT ON FUNCTION get_grade_item_entry(grade_item_id_arg integer) IS 'input: grade item id
 
-output: id of the grade item entries that the grade item have';
+
+returns setof integer; id of the grade item entry id that the grade item have';
+
+
+--
+-- Name: get_grade_item_entry_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grade_item_entry_information(grade_item_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ grade_item_entry_id INTEGER;
+BEGIN
+ FOR grade_item_entry_id IN (SELECT get_grade_item_entry(grade_item_id_arg)) LOOP
+  informations = grade_item_entry_information(grade_item_entry_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_grade_item_entry_information(grade_item_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_grade_item_entry_information(grade_item_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_grade_item_entry_information(grade_item_id_arg integer) IS 'input: grade item id
+
+
+returns setof text; information of the grade item entry id that the grade item have';
+
+
+--
+-- Name: get_grade_item_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grade_item_information(grading_system_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ grade_item_id INTEGER;
+BEGIN
+ FOR grade_item_id IN (SELECT get_grade_item(grading_system_id_arg)) LOOP
+  informations = grade_item_information(grade_item_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_grade_item_information(grading_system_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_grade_item_information(grading_system_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_grade_item_information(grading_system_id_arg integer) IS 'input: grading system id
+
+
+returns setof text; information of the grade item that the grade system have';
 
 
 --
@@ -598,12 +1009,19 @@ output: id of the grade item entries that the grade item have';
 CREATE FUNCTION get_grading_system(section_id_arg integer) RETURNS SETOF integer
     LANGUAGE plpgsql
     AS $$DECLARE
+
  grade_item_id INTEGER;
+
 BEGIN
+
  FOR grade_item_id IN SELECT id FROM grading_system WHERE section_id = section_id_arg LOOP
+
   RETURN NEXT grade_item_id;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -613,9 +1031,40 @@ ALTER FUNCTION public.get_grading_system(section_id_arg integer) OWNER TO postgr
 -- Name: FUNCTION get_grading_system(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION get_grading_system(section_id_arg integer) IS 'input: section id
+COMMENT ON FUNCTION get_grading_system(section_id_arg integer) IS 'input: scetion id
 
-output: id of the grading systems the the section have';
+
+returns setof integer; id of the grading system that the section have';
+
+
+--
+-- Name: get_grading_system_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grading_system_information(section_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ grading_system_id INTEGER;
+BEGIN
+ FOR grading_system_id IN (SELECT get_grading_system(section_id_arg)) LOOP
+  informations = grading_system_information(grading_system_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_grading_system_information(section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_grading_system_information(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_grading_system_information(section_id_arg integer) IS 'input: section id
+
+
+returns setof text; information of the grading system that the section have';
 
 
 --
@@ -625,10 +1074,15 @@ output: id of the grading systems the the section have';
 CREATE FUNCTION get_grading_system_section_id(grading_system_id_arg integer) RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
+
  section_id_output INTEGER;
+
 BEGIN
+
  SELECT INTO section_id_output section_id FROM grading_system WHERE id = grading_system_id_arg;
+
  RETURN section_id_output;
+
 END;$$;
 
 
@@ -640,7 +1094,8 @@ ALTER FUNCTION public.get_grading_system_section_id(grading_system_id_arg intege
 
 COMMENT ON FUNCTION get_grading_system_section_id(grading_system_id_arg integer) IS 'input: grading system id
 
-output: section id of the grading system where it belong';
+
+returns integer; id of the section that the grading system belong';
 
 
 --
@@ -650,14 +1105,23 @@ output: section id of the grading system where it belong';
 CREATE FUNCTION get_image_location(id_arg text, role text) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  image_location TEXT;
+
 BEGIN
+
  SELECT INTO image_location image_source FROM person WHERE id = id_arg AND type = role;
+
  IF image_location ISNULL THEN
+
   RETURN 'ID NOT FOUND UNDER ' || role;
+
  ELSE
+
   RETURN image_location;
+
  END IF;
+
 END;$$;
 
 
@@ -667,10 +1131,10 @@ ALTER FUNCTION public.get_image_location(id_arg text, role text) OWNER TO postgr
 -- Name: FUNCTION get_image_location(id_arg text, role text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION get_image_location(id_arg text, role text) IS 'input: id number and role e.g. get_image_location(''2009-7263'', ''STUDENT'')
-       role must be any of this (STUDENT, FACULTY, PARENT)
+COMMENT ON FUNCTION get_image_location(id_arg text, role text) IS 'input: id, role
 
-output: image location';
+
+returns text; image location';
 
 
 --
@@ -680,19 +1144,39 @@ output: image location';
 CREATE FUNCTION get_section_attendance(section_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  student_id_output TEXT;
+
  session_id_output INTEGER;
+
 BEGIN
+
  FOR session_id_output IN SELECT id FROM class_session WHERE section_id = section_id_arg LOOP
-  FOR student_id_output IN SELECT student_id FROM attendance WHERE session_id = session_id_output LOOP
+
+  FOR student_id_output IN SELECT student_id || '#' || time FROM attendance WHERE session_id = session_id_output LOOP
+
    RETURN NEXT student_id_output;
+
   END LOOP;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
 ALTER FUNCTION public.get_section_attendance(section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_section_attendance(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_section_attendance(section_id_arg integer) IS 'input: section id
+
+
+returns setof text; id of the student and time it arrive format; student id - time';
+
 
 --
 -- Name: get_session_date(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -701,14 +1185,29 @@ ALTER FUNCTION public.get_section_attendance(section_id_arg integer) OWNER TO po
 CREATE FUNCTION get_session_date(session_id_arg integer) RETURNS date
     LANGUAGE plpgsql
     AS $$DECLARE
+
  date_output DATE;
+
 BEGIN
+
  SELECT INTO date_output date FROM class_session WHERE id = session_id_arg;
+
  RETURN date_output;
+
 END;$$;
 
 
 ALTER FUNCTION public.get_session_date(session_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION get_session_date(session_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION get_session_date(session_id_arg integer) IS 'input: session id
+
+
+returns date; date that the class session happen';
+
 
 --
 -- Name: getsalt(text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -743,11 +1242,10 @@ ALTER FUNCTION public.getsalt(username_ text) OWNER TO postgres;
 -- Name: FUNCTION getsalt(username_ text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION getsalt(username_ text) IS 'WEB INTERFACE
+COMMENT ON FUNCTION getsalt(username_ text) IS 'input: user name
 
-Accepts: username (text)
 
-Returns: salt (text)';
+returns text; the username''s salt, FALSE if user does not exist';
 
 
 --
@@ -757,11 +1255,17 @@ Returns: salt (text)';
 CREATE FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  student_id_output TEXT;
+
  score_output DOUBLE PRECISION;
+
 BEGIN
+
  SELECT INTO student_id_output, score_output student_id, score FROM grade_item_entry WHERE id = grade_item_entry_id_arg;
+
  RETURN student_id_output || '#' || score_output;
+
 END;$$;
 
 
@@ -771,9 +1275,10 @@ ALTER FUNCTION public.grade_item_entry_information(grade_item_entry_id_arg integ
 -- Name: FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) IS 'input: grade item entry
+COMMENT ON FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) IS 'input: grade item entry id
 
-output: grade item entry information';
+
+returns text; entry information, format; student id - score';
 
 
 --
@@ -783,12 +1288,19 @@ output: grade item entry information';
 CREATE FUNCTION grade_item_information(grade_item_id_arg integer) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  name_output TEXT;
+
  total_score_output DOUBLE PRECISION;
+
  date_output TIMESTAMP;
+
 BEGIN
+
  SELECT INTO name_output, total_score_output, date_output name, total_score, date FROM grade_item WHERE id = grade_item_id_arg;
+
  RETURN name_output || '#' || total_score_output || '#' || date_output;
+
 END;$$;
 
 
@@ -800,7 +1312,8 @@ ALTER FUNCTION public.grade_item_information(grade_item_id_arg integer) OWNER TO
 
 COMMENT ON FUNCTION grade_item_information(grade_item_id_arg integer) IS 'input: grade item id
 
-output: grade item information';
+
+returns text; grade item information, format; name - total score - date';
 
 
 --
@@ -810,11 +1323,17 @@ output: grade item information';
 CREATE FUNCTION grading_system_information(grading_system_id_arg integer) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  name_output TEXT;
+
  weight_output DOUBLE PRECISION;
+
 BEGIN
+
  SELECT INTO name_output, weight_output name, weight FROM grading_system WHERE id = grading_system_id_arg;
+
  RETURN name_output || '#' || weight_output;
+
 END;$$;
 
 
@@ -824,9 +1343,10 @@ ALTER FUNCTION public.grading_system_information(grading_system_id_arg integer) 
 -- Name: FUNCTION grading_system_information(grading_system_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION grading_system_information(grading_system_id_arg integer) IS 'input: grading system id 
+COMMENT ON FUNCTION grading_system_information(grading_system_id_arg integer) IS 'input: grading system id
 
-output: grading system information';
+
+returns text; grading system information, format; name - weight';
 
 
 --
@@ -862,9 +1382,10 @@ ALTER FUNCTION public.login(name_arg text, password_arg text) OWNER TO postgres;
 -- Name: FUNCTION login(name_arg text, password_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION login(name_arg text, password_arg text) IS 'input: account, password
+COMMENT ON FUNCTION login(name_arg text, password_arg text) IS 'input: name, password
 
-returns: string TRUE if successful, FALSE otherwise';
+
+returns text; ''TRUE'' if the data match, ''FALSE'' otherwise';
 
 
 --
@@ -900,7 +1421,8 @@ ALTER FUNCTION public.parent_information(parent_id_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION parent_information(parent_id_arg text) IS 'input: parent id
 
-output: parent information';
+
+returns text; parent information, format first name - middle name - last name - email';
 
 
 --
@@ -938,7 +1460,8 @@ ALTER FUNCTION public.section_faculty(section_id_arg integer) OWNER TO postgres;
 
 COMMENT ON FUNCTION section_faculty(section_id_arg integer) IS 'input: section id
 
-returns id of the faculty assigned to the section.';
+
+returns text; id of the faculty and ''NOT FOUND'' if it fail';
 
 
 --
@@ -980,11 +1503,10 @@ ALTER FUNCTION public.section_information(section_id_arg integer) OWNER TO postg
 -- Name: FUNCTION section_information(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION section_information(section_id_arg integer) IS 'returns section information;
+COMMENT ON FUNCTION section_information(section_id_arg integer) IS 'input: grading system id, new weight
 
- format: subject code - section code - subject description - section day - section time - section room - subject units - subject type
 
- delimiter: #';
+returns text; information of the section, format: subject code - section code - subject description - section day - section time - section room - subject units - subject type';
 
 
 --
@@ -1000,11 +1522,17 @@ CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg intege
 BEGIN
 
  SELECT INTO count count(*) FROM student_sessions_absented (student_id_arg, section_id_arg, term_id_arg);
+
  IF count ISNULL THEN
+
   RETURN 0;
+
  ELSE
+
   RETURN count;
+
  END IF;
+
 END;$$;
 
 
@@ -1014,9 +1542,10 @@ ALTER FUNCTION public.student_absence_count(student_id_arg text, section_id_arg 
 -- Name: FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, section id, term id
+COMMENT ON FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, scetion id, term id
 
-returns absence count of student on section in term';
+
+returns integer; count the row of the absences';
 
 
 --
@@ -1032,11 +1561,17 @@ CREATE FUNCTION student_attendance_count(student_id_arg text, section_id_arg int
 BEGIN
 
  SELECT INTO count count(*) FROM student_sessions_attended (student_id_arg, section_id_arg, term_id_arg);
+
  IF count ISNULL THEN
+
   RETURN 0;
+
  ELSE
+
   RETURN count;
+
  END IF;
+
 END;$$;
 
 
@@ -1048,7 +1583,8 @@ ALTER FUNCTION public.student_attendance_count(student_id_arg text, section_id_a
 
 COMMENT ON FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, section id, term id
 
-returns attendance count of student on section in term';
+
+returns integer; number of times the student attend';
 
 
 --
@@ -1088,13 +1624,10 @@ ALTER FUNCTION public.student_information(student_id_arg text) OWNER TO postgres
 -- Name: FUNCTION student_information(student_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION student_information(student_id_arg text) IS 'input: student id
+COMMENT ON FUNCTION student_information(student_id_arg text) IS 'input: grading system id, new weight
 
-returns student information
 
- format: first name - middle name - last name - course - year - email
-
- delimiter: #';
+returns text; informatin of the student format: first name - middle name - last name - course - year - email';
 
 
 --
@@ -1117,6 +1650,16 @@ END;$$;
 
 
 ALTER FUNCTION public.student_last_attended(student_id_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_last_attended(student_id_arg text, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_last_attended(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
+
+
+returns text; session date';
+
 
 --
 -- Name: student_load(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1149,7 +1692,38 @@ ALTER FUNCTION public.student_load(student_id_arg text, term_id_arg integer) OWN
 
 COMMENT ON FUNCTION student_load(student_id_arg text, term_id_arg integer) IS 'input: student id, term id
 
-returns a set of section id''s';
+
+returns setof integer; setof section id that the student have';
+
+
+--
+-- Name: student_load_information(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_load_information(student_id_arg text, term_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ section_id INTEGER;
+BEGIN
+ FOR section_id IN (SELECT student_load(student_id_arg, term_id_arg)) LOOP
+  informations = section_information(section_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.student_load_information(student_id_arg text, term_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_load_information(student_id_arg text, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_load_information(student_id_arg text, term_id_arg integer) IS 'input: student id, term id
+
+
+returns setof text; section information that the student have';
 
 
 --
@@ -1165,9 +1739,13 @@ session_id_output INTEGER;
 BEGIN
 
  FOR session_id_output in SELECT id FROM class_session  WHERE section_id = section_id_arg LOOP
+
   IF session_id_output NOT IN (SELECT session_id FROM attendance WHERE student_id = student_id_arg) THEN
+
    RETURN NEXT session_id_output;
+
   END IF;
+
  END LOOP;
 
   RETURN;
@@ -1176,6 +1754,46 @@ END;$$;
 
 
 ALTER FUNCTION public.student_sessions_absented(student_id_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_sessions_absented(student_id_arg text, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_sessions_absented(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
+
+
+returns setof integer; id of the student absent sessions';
+
+
+--
+-- Name: student_sessions_absented_information(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_sessions_absented_information(student_id_arg text, section_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ session_id INTEGER;
+BEGIN
+ FOR session_id IN (SELECT student_sessions_absented(student_id_arg, section_id_arg)) LOOP
+  informations = class_session_information(session_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.student_sessions_absented_information(student_id_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_sessions_absented_information(student_id_arg text, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_sessions_absented_information(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
+
+
+returns setof integer; id of the student absent sessions';
+
 
 --
 -- Name: student_sessions_attended(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1190,9 +1808,13 @@ session_id_output INTEGER;
 BEGIN
 
  FOR session_id_output in SELECT id FROM class_session  WHERE section_id = section_id_arg LOOP
+
   IF session_id_output IN (SELECT session_id FROM attendance WHERE student_id = student_id_arg) THEN
+
    RETURN NEXT session_id_output;
+
   END IF;
+
  END LOOP;
 
   RETURN;
@@ -1201,6 +1823,46 @@ END;$$;
 
 
 ALTER FUNCTION public.student_sessions_attended(student_id_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_sessions_attended(student_id_arg text, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_sessions_attended(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
+
+
+returns setof integer; id of the student attended sessions';
+
+
+--
+-- Name: student_sessions_attended_information(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_sessions_attended_information(student_id_arg text, section_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ informations TEXT;
+ session_id INTEGER;
+BEGIN
+ FOR session_id IN (SELECT student_sessions_attended(student_id_arg, section_id_arg)) LOOP
+  informations = class_session_information(session_id);
+  RETURN NEXT informations;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.student_sessions_attended_information(student_id_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: FUNCTION student_sessions_attended_information(student_id_arg text, section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION student_sessions_attended_information(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
+
+
+returns setof text; information of the student attended sessions';
+
 
 --
 -- Name: term_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1218,7 +1880,7 @@ BEGIN
 
  SELECT INTO semester_output, school_year semester, school_year.school_year FROM term INNER JOIN school_year ON (term.school_year_id = school_year.id) WHERE term.id = term_id_arg;
 
- RETURN school_year || ' ' || semester_output;
+ RETURN school_year || '#' || semester_output;
 
 END;$$;
 
@@ -1229,11 +1891,10 @@ ALTER FUNCTION public.term_information(term_id_arg integer) OWNER TO postgres;
 -- Name: FUNCTION term_information(term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION term_information(term_id_arg integer) IS 'input: term id
+COMMENT ON FUNCTION term_information(term_id_arg integer) IS 'input: grading system id, new weight
 
-returns: the terms information
 
- format: [school year] [semester]';
+returns text; term information of format, school year - semester';
 
 
 SET default_tablespace = '';
@@ -1669,7 +2330,7 @@ ALTER SEQUENCE grade_item_entry_id_seq OWNED BY grade_item_entry.id;
 -- Name: grade_item_entry_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_item_entry_id_seq', 14, true);
+SELECT pg_catalog.setval('grade_item_entry_id_seq', 16, true);
 
 
 --
@@ -1697,7 +2358,7 @@ ALTER SEQUENCE grade_item_id_seq OWNED BY grade_item.id;
 -- Name: grade_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_item_id_seq', 5, true);
+SELECT pg_catalog.setval('grade_item_id_seq', 6, true);
 
 
 --
@@ -2182,9 +2843,9 @@ INSERT INTO account VALUES ('encube', 'sandrevenant', '0457dea5c1cd443ca6692282c
 -- Data for Name: assignation; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO assignation VALUES (2, '1992-9384', 2, 6);
-INSERT INTO assignation VALUES (1, '1992-9384', 4, 6);
-INSERT INTO assignation VALUES (3, '1992-9384', 5, 6);
+INSERT INTO assignation VALUES (3, '1998-9999', 5, 6);
+INSERT INTO assignation VALUES (1, '1998-9999', 4, 6);
+INSERT INTO assignation VALUES (2, '1998-9999', 2, 6);
 
 
 --
@@ -2199,8 +2860,8 @@ INSERT INTO attendance VALUES ('17:09:19', true, 4, '2010-7171', 2);
 INSERT INTO attendance VALUES ('08:58:30', true, 14, '2010-7171', 3);
 INSERT INTO attendance VALUES ('22:18:26', true, 13, '2010-7171', 4);
 INSERT INTO attendance VALUES ('19:42:45', true, 11, '2010-7171', 5);
-INSERT INTO attendance VALUES ('02:09:00', false, 16, '2009-1625', 2);
 INSERT INTO attendance VALUES ('12:23:00', false, 17, '2009-1625', 4);
+INSERT INTO attendance VALUES ('02:09:00', true, 16, '2009-1625', 2);
 
 
 --
@@ -2208,9 +2869,9 @@ INSERT INTO attendance VALUES ('12:23:00', false, 17, '2009-1625', 4);
 --
 
 INSERT INTO class_session VALUES (5, 1, 'ONGOING', '2012-09-28');
-INSERT INTO class_session VALUES (3, 2, 'ONGOING', '2012-09-28');
-INSERT INTO class_session VALUES (4, 2, 'ONGOING', '2012-09-28');
 INSERT INTO class_session VALUES (2, 1, 'DISMISSED', '2012-09-28');
+INSERT INTO class_session VALUES (3, 2, 'DISMISSED', '2012-09-28');
+INSERT INTO class_session VALUES (4, 2, 'DISMISSED', '2012-09-28');
 
 
 --
@@ -2259,13 +2920,13 @@ INSERT INTO grade_item VALUES (1, 41, 'preliminary', 50, '2012-09-26 00:55:48.41
 INSERT INTO grade_item VALUES (2, 42, 'Quiz, about algorithm', 20, '2012-09-26 00:56:47.595565');
 INSERT INTO grade_item VALUES (3, 42, 'quiz', 35, '2012-09-26 19:15:56.924893');
 INSERT INTO grade_item VALUES (5, 41, 'quiz', 40, '2012-09-26 23:32:28.603076');
+INSERT INTO grade_item VALUES (6, 42, 'preliminary', 80, '2012-09-29 08:09:00');
 
 
 --
 -- Data for Name: grade_item_entry; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO grade_item_entry VALUES (4, 2, 33, '2009-1625');
 INSERT INTO grade_item_entry VALUES (8, 1, 33, '2009-1625');
 INSERT INTO grade_item_entry VALUES (9, 3, 33, '2009-1625');
 INSERT INTO grade_item_entry VALUES (11, 5, 33, '2009-1625');
@@ -2273,6 +2934,9 @@ INSERT INTO grade_item_entry VALUES (2, 1, 33, '2010-7171');
 INSERT INTO grade_item_entry VALUES (3, 2, 33, '2010-7171');
 INSERT INTO grade_item_entry VALUES (10, 5, 20, '2010-7171');
 INSERT INTO grade_item_entry VALUES (12, 3, 1, '2010-7171');
+INSERT INTO grade_item_entry VALUES (15, 6, 0, '2010-7171');
+INSERT INTO grade_item_entry VALUES (4, 2, 15, '2009-1625');
+INSERT INTO grade_item_entry VALUES (16, 6, 15, '2009-1625');
 
 
 --
@@ -2294,8 +2958,8 @@ INSERT INTO grading_system VALUES (24, 41, 'Prelim', 2);
 -- Data for Name: linked_account; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO linked_account VALUES ('2010-2312', true, 2, 'P-2373');
 INSERT INTO linked_account VALUES ('2009-1625', true, 1, 'P-2373');
+INSERT INTO linked_account VALUES ('2010-7171', true, 2, 'P-2373');
 
 
 --
