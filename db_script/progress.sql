@@ -267,7 +267,7 @@ CREATE FUNCTION class_session_information(session_id_arg integer) RETURNS text
     AS $$DECLARE
  session_information TEXT;
 BEGIN
- SELECT INTO session_information date || '#' || status FROM class_session WHERE id = session_id_arg;
+ SELECT INTO session_information id || '#' || date || '#' || status FROM class_session WHERE id = session_id_arg;
  RETURN session_information;
 END;$$;
 
@@ -281,7 +281,7 @@ ALTER FUNCTION public.class_session_information(session_id_arg integer) OWNER TO
 COMMENT ON FUNCTION class_session_information(session_id_arg integer) IS 'input: session id
 
 
-returns text; informations of the session';
+returns text; informations of the session format; id - date - status';
 
 
 --
@@ -620,7 +620,7 @@ BEGIN
 
  SELECT INTO first_name_output, middle_name_output, last_name_output, department_name_output, email_output person.first_name, person.middle_name, person.last_name, department.name, person.email FROM person INNER JOIN faculty_department ON (person.id = faculty_department.faculty_id) INNER JOIN department ON (faculty_department.department_id = department.id) WHERE person.id = faculty_id_arg AND person.type = 'FACULTY';
 
- RETURN first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || department_name_output || '#' || email_output;
+ RETURN faculty_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || department_name_output || '#' || email_output;
 
 END;$$;
 
@@ -634,7 +634,7 @@ ALTER FUNCTION public.faculty_information(faculty_id_arg text) OWNER TO postgres
 COMMENT ON FUNCTION faculty_information(faculty_id_arg text) IS 'input: section id
 
 
-returns text; faculty information, format; first name - middle name - last name - department name - email';
+returns text; faculty information, format; id - first name - middle name - last name - department name - email';
 
 
 --
@@ -1264,7 +1264,7 @@ BEGIN
 
  SELECT INTO student_id_output, score_output student_id, score FROM grade_item_entry WHERE id = grade_item_entry_id_arg;
 
- RETURN student_id_output || '#' || score_output;
+ RETURN grade_item_entry_id_arg || '#' || student_id_output || '#' || score_output;
 
 END;$$;
 
@@ -1278,7 +1278,7 @@ ALTER FUNCTION public.grade_item_entry_information(grade_item_entry_id_arg integ
 COMMENT ON FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) IS 'input: grade item entry id
 
 
-returns text; entry information, format; student id - score';
+returns text; entry information, format; id - student id - score';
 
 
 --
@@ -1299,7 +1299,7 @@ BEGIN
 
  SELECT INTO name_output, total_score_output, date_output name, total_score, date FROM grade_item WHERE id = grade_item_id_arg;
 
- RETURN name_output || '#' || total_score_output || '#' || date_output;
+ RETURN grade_item_id_arg || '#' || name_output || '#' || total_score_output || '#' || date_output;
 
 END;$$;
 
@@ -1313,7 +1313,7 @@ ALTER FUNCTION public.grade_item_information(grade_item_id_arg integer) OWNER TO
 COMMENT ON FUNCTION grade_item_information(grade_item_id_arg integer) IS 'input: grade item id
 
 
-returns text; grade item information, format; name - total score - date';
+returns text; grade item information, format; id - name - total score - date';
 
 
 --
@@ -1332,7 +1332,7 @@ BEGIN
 
  SELECT INTO name_output, weight_output name, weight FROM grading_system WHERE id = grading_system_id_arg;
 
- RETURN name_output || '#' || weight_output;
+ RETURN grading_system_id_arg || '#' || name_output || '#' || weight_output;
 
 END;$$;
 
@@ -1346,7 +1346,7 @@ ALTER FUNCTION public.grading_system_information(grading_system_id_arg integer) 
 COMMENT ON FUNCTION grading_system_information(grading_system_id_arg integer) IS 'input: grading system id
 
 
-returns text; grading system information, format; name - weight';
+returns text; grading system information, format; id - name - weight';
 
 
 --
@@ -1408,7 +1408,7 @@ BEGIN
 
  SELECT INTO first_name_output, middle_name_output, last_name_output, email_output first_name, middle_name, last_name, email FROM person WHERE id = parent_id_arg AND type = 'PARENT';
 
- RETURN first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || email_output;
+ RETURN parent_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || email_output;
 
 END;$$;
 
@@ -1422,7 +1422,7 @@ ALTER FUNCTION public.parent_information(parent_id_arg text) OWNER TO postgres;
 COMMENT ON FUNCTION parent_information(parent_id_arg text) IS 'input: parent id
 
 
-returns text; parent information, format first name - middle name - last name - email';
+returns text; parent information, format; id - first name - middle name - last name - email';
 
 
 --
@@ -1492,7 +1492,7 @@ BEGIN
 
  SELECT INTO section_name_output, subject_name_output, subject_type_output, subject_description_output, section_time_output, section_day_output, room_name_output, subject_unit_output section.name, subject.name, subject.type, subject.description, section.time, section.day, section.room, subject.units FROM section INNER JOIN subject ON (section.subject_id = subject.id) WHERE section.id = section_id_arg;
 
- RETURN subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || '#' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output;
+ RETURN section_id_arg || '#' || subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || '#' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output;
 
 END;$$;
 
@@ -1506,7 +1506,7 @@ ALTER FUNCTION public.section_information(section_id_arg integer) OWNER TO postg
 COMMENT ON FUNCTION section_information(section_id_arg integer) IS 'input: grading system id, new weight
 
 
-returns text; information of the section, format: subject code - section code - subject description - section day - section time - section room - subject units - subject type';
+returns text; information of the section, format: id - subject code - section code - subject description - section day - section time - section room - subject units - subject type';
 
 
 --
@@ -1613,7 +1613,7 @@ BEGIN
 
  SELECT INTO first_name_output, middle_name_output, last_name_output, course_name_output,  course_code_output, year_output, email_output person.first_name, person.middle_name, person.last_name, course.name, course.code, person.year, person.email FROM person INNER JOIN student_course ON (person.id = student_course.student_id) INNER JOIN course ON (student_course.course_id = course.id) WHERE person.id = student_id_arg AND person.type = 'STUDENT';
 
- RETURN first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output;
+ RETURN student_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output;
 
 END;$$;
 
@@ -1627,7 +1627,7 @@ ALTER FUNCTION public.student_information(student_id_arg text) OWNER TO postgres
 COMMENT ON FUNCTION student_information(student_id_arg text) IS 'input: grading system id, new weight
 
 
-returns text; informatin of the student format: first name - middle name - last name - course - year - email';
+returns text; informatin of the student format: id - first name - middle name - last name - course - year - email';
 
 
 --
@@ -1880,7 +1880,7 @@ BEGIN
 
  SELECT INTO semester_output, school_year semester, school_year.school_year FROM term INNER JOIN school_year ON (term.school_year_id = school_year.id) WHERE term.id = term_id_arg;
 
- RETURN school_year || '#' || semester_output;
+ RETURN term_id_arg || '#' || school_year || '#' || semester_output;
 
 END;$$;
 
@@ -1894,7 +1894,7 @@ ALTER FUNCTION public.term_information(term_id_arg integer) OWNER TO postgres;
 COMMENT ON FUNCTION term_information(term_id_arg integer) IS 'input: grading system id, new weight
 
 
-returns text; term information of format, school year - semester';
+returns text; term information of format, id - school year - semester';
 
 
 SET default_tablespace = '';
