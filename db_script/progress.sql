@@ -3342,3 +3342,14 @@ create table person_load (
     constraint pload_section_fk foreign key (section_id) references
       section (id)  
 );
+
+delete from student_course;
+alter table student_course drop constraint
+  student_course_pkey;
+alter table student_course drop column id;
+alter table student_course add column type text;
+alter table student_course 
+    add constraint scourse_person_fk foreign key 
+    (student_id, type) references person (id, type);
+alter table student_course add constraint scourse_pk
+   primary key (student_id, type, course_id);
