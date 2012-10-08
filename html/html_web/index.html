@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+			<title>my.Eskwela - HOME</title>
+			<link type="text/css" href="css/style.css" rel="stylesheet">
+			<link rel="stylesheet" type="text/css" href="../javascript/jquery/css/south-street/jquery-ui-1.8.12.custom.css" />
+			  <script type="text/javascript" src="../javascript/jquery/js/jquery-1.5.1.min.js"> </script>
+			  <script type="text/javascript" src="../javascript/jquery/js/jquery-ui-1.8.12.custom.min.js"></script>
+			  <script type="text/javascript" src="../javascript/apMessage.js"></script>
+			  <script type="text/javascript" src="../javascript/glob.js"></script>
+			  <script type="text/javascript" src="../javascript/javascriptz.js"></script>
+
+				<script type="text/javascript">
+					$(function() {
+						$('div.tabs').tabs();
+					});
+
+						$(function() {
+							$( "#dialog" ).dialog();
+						});
+
+
+				</script>
+				<script type="text/javascript">
+					$(document).ready(function() {	
+						$('#nav li a:not(:first)').addClass('inactive');
+						$('.tab_content:not(:first)').hide();	
+						
+						//$('#nav li a').click(function(){		
+							var t = $(this).attr('href');
+							if($(this).hasClass('inactive')){ //added to not animate when active
+								$('#nav li a').addClass('inactive');		
+									$(this).removeClass('inactive');
+								$('.tab_content').hide();
+								//$(t).show('fast');	
+							}			
+							return false;
+						}) //end click	
+					});
+				</script>
+	</head>
+
+	<body onload = "getStudInfo()">
+
+		<div class="header">
+			<table style="width: 100%">
+				<table style="width: 100%">
+					<tr>
+						<td width="20em" id="minlogo_td">
+							<img src="pictures/logo_index.png"><br>
+						</td>
+						<td>
+							<p class="header_text" style="text-align:right">
+									<a id = "tp" href="ind.html">Home</a>&nbsp;  | &nbsp;<a href="help.html">Help</a> &nbsp;  | &nbsp;  <a href="../../scripts/form/logout">Logout</a></p>					</td>
+					</tr>
+				</table>
+			</table>
+		</div>	
+
+		
+		<div id="tabs" class="tabs">
+			<ul id="navs">
+				<li><a href="#tabs-smaller-1" name="tabs-smaller">HOME</a></li>
+				<li><a href="#tabs-smaller-2">MY COURSES</a></li>
+				
+			</ul>
+				<div id="tabs-smaller-1" class="tab_content">
+						<button id="change">Change Password</button>
+								<table>
+											
+									<table class="table_teacherinfo" id = "userinfo">
+										<tr>
+											<td rowspan="10" class="picturecell">
+												<img src="pictures/nopic.jpg"/>
+											</td>
+										</tr>
+										<tr>
+											<td id="td_teacherlabel">Name:</td>
+											<td class="td_teacherinfo">&nbsp;</td>
+										</tr>
+										<tr>
+											<td id="td_teacherlabel">Student ID Number:</td>
+											<td class="td_teacherinfo">&nbsp;</td>
+										</tr>
+										<tr>
+											<td id="td_teacherlabel">Course and Year:</td>
+											<td class="td_teacherinfo">&nbsp;</td>
+										</tr>
+										<tr>
+											<td id="td_teacherlabel">Email</td>
+											<td class="td_teacherinfo">&nbsp;</td>
+										</tr>
+											
+									</table>
+									
+			</table>
+			
+			
+						<script>
+							$(function() {
+								// a workaround for a flaw in the demo system (http://dev.jqueryui.com/ticket/4375), ignore!
+								$( "#dialog:ui-dialog" ).dialog( "destroy" );
+								
+								var name = $( "#name" ),
+									pass = $( "#pass" ),
+									password = $( "#cpass" ),
+									allFields = $( [] ).add( name ).add( email ).add( password ),
+									tips = $( ".validateTips" );
+			
+								function updateTips( t ) {
+									tips
+										.text( t )
+										.addClass( "ui-state-highlight" );
+									setTimeout(function() {
+										tips.removeClass( "ui-state-highlight", 1500 );
+									}, 500 );
+								}
+			
+								function checkLength( o, n, min, max ) {
+									if ( o.val().length > max || o.val().length < min ) {
+										o.addClass( "ui-state-error" );
+										updateTips( "Length of " + n + " must be between " +
+											min + " and " + max + "." );
+										return false;
+									} else {
+										return true;
+									}
+								}
+			
+								function checkRegexp( o, regexp, n ) {
+									if ( !( regexp.test( o.val() ) ) ) {
+										o.addClass( "ui-state-error" );
+										updateTips( n );
+										return false;
+									} else {
+										return true;
+									}
+								}
+								
+								$( "#dialog-form" ).dialog({
+									autoOpen: false,
+									height: 300,
+									width: 350,
+									modal: true,
+									buttons: {
+										"Save": function() {
+											var bValid = true;
+											allFields.removeClass( "ui-state-error" );
+			
+											bValid = bValid && checkLength( name, "username", 3, 16 );
+											bValid = bValid && checkLength( password, "pass", 6, 80 );
+											bValid = bValid && checkLength( cpassword, "cpass", 5, 16 );
+			
+											bValid = bValid && checkRegexp( name, /^[a-z]([0-9a-z_])+$/i, "Username may consist of a-z, 0-9, underscores, begin with a letter." );
+											// From jquery.validate.js (by joern), contributed by Scott Gonzalez: http://projects.scottsplayground.com/email_address_validation/
+											//bValid = bValid && checkRegexp( email, /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i, "eg. ui@jquery.com" );
+											bValid = bValid && checkRegexp( password, /^([0-9a-zA-Z])+$/, "Password field only allow : a-z 0-9" );
+			
+											
+										},
+										Cancel: function() {
+											$( this ).dialog( "close" );
+										}
+									},
+									close: function() {
+										allFields.val( "" ).removeClass( "ui-state-error" );
+									}
+								});
+			
+								$( "#change" )
+									.button()
+									.click(function() {
+										$( "#dialog-form" ).dialog( "open" );
+									});
+							});
+						</script>
+			
+						<div class="demo">
+			
+							<div id="dialog-form" title="Change Password">
+								<p class="validateTips">All form fields are required.</p>
+									<form>
+									<fieldset>
+										<label for="name">Old Password</label>
+										<input type="text" name="name" id="name" class="text ui-widget-content ui-corner-all" />
+										<label for="pass">New Password</label>
+										<input type="text" name="email" id="email" value="" class="text ui-widget-content ui-corner-all" />
+										<label for="cpass">Confirm Password</label>
+										<input type="password" name="password" id="password" value="" class="text ui-widget-content ui-corner-all" />
+									</fieldset>
+									</form>
+							</div>		
+						</div><!-- End demo -->
+					
+					</div>
+				<div id="tabs-smaller-2" class="tab_content">
+										<table class="table_classlists" id="classList">
+											<tr>
+												<th id="td_code">Code</th>
+	    <th id="td_section">Section</th>
+	    <th id="td_desc">Description</th>
+	    <th id="td_time">Schedule</th>
+	    <th id="td_room">Room</th>
+	    <th id="td_type">Type</th>
+	    <th id="td_prof" width = 150px>Prof</th>
+	    <th id="td_action">Action</th>
+											</tr>	
+										</table>
+										
+										<div class="demo">
+			
+							<div id="add_grade" title="">
+								<p class="validateTips">All form fields are required.</p>
+									<form>
+									<fieldset>
+										<label for="name">Prelim</label>
+										<input type="text" name="name" id="prelim" class="text ui-widget-content ui-corner-all" />
+										<label for="pass">Midterm</label>
+										<input type="text" name="email" id="midterm" value="" class="text ui-widget-content ui-corner-all" />
+										<label for="cpass">Finals</label>
+										<input type="text" name="password" id="finals" value="" class="text ui-widget-content ui-corner-all" />
+										<label for="name">Quiz</label>
+										<input type="text" name="name" id="quiz" class="text ui-widget-content ui-corner-all" />
+										<label for="pass">Attendance</label>
+										<input type="text" name="email" id="attendance" value="" class="text ui-widget-content ui-corner-all" />
+										<label for="cpass">Others</label>
+										<input type="text" name="password" id="others" value="" class="text ui-widget-content ui-corner-all" />
+									</fieldset>
+									</form>
+							</div>		
+						</div>
+						</div>
+					<script>
+							$(function() {
+										$( "#dialog1" ).dialog();
+									});
+			
+							$(function() {
+								// a workaround for a flaw in the demo system (http://dev.jqueryui.com/ticket/4375), ignore!
+								$( "#dialog1:ui-dialog" ).dialog( "destroy" );
+								
+								var prelim = $( "#prelim" ),
+									midterm = $( "#midterm" ),
+									finals = $( "#finas" ),
+									midterm = $( "#quiz" ),
+									finals = $( "#attendance" ),
+									midterm = $( "#others" ),
+									allFields = $( [] ).add( prelim ).add( midterm ).add( finals ).add( quiz ).add( attendance ).add( others ),
+									tips = $( ".validateTips" );
+			
+								function updateTips( t ) {
+									tips
+										.text( t )
+										.addClass( "ui-state-highlight" );
+									setTimeout(function() {
+										tips.removeClass( "ui-state-highlight", 1500 );
+									}, 500 );
+								}
+			
+								function checkLength( o, n, min, max ) {
+									if ( o.val().length > max || o.val().length < min ) {
+										o.addClass( "ui-state-error" );
+										updateTips( "Length of " + n + " must be between " +
+											min + " and " + max + "." );
+										return false;
+									} else {
+										return true;
+									}
+								}
+			
+								function checkRegexp( o, regexp, n ) {
+									if ( !( regexp.test( o.val() ) ) ) {
+										o.addClass( "ui-state-error" );
+										updateTips( n );
+										return false;
+									} else {
+										return true;
+									}
+								}
+								
+								$( "#add_grade" ).dialog({
+									autoOpen: false,
+									height: 300,
+									width: 350,
+									modal: true,
+									buttons: {
+										"Save": function() {
+											var bValid = true;
+											allFields.removeClass( "ui-state-error" );
+			
+											bValid = bValid && checkLength( prelim, "prelim", 3, 16 );
+											bValid = bValid && checkLength( midterm, "midterm", 6, 80 );
+											bValid = bValid && checkLength( finals, "finals", 5, 16 );
+			
+											//bValid = bValid && checkRegexp( name, /^[a-z]([0-9a-z_])+$/i, "Username may consist of a-z, 0-9, underscores, begin with a letter." );
+											// From jquery.validate.js (by joern), contributed by Scott Gonzalez: http://projects.scottsplayground.com/email_address_validation/
+											//bValid = bValid && checkRegexp( email, /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i, "eg. ui@jquery.com" );
+											bValid = bValid && checkRegexp( quiz, /^([0-9a-zA-Z])+$/, "Password field only allow : a-z 0-9" );
+											bValid = bValid && checkRegexp( attendance, /^([0-9a-zA-Z])+$/, "Password field only allow : a-z 0-9" );
+											bValid = bValid && checkRegexp( others, /^([0-9a-zA-Z])+$/, "Password field only allow : a-z 0-9" );
+											
+										},
+										Cancel: function() {
+											$( this ).dialog( "close" );
+										}
+									},
+									close: function() {
+										allFields.val( "" ).removeClass( "ui-state-error" );
+									}
+								});
+			
+								$( "#add" )
+									.button()
+									.click(function() {
+										$( "#add_grade" ).dialog( "open" );
+									});
+							});
+						</script>
+			</div>
+					
+			</body>
+			</html>

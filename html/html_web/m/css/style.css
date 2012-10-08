@@ -1,0 +1,93 @@
+html{
+	background: url(../jquery/images/main.JPG) no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+body, body h5{
+	font-family: Myriad Pro;
+}
+
+.mainpage {
+	background: url(../jquery/images/main.JPG) no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+	
+}
+
+.ui-dialog-background {
+		opacity: 0.5;
+		display: block !important;
+		-webkit-transition: opacity 0.5s ease-in;
+	}
+
+	
+#main-menu-list {
+	  /* Temporary Resolution */
+}
+
+#main-menu-head {
+	width:111%; margin-left:-15px; margin-top:-10px;
+	height:240px; /* Temporary Ra ni...  if may header its: 260, else its 300*/
+}
+
+
+#main-menu-title-bar {
+	color:white;
+}
+
+#main-menu-title-bar-clock {
+	padding-left:-50px; float:right;
+}
+
+.loading-page {
+	margin-top:20%;
+}
+
+
+#profile-pic-cont {
+	margin-top:20px;
+	background-color:white;
+	width:130px; height:125px;
+	padding-top:5px;
+}
+
+#profile-pic {
+	width:120px; height:120px; background-color:grey;
+	
+}
+
+
+#profile-info {
+	text-shadow: 0px 0px 0px #fff;
+	color:white;
+}
+
+#profile-account-name {
+	border-bottom: 1px dotted white;
+	width:90%; text-shadow: 0px 0px 6px #000;
+	margin-bottom:-0px;
+}
+
+#profile-account-info{font-size:80%; text-shadow: 0px 0px 6px #000;}
+#profile-account-course{ font-weight:bold; }
+
+
+/*** Search Subject Page Theming ***/
+#stud-subject-list-cont .descriptive-info {
+	font-style:normal; font-size:75%;
+}
+
+#parent-child-list .child-thumbnail{
+	float:left; width:50px; height:50px;
+	/* box-shadow: 0px 0px 3px 2px white; background-color:#3E3E3E; */
+}
+
+#parent-child-list .child-thumbnail img{
+	margin-left:1px; margin-top:1px;
+}
+
