@@ -3393,3 +3393,114 @@ insert into linked_account
     values
     ('2009-1625', 'STUDENT', 'P-2373', 'PARENT', true);
 -- the trigger will automatically fill-in the PK part
+
+
+create group su;
+create group faculty;
+create group student;
+create group parent;
+grant select on table subject to group student;
+grant select on table subject to group parent;
+grant select on table subject to group faculty;
+grant all on table subject to group su;
+
+grant select on table section to group student;
+grant select on table section to group parent;
+grant select on table section to group faculty;
+grant all on table section to group su;
+
+grant select on table grading_system to group student;
+grant select on table grading_system to group parent;
+grant select, update, insert on table grading_system to group faculty;
+grant all on table grading_system to group su;
+
+grant select,update on table account to group student;
+grant select,update on table account to group parent;
+grant select,update on table account to group faculty;
+grant all on table account to group su;
+
+grant select on table class_session to group student;
+grant select on table class_session to group parent;
+grant select on table class_session to group faculty;
+grant all on table class_session to group su;
+
+grant select on table grade_item to group student;
+grant select on table grade_item to group parent;
+grant select, update, insert, delete on table grade_item to group faculty;
+grant all on table grade_item to group su;
+
+grant select on table course to group student;
+grant select on table course to group parent;
+grant select on table course to group faculty;
+grant all on table course to group su;
+
+grant select on table person to group student;
+grant select on table person to group parent;
+grant select on table person to group faculty;
+grant all on table person to group su;
+
+grant select on table term to group student;
+grant select on table term to group parent;
+grant select on table term to group faculty;
+grant all on table term to group su;
+
+grant select on table department to group student;
+grant select on table department to group parent;
+grant select on table department to group faculty;
+grant all on table department to group su;
+
+grant select on table grade_item_entry to group student;
+grant select on table grade_item_entry to group parent;
+grant select, insert, update, delete on table grade_item_entry to group faculty;
+grant all on table grade_item_entry to group su;
+
+grant select on table student_course to group student;
+grant select on table student_course to group parent;
+grant select on table student_course to group faculty;
+grant all on table student_course to group su;
+
+grant select on table linked_account to group student;
+grant select on table linked_account to group parent;
+grant select on table linked_account to group faculty;
+grant all on table linked_account to group su;
+
+grant select, insert on table attendance to group student;
+grant select on table attendance to group parent;
+grant all on table attendance to group faculty;
+grant all on table attendance to group su;
+
+grant select on table person_load to group student;
+grant select on table person_load to group parent;
+grant all on table person_load to group faculty;
+grant all on table person_load to group su;
+
+
+-- use any of this roles appropriately
+-- in your pg-connection strings
+-- initially, super will query into account
+-- and query person to determine the person type
+-- of this user. from there, a switch to the connection
+-- string will be made.
+create role stu_user login 
+  password 'cfh345623'
+  nosuperuser inherit nocreatedb nocreaterole
+  noreplication;
+grant student to stu_user;
+
+create role fac_user login 
+  password 'reiyt73u'
+  nosuperuser inherit nocreatedb nocreaterole
+  noreplication;
+grant faculty to fac_user;
+
+create role par_user login 
+  password 'koj87cxw'
+  nosuperuser inherit nocreatedb nocreaterole
+  noreplication;
+grant parent to par_user;
+
+create role super login 
+  password 'gf09bnz1'
+  nosuperuser inherit nocreatedb nocreaterole
+  noreplication;
+grant su to super;
