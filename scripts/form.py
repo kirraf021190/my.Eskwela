@@ -20,13 +20,13 @@ def login(req, username, pwd):
 	hashPass_ = cgi.escape(hashPass)
   	f = a.execqry("select login('"+username+"', '"+hashPass_+"')", False)[0][0]
 	if (f == 'TRUE'):
-		session['id'] = a.execqry("select getid('"+username+"')", False)[0][0]
-		session['usertype'] = a.execqry("select getaccounttype('"+str(session['id'])+"')", False)[0][0]
+		session['id'] = a.execqry("select account_role_id('"+username+"')", False)[0][0]
+		session['usertype'] = a.execqry("select account_role('"+username+"')", False)[0][0]
 		session.save()
 		if (session['usertype'] == 'STUDENT'):
-			return "<html><body onload='location.href=\"../../html_web/index.html\"'></body></html>"
+			return "<html><body onload='location.href=\"../../html/index.html\"'></body></html>"
 		else:
-			return "<html><body onload='location.href=\"../../html_web/prof_index.html\"'></body></html>"
+			return "<html><body onload='location.href=\"../../html/prof_index.html\"'></body></html>"
 
 	else:
 		session['invalid'] = 'Invalid username or password'
@@ -39,7 +39,7 @@ def section(req, sec, scode):
 		session['class'] = sec
 		session['scode'] = scode
 		session.save()
-		return "<html><body onload='location.href=\"../../html_web/view.html\"'></body></html>"
+		return "<html><body onload='location.href=\"../../html/view.html\"'></body></html>"
 	else:
 		return "<html><body onload='location.href=\"../login\"'></body></html>"
 

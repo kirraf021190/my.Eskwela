@@ -8,8 +8,12 @@ import form
 def getClasses(req):
 	session = Session.Session(req)
 	a = doSql()
-    	f = a.execqry("select getClasses('"+session['id']+"')", False)[0][0]
-	return f
+	t = a.execqry("select current_term()", False)[0][0]
+	f = a.execqry("select faculty_load_information('"+str(session['id'])+"','"+str(t)+"')", False)
+	p = ''
+	for x in xrange(len(f)):
+		p = p + f[x][0] + '@'
+	return p
 
 def getTeacherInfo(req):
 	session = Session.Session(req)
@@ -18,11 +22,16 @@ def getTeacherInfo(req):
 	#session.delete() #end session
         return session['name']+"$"+session['id']+"$"+session['dept']+"$"+session['college']+"$"+f
 
-def getStudentInfo(req):
+def getInfo(req):
 	session = Session.Session(req)
 	a = doSql()
-	f = a.execqry("select getinfo('"+str(session['id'])+"')", False)[0][0]
-	return f
+	if(session['usertype'] == 'FACULTY'):
+		f = a.execqry("select faculty_information('"+str(session['id'])+"')", False)[0][0]
+		return f
+	else:
+		f = a.execqry("select getinfo('"+str(session['id'])+"','"+session['usertype']+"')", False)[0][0]
+		return f		
+	
 
 def getSectionStudents(req):
 	session = Session.Session(req) 
@@ -239,18 +248,13 @@ def changePassword(req, currentPassword, confirmPassword, newPassword):
 	else:
 		return False
 
-def addAttendance(req, idArray, section):
+def addAttendance(req, idnum_):
 	session = Session.Session(req)
-	for idNum in idArray:
-		b = cgi.escape(idArray)
-		c = cgi.escape(section)
-		x = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-		e = doSql()
-		#f = e.execqry("INSERT INTO attendancetemp VALUES('"+b+"','"+c+"','"+x+"','"+session['sCode']+"')", True)
-		f = e.execqry("SELECT addattend('"+b+"','"+x+"','"+c+"')", True)
-		#f = e.execqry("SELECT addattend('"+c+"')", True)
-
-	return True
+	b = cgi.escape(idnum_)
+	x = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	e = doSql()
+	f = e.execqry("SELECT addattend('"+session['scode']+"','"+x+"','"+b+"')", True)[0][0]
+	return f
 		
 def changepassword(req, oldpass, newpass):
 	session = Session.Session(req)
@@ -295,13 +299,12 @@ def registerUser(req,uname, pwd, email, fname, mname, lname):
 	f = a.execqry("SELECT addparent('"+b+"','"+salt+"','"+hashPass+"','"+d+"','"+e+"','"+g+"','"+c+"')", True)[0][0]
 	return f
 
-def linkUsers(req, parentID, studentID):
-	session = Session.Session(req)
-	parentID = cgi.escape(parentID)
-	studentID = cgi.escape(studentID)
-	a = doSql()
-	f = a.execqry("SELECT linkusers('"+parentID+"', '"+studentID+"', 'False'))
-   	return f
+#def linkUsers(req, user):
+#	session = Session.Session(req)
+#	user = cgi.escape(user)
+#	a = doSql()
+#	f = a.execqry("select requestlink('"+session['id']+"', '"+user+"', true)	
+#   return f
 
 def showSubjects(req, idnum):
 	a = doSql()
@@ -316,34 +319,121 @@ def getGradeSubject(req, idnum, subj):
 	f = a.execqry("SELECT * grades where idnum = '"+b+"', subj = '"+c+'')
 	return f
 
-def setGrade(req, quiz, prelims, midterms, finals, attendance, others, subjectID):
+def getGradeSystem(req):
+	session = Session.Session(req)
 	a = doSql()
-	b = cgi.escape(quiz)
-	c = cgi.escape(prelims)
-	d = cgi.escape(midterms)
-	e = cgi.escape(finals)
-	f = cgi.escape(attendance)
-	g = cgi.escape(others)
-	h = cgi.escape(subjectID)
-<<<<<<< HEAD
-	x = a.execqry("SELECT setgrade('"+quiz+"','"+prelim+"', '"+midterm+"', '"+finals+"', '"+attendance+"', '"+others+"', '"+subjectID+"')", True)[0][0]
-	return x
-=======
-	#stored proc please
-
-def inputGrade(req, subject, testNum, score)
+	f = a.execqry("SELECT getgradesystem('"+session['scode']+"')", False) [0][0]
+	return f
+	
+def inputGrade(req, subject, testNum, score):
 	a = doSql()
 	b = cgi.escape(subject)
 	c = cgi.escape(testNum)
 	d = cgi.escape(score)
-	f = storedproc() #storedproc dari ric
->>>>>>> c12f3beb566de0495f3b6500ae112583f7bce64a
-
-def getAttendance(req, subject, accID)
+	f = a.execqry("SELECT addgrade('"+b+"','"+c+"','"+d+"','"+str(session['id'])+"')", True) [0][0]
+	return f
+	
+def getAttendanceBySubject(req):
+	session = Session.Session(req)
 	a = doSql()
-	b = cgi.escape(subject)
-	c = cgi.escape(accID)
-	f = storedproc()
+	f = a.execqry("SELECT getattend('"+session['scode']+"')", False) [0][0]
+	return f
+	
+def getCurrentClass(req):
+	session = Session.Session(req)
+	return session['class']
+
+def setGradeSystem(req,name_,weight_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(name_)
+	c = cgi.escape(weight_)
+	f = a.execqry("SELECT addgradecategory('"+b+"','"+c+"','"+session['scode']+"')", True) [0][0]
+	return f
+	
+def editCatWeight(req,name_,weight_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(name_)
+	c = cgi.escape(weight_)
+	f = a.execqry("SELECT editcatweight('"+b+"','"+c+"','"+session['scode']+"')", True) [0][0]
 	return f
 
+def deleteCategory(req,name_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(name_)
+	f = a.execqry("SELECT deletegradecategory('"+b+"', '"+session['scode']+"')", True) [0][0]
+	return f
 
+def confirmAttend(req,idnum_,time):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(idnum_)
+	c = cgi.escape(time)
+	f = a.execqry("SELECT confirmattendance('"+b+"', '"+session['scode']+"', '"+c+"')", True) [0][0]
+	return f
+	
+def getGradeItems(req):
+	session = Session.Session(req)
+	a = doSql()
+	f = a.execqry("SELECT getgradeitems('"+session['scode']+"')", False) [0][0]
+	return f
+
+def addGradeItem(req,name_,maxscore_,gradecat_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(name_)
+	c = cgi.escape(maxscore_)
+	d = cgi.escape(gradecat_)
+	f = a.execqry("SELECT addgradeitem('"+b+"','"+c+"','"+d+"','"+session['scode']+"')", True) [0][0]
+	return f
+	
+def editMaxScore(req,name_,maxscore_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(name_)
+	c = cgi.escape(maxscore_)
+	f = a.execqry("SELECT editmaxscore('"+b+"','"+c+"','"+session['scode']+"')", True) [0][0]
+	return f
+	
+def deleteGradeItem(req,name_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(name_)
+	f = a.execqry("SELECT deletegradeitem('"+b+"', '"+session['scode']+"')", True) [0][0]
+	return f
+	
+def getStudentGrades(req,gradeitem_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(gradeitem_)
+	f = a.execqry("SELECT getstudentgrades('"+b+"','"+session['scode']+"')", False) [0][0]
+	return f
+	
+def addStudentGrade(req,studentid_,score_,gradeitem_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(studentid_)
+	c = cgi.escape(score_)
+	d = cgi.escape(gradeitem_)
+	f = a.execqry("SELECT addstudentgrade('"+b+"','"+c+"','"+d+"','"+session['scode']+"')", True) [0][0]
+	return f
+	
+def studentIdAutoComp(req):
+	session = Session.Session(req)
+	a = doSql()
+	#f = a.execqry("SELECT addstudentgrade('"+b+"','"+c+"','"+d+"','"+session['scode']+"')", True) [0][0]
+	#return [('2010-7171',), ('2008-1234',)]
+	#return ['a','b','c']
+	p = ''
+	z = [('2010-7171',), ('2008-1234',)]
+	for x in xrange(len(z)): 
+		p = p + z[x][0] + '@'
+	return p
+	
+def startClassSession(req):
+	session = Session.Session(req)
+	a = doSql()
+	f = a.execqry("SELECT add_class_session('"+session['scode']+"')", True) [0][0]
+	return f

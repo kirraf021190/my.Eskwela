@@ -392,7 +392,7 @@ $(function() {
             	   </form>
                   </td>
                   <td>
-                     <image src="pics/anonymous.jpg" class="r50" id="frmpic">
+                     <image src="pictures/nopic.jpg" class="r50" id="frmpic">
                   </td>
                </tr>
 	     </table> <!-- attendance entry dialog -->
@@ -402,8 +402,53 @@ $(function() {
             Please select a section before proceeding.
         </div>
 
-			<div id="1">
-				view thing here
+	<div id="1">
+		<center>
+			<table>
+				<tr>
+					<td>
+						<input type="text" name="name" id="search_id" class="text ui-widget-content ui-corner-all" placeholder="ID Number" /> 
+					</td>
+					<td>
+						<button id="id_search"> Search</button>					
+					</td>
+					
+				</tr>
+			</table>
+		</center>
+			<table>
+				<table class="table_teacherinfo" id = "userinfo">
+					<tr>
+						<td rowspan="10" class="picturecell">
+							<img src="images/placeholder.png"/>
+						</td>
+					</tr>
+					<tr>
+						<td id="td_teacherlabel">Name:</td>
+						<td class="td_teacherinfo">&nbsp;</td>
+					</tr>
+					<tr>
+						<td id="td_teacherlabel">Student ID Number:</td>
+						<td class="td_teacherinfo">&nbsp;</td>
+					</tr>
+					<tr>
+						<td id="td_teacherlabel">Course and Year:</td>
+						<td class="td_teacherinfo">&nbsp;</td>
+					</tr>
+					<tr>
+						<td id="td_teacherlabel">Email</td>
+						<td class="td_teacherinfo">&nbsp;</td>
+					</tr>
+											
+			</table>
+	<script>
+		$("#id_search").click(
+			function ()
+				 {
+					getStudInfo($('#search_id').val()) ;
+				 });
+	</script>
+
 			</div>
 		
          <div id="2">
@@ -511,6 +556,7 @@ $(function() {
 				</tr>
 			</thead>
 			<tbody id = "gradeitembody">
+
 			</tbody>
 	</table>
 	
