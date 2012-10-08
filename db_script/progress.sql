@@ -3353,3 +3353,43 @@ alter table student_course
     (student_id, type) references person (id, type);
 alter table student_course add constraint scourse_pk
    primary key (student_id, type, course_id);
+
+delete from linked_account;
+alter table linked_account drop constraint 
+  linked_account_pkey;
+alter table linked_account drop column id;
+alter table linked_account add column student_type text;
+alter table linked_account add column parent_type text;
+alter table linked_account add column la_id text;
+alter table linked_account add constraint laid_pk
+ primary key (la_id);
+alter table linked_account add constraint laid_stu_fk
+ foreign key (student_id, student_type) references
+ person (id, type);
+alter table linked_account add constraint laid_par_fk
+foreign key (parent_id, parent_type) references
+ person (id, type);
+
+
+create or replace function autola_id() returns trigger as
+$$
+ begin
+    new.la_id = new.student_id || new.parent_id;
+    return new;
+ end;
+$$
+ language plpgsql volatile;
+
+create trigger linked_account_pk_trig
+  before insert
+  on linked_account
+  for each row
+  execute procedure autola_id();
+
+-- sample usage
+insert into linked_account 
+    (student_id, student_type, 
+    parent_id, parent_type, verified) 
+    values
+    ('2009-1625', 'STUDENT', 'P-2373', 'PARENT', true);
+-- the trigger will automatically fill-in the PK part
