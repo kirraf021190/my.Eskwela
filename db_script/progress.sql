@@ -3320,3 +3320,9 @@ alter table attendance add constraint attendance_pkey
 alter table attendance add constraint attendance_person_fk
   foreign key (person_id, type) references
   person (id, type);
+
+alter table grade_item_entry add column type text;
+alter table grade_item_entry add constraint
+   grade_item_entry_person_fk foreign key
+   (student_id, type) references person
+   (id, type);
