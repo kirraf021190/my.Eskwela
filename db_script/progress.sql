@@ -3326,3 +3326,19 @@ alter table grade_item_entry add constraint
    grade_item_entry_person_fk foreign key
    (student_id, type) references person
    (id, type);
+
+drop table enroll;
+drop table assignation;
+create table person_load (
+    id text,
+    type text,
+    term_id integer,
+    section_id integer,
+    constraint pload_pk primary key (id, type, term_id, section_id),
+    constraint pload_person_fk foreign key (id, type)
+      references person (id, type),
+    constraint pload_term_fk foreign key (term_id) references
+      term (id),
+    constraint pload_section_fk foreign key (section_id) references
+      section (id)  
+);
