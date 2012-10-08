@@ -3296,3 +3296,27 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 -- PostgreSQL database dump complete
 --
 
+drop table faculty_department;
+create table person_department (
+       id text,
+       type text,
+       dep_id int,
+       constraint pd_pk primary key (id, type, dep_id),
+       constraint pd_prsn foreign key (id, type) references
+          person (id, type),
+       constraint pd_dept foreign key (dep_id) references 
+          department (id)
+);
+
+delete from attendance;
+alter table attendance drop column session_id;
+alter table attendance add column session_id integer not null;
+alter table attendance drop constraint attendance_pkey;
+alter table attendance drop column id;
+alter table attendance add column person_id text;
+alter table attendance add column type text;
+alter table attendance add constraint attendance_pkey
+  primary key (person_id, type, session_id, time);
+alter table attendance add constraint attendance_person_fk
+  foreign key (person_id, type) references
+  person (id, type);
