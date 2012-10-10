@@ -51,7 +51,6 @@ ALTER FUNCTION public.account_role(account_name_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION account_role(account_name_arg text) IS 'input: account name
 
-
 returns text; the role of the account user';
 
 
@@ -86,7 +85,6 @@ ALTER FUNCTION public.account_role_id(account_name_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION account_role_id(account_name_arg text) IS 'input: account name
 
-
 returns text; the role id of the account user';
 
 
@@ -104,9 +102,9 @@ BEGIN
 
      SELECT INTO status_var status FROM class_session WHERE id = session_id_arg;
 
-     IF (status_var = 'ONGOING' AND (student_id_arg NOT IN (SELECT student_id FROM attendance WHERE session_id = session_id_arg))) THEN
+     IF (status_var = 'ONGOING' AND (student_id_arg NOT IN (SELECT person_id FROM attendance WHERE session_id = session_id_arg))) THEN
 
-      INSERT INTO attendance (session_id, time, student_id) VALUES(session_id_arg, time_arg, student_id_arg);
+      INSERT INTO attendance (session_id, time, person_id) VALUES(session_id_arg, time_arg, student_id_arg);
 
       return TRUE;
 
@@ -127,7 +125,6 @@ ALTER FUNCTION public.add_attendance(session_id_arg integer, student_id_arg text
 
 COMMENT ON FUNCTION add_attendance(session_id_arg integer, student_id_arg text, time_arg timestamp without time zone) IS 'input: session id, student id, time
 
-
 returns boolean; TRUE if the attendance if successfully added and FALSE otherwise';
 
 
@@ -139,7 +136,7 @@ CREATE FUNCTION add_class_session(section_id_arg integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
 
- IF section_id_arg IN (SELECT id FROM section) THEN
+ IF (section_id_arg IN (SELECT id FROM section) AND 'ONGOING' NOT IN (SELECT status FROM class_session WHERE section_id = section_id_arg)) THEN
 
   INSERT INTO class_session(section_id) VALUES(section_id_arg);
 
@@ -161,7 +158,6 @@ ALTER FUNCTION public.add_class_session(section_id_arg integer) OWNER TO postgre
 --
 
 COMMENT ON FUNCTION add_class_session(section_id_arg integer) IS 'input: section id
-
 
 returns boolean; TRUE if class session was successfully added and FALSE otherwise';
 
@@ -190,7 +186,7 @@ BEGIN
 
   FOR student_id_var IN SELECT enrolled(get_grading_system_section_id(grading_system_id_arg)) LOOP
 
-   INSERT INTO grade_item_entry(grade_item_id, score, student_id) VALUES(grade_item_id, 0, student_id_var);
+   INSERT INTO grade_item_entry(grade_item_id, score, person_id) VALUES(grade_item_id, 0, student_id_var);
 
   END LOOP;
 
@@ -213,7 +209,6 @@ ALTER FUNCTION public.add_grade_item(name_arg text, grading_system_id_arg intege
 
 COMMENT ON FUNCTION add_grade_item(name_arg text, grading_system_id_arg integer, total_score_arg double precision, timestamp_arg timestamp without time zone) IS 'input: grade item name, grading system id, total score
 
-
 returns boolean; TRUE if grade item was successfully added and FALSE otherwise';
 
 
@@ -229,7 +224,7 @@ CREATE FUNCTION add_grade_item_entry(grade_item_id_arg integer, score_arg double
 
 BEGIN
 
- SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE student_id = student_id_arg AND grade_item_id = grade_item_id_arg;
+ SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE person_id = student_id_arg AND grade_item_id = grade_item_id_arg;
 
  IF grade_item_entry_id ISNULL THEN
 
@@ -237,7 +232,7 @@ BEGIN
 
  ELSE
 
-  UPDATE grade_item_entry SET score = score_arg WHERE student_id = student_id_arg AND grade_item_id = grade_item_id_arg;
+  UPDATE grade_item_entry SET score = score_arg WHERE person_id = student_id_arg AND grade_item_id = grade_item_id_arg;
 
   RETURN TRUE;
 
@@ -254,9 +249,29 @@ ALTER FUNCTION public.add_grade_item_entry(grade_item_id_arg integer, score_arg 
 
 COMMENT ON FUNCTION add_grade_item_entry(grade_item_id_arg integer, score_arg double precision, student_id_arg text) IS 'input: grade item id, score of this entry, id of the student
 
-
 returns boolean; TRUE if grade item entry was successfully updated and FALSE otherwise';
 
+
+--
+-- Name: autola_id(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION autola_id() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+
+ begin
+
+    new.la_id = new.student_id || new.parent_id;
+
+    return new;
+
+ end;
+
+$$;
+
+
+ALTER FUNCTION public.autola_id() OWNER TO postgres;
 
 --
 -- Name: class_session_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -265,10 +280,15 @@ returns boolean; TRUE if grade item entry was successfully updated and FALSE oth
 CREATE FUNCTION class_session_information(session_id_arg integer) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  session_information TEXT;
+
 BEGIN
+
  SELECT INTO session_information id || '#' || date || '#' || status FROM class_session WHERE id = session_id_arg;
+
  RETURN session_information;
+
 END;$$;
 
 
@@ -279,7 +299,6 @@ ALTER FUNCTION public.class_session_information(session_id_arg integer) OWNER TO
 --
 
 COMMENT ON FUNCTION class_session_information(session_id_arg integer) IS 'input: session id
-
 
 returns text; informations of the session format; id - date - status';
 
@@ -313,10 +332,41 @@ ALTER FUNCTION public.confirm_attendance(attendance_id_arg integer) OWNER TO pos
 -- Name: FUNCTION confirm_attendance(attendance_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION confirm_attendance(attendance_id_arg integer) IS 'input: grade item id, score of this entry, id of the student
+COMMENT ON FUNCTION confirm_attendance(attendance_id_arg integer) IS 'OLD';
 
 
-returns boolean; TRUE if attendance was successfully confirmed and FALSE otherwise';
+--
+-- Name: confirm_attendance(integer, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$BEGIN
+
+     IF NOT (SELECT confirmed FROM attendance WHERE session_id = session_id_arg and person_id = student_id_arg) THEN
+
+      UPDATE attendance SET confirmed = TRUE WHERE session_id = session_id_arg and person_id = student_id_arg;
+
+      RETURN TRUE;
+
+     ELSE
+
+      RETURN FALSE;
+
+     END IF;
+
+END;$$;
+
+
+ALTER FUNCTION public.confirm_attendance(session_id_arg integer, student_id_arg text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text) IS 'input: session id, student_id
+
+returns TRUE if successful to confirm attendance, false otherwise';
 
 
 --
@@ -331,7 +381,7 @@ CREATE FUNCTION count_student_enrolled(section_id_arg integer) RETURNS integer
 
 BEGIN
 
- SELECT INTO result count(id) FROM enroll WHERE section_id = section_id_arg;
+ SELECT INTO result count(person_id) FROM person_load WHERE section_id = section_id_arg AND person_type = 'STUDENT';
 
  IF result ISNULL THEN
 
@@ -353,7 +403,6 @@ ALTER FUNCTION public.count_student_enrolled(section_id_arg integer) OWNER TO po
 --
 
 COMMENT ON FUNCTION count_student_enrolled(section_id_arg integer) IS 'input: section id
-
 
 returns integer; number of student enrolled in the given section';
 
@@ -384,7 +433,6 @@ ALTER FUNCTION public.current_term() OWNER TO postgres;
 --
 
 COMMENT ON FUNCTION current_term() IS 'input: section id
-
 
 returns integer; id of the current term';
 
@@ -422,7 +470,6 @@ ALTER FUNCTION public.delete_class_session(class_session_id_arg integer) OWNER T
 
 COMMENT ON FUNCTION delete_class_session(class_session_id_arg integer) IS 'input: class session id
 
-
 returns boolean; TRUE if class session was successfully deleted and FALSE otherwise';
 
 
@@ -459,7 +506,6 @@ ALTER FUNCTION public.delete_grade_item(grade_item_id_arg integer) OWNER TO post
 
 COMMENT ON FUNCTION delete_grade_item(grade_item_id_arg integer) IS 'input: grade item id
 
-
 returns boolean; TRUE if grade item was successfully deleted and FALSE otherwise';
 
 
@@ -493,7 +539,6 @@ ALTER FUNCTION public.dismiss_class_session(class_session_id_arg integer) OWNER 
 --
 
 COMMENT ON FUNCTION dismiss_class_session(class_session_id_arg integer) IS 'input: class session id
-
 
 returns boolean; TRUE if grade item was successfully updated and FALSE otherwise';
 
@@ -529,7 +574,6 @@ ALTER FUNCTION public.edit_grading_system_weight(grading_system_id_arg integer, 
 
 COMMENT ON FUNCTION edit_grading_system_weight(grading_system_id_arg integer, new_weight_arg double precision) IS 'input: grading system id, new weight
 
-
 returns boolean; TRUE if grading system was successfully updated and FALSE otherwise';
 
 
@@ -545,7 +589,7 @@ student_id_output TEXT;
 
 BEGIN
 
- FOR student_id_output in SELECT student_id FROM enroll WHERE section_id = section_id_arg LOOP	
+ FOR student_id_output in SELECT person_id FROM person_load WHERE section_id = section_id_arg AND person_type = 'STUDENT'LOOP
 
  RETURN NEXT student_id_output;	
 
@@ -564,7 +608,6 @@ ALTER FUNCTION public.enrolled(section_id_arg integer) OWNER TO postgres;
 
 COMMENT ON FUNCTION enrolled(section_id_arg integer) IS 'input: section id
 
-
 returns setof text; id number of the student enrolled in that section';
 
 
@@ -575,14 +618,23 @@ returns setof text; id number of the student enrolled in that section';
 CREATE FUNCTION enrolled_information(section_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  id TEXT;
+
 BEGIN
+
  FOR id IN (SELECT enrolled(section_id_arg)) LOOP
+
   informations = student_information(id);
+
  RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -593,7 +645,6 @@ ALTER FUNCTION public.enrolled_information(section_id_arg integer) OWNER TO post
 --
 
 COMMENT ON FUNCTION enrolled_information(section_id_arg integer) IS 'input: section id
-
 
 returns setof text; informations of the students enrolled in the section';
 
@@ -618,7 +669,7 @@ CREATE FUNCTION faculty_information(faculty_id_arg text) RETURNS text
 
 BEGIN
 
- SELECT INTO first_name_output, middle_name_output, last_name_output, department_name_output, email_output person.first_name, person.middle_name, person.last_name, department.name, person.email FROM person INNER JOIN faculty_department ON (person.id = faculty_department.faculty_id) INNER JOIN department ON (faculty_department.department_id = department.id) WHERE person.id = faculty_id_arg AND person.type = 'FACULTY';
+ SELECT INTO first_name_output, middle_name_output, last_name_output, department_name_output, email_output person.first_name, person.middle_name, person.last_name, department.name, person.email FROM person INNER JOIN faculty_department ON (person.id = faculty_department.person_id) INNER JOIN department ON (faculty_department.department_id = department.id) WHERE person.id = faculty_id_arg AND person.type = 'FACULTY';
 
  RETURN faculty_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || department_name_output || '#' || email_output;
 
@@ -632,7 +683,6 @@ ALTER FUNCTION public.faculty_information(faculty_id_arg text) OWNER TO postgres
 --
 
 COMMENT ON FUNCTION faculty_information(faculty_id_arg text) IS 'input: section id
-
 
 returns text; faculty information, format; id - first name - middle name - last name - department name - email';
 
@@ -649,7 +699,7 @@ sections INTEGER;
 
 BEGIN
 
-    FOR sections IN SELECT section_id FROM assignation WHERE faculty_id = faculty_id_arg AND term_id = term_id_arg LOOP
+    FOR sections IN SELECT section_id FROM person_load WHERE person_id = faculty_id_arg AND term_id = term_id_arg AND person_type = 'FACULTY' LOOP
 
        RETURN NEXT sections;
 
@@ -668,7 +718,6 @@ ALTER FUNCTION public.faculty_load(faculty_id_arg text, term_id_arg integer) OWN
 
 COMMENT ON FUNCTION faculty_load(faculty_id_arg text, term_id_arg integer) IS 'input: faculty id, term id
 
-
 returns setof integer; id of the section that the faculty handle';
 
 
@@ -679,14 +728,23 @@ returns setof integer; id of the section that the faculty handle';
 CREATE FUNCTION faculty_load_information(faculty_id_arg text, term_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  section_id INTEGER;
+
 BEGIN
+
  FOR section_id IN (SELECT faculty_load(faculty_id_arg, term_id_arg)) LOOP
+
   informations = section_information(section_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -697,7 +755,6 @@ ALTER FUNCTION public.faculty_load_information(faculty_id_arg text, term_id_arg 
 --
 
 COMMENT ON FUNCTION faculty_load_information(faculty_id_arg text, term_id_arg integer) IS 'input: faculty id, term id
-
 
 returns setof text; informations of the section that the faculty handle';
 
@@ -733,7 +790,6 @@ ALTER FUNCTION public.get_children(parent_id_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION get_children(parent_id_arg text) IS 'input: parent id
 
-
 returns setof text; id of the children of the parent';
 
 
@@ -744,14 +800,23 @@ returns setof text; id of the children of the parent';
 CREATE FUNCTION get_children_information(parent_id_arg text) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  child_id TEXT;
+
 BEGIN
+
  FOR child_id IN (SELECT get_children(parent_id_arg)) LOOP
+
   informations = student_information(child_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -762,7 +827,6 @@ ALTER FUNCTION public.get_children_information(parent_id_arg text) OWNER TO post
 --
 
 COMMENT ON FUNCTION get_children_information(parent_id_arg text) IS 'input: parent id
-
 
 returns setof text; informations of the children of the parent';
 
@@ -798,7 +862,6 @@ ALTER FUNCTION public.get_class_session(section_id_arg integer) OWNER TO postgre
 
 COMMENT ON FUNCTION get_class_session(section_id_arg integer) IS 'input: section id
 
-
 returns setof integer; id of the session that the section have';
 
 
@@ -809,15 +872,25 @@ returns setof integer; id of the session that the section have';
 CREATE FUNCTION get_class_session_information(section_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  session_id INTEGER;
+
 BEGIN
+
  FOR session_id IN (SELECT get_class_session(section_id_arg)) LOOP
+
   informations = class_session_information(session_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;
+
 $$;
 
 
@@ -828,7 +901,6 @@ ALTER FUNCTION public.get_class_session_information(section_id_arg integer) OWNE
 --
 
 COMMENT ON FUNCTION get_class_session_information(section_id_arg integer) IS 'input: section id
-
 
 returns setof text; informations of the session that the section have';
 
@@ -868,7 +940,6 @@ ALTER FUNCTION public.get_email(id_arg text, role_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION get_email(id_arg text, role_arg text) IS 'input: id, role
 
-
 returns text; email';
 
 
@@ -902,7 +973,6 @@ ALTER FUNCTION public.get_grade_item(grading_system_id_arg integer) OWNER TO pos
 --
 
 COMMENT ON FUNCTION get_grade_item(grading_system_id_arg integer) IS 'input: grading system id
-
 
 returns setof integer; id of the grade item that the grade system have';
 
@@ -938,7 +1008,6 @@ ALTER FUNCTION public.get_grade_item_entry(grade_item_id_arg integer) OWNER TO p
 
 COMMENT ON FUNCTION get_grade_item_entry(grade_item_id_arg integer) IS 'input: grade item id
 
-
 returns setof integer; id of the grade item entry id that the grade item have';
 
 
@@ -949,14 +1018,23 @@ returns setof integer; id of the grade item entry id that the grade item have';
 CREATE FUNCTION get_grade_item_entry_information(grade_item_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  grade_item_entry_id INTEGER;
+
 BEGIN
+
  FOR grade_item_entry_id IN (SELECT get_grade_item_entry(grade_item_id_arg)) LOOP
+
   informations = grade_item_entry_information(grade_item_entry_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -968,7 +1046,6 @@ ALTER FUNCTION public.get_grade_item_entry_information(grade_item_id_arg integer
 
 COMMENT ON FUNCTION get_grade_item_entry_information(grade_item_id_arg integer) IS 'input: grade item id
 
-
 returns setof text; information of the grade item entry id that the grade item have';
 
 
@@ -979,14 +1056,23 @@ returns setof text; information of the grade item entry id that the grade item h
 CREATE FUNCTION get_grade_item_information(grading_system_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  grade_item_id INTEGER;
+
 BEGIN
+
  FOR grade_item_id IN (SELECT get_grade_item(grading_system_id_arg)) LOOP
+
   informations = grade_item_information(grade_item_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -997,7 +1083,6 @@ ALTER FUNCTION public.get_grade_item_information(grading_system_id_arg integer) 
 --
 
 COMMENT ON FUNCTION get_grade_item_information(grading_system_id_arg integer) IS 'input: grading system id
-
 
 returns setof text; information of the grade item that the grade system have';
 
@@ -1033,7 +1118,6 @@ ALTER FUNCTION public.get_grading_system(section_id_arg integer) OWNER TO postgr
 
 COMMENT ON FUNCTION get_grading_system(section_id_arg integer) IS 'input: scetion id
 
-
 returns setof integer; id of the grading system that the section have';
 
 
@@ -1044,14 +1128,23 @@ returns setof integer; id of the grading system that the section have';
 CREATE FUNCTION get_grading_system_information(section_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  grading_system_id INTEGER;
+
 BEGIN
+
  FOR grading_system_id IN (SELECT get_grading_system(section_id_arg)) LOOP
+
   informations = grading_system_information(grading_system_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -1062,7 +1155,6 @@ ALTER FUNCTION public.get_grading_system_information(section_id_arg integer) OWN
 --
 
 COMMENT ON FUNCTION get_grading_system_information(section_id_arg integer) IS 'input: section id
-
 
 returns setof text; information of the grading system that the section have';
 
@@ -1093,7 +1185,6 @@ ALTER FUNCTION public.get_grading_system_section_id(grading_system_id_arg intege
 --
 
 COMMENT ON FUNCTION get_grading_system_section_id(grading_system_id_arg integer) IS 'input: grading system id
-
 
 returns integer; id of the section that the grading system belong';
 
@@ -1133,31 +1224,24 @@ ALTER FUNCTION public.get_image_location(id_arg text, role text) OWNER TO postgr
 
 COMMENT ON FUNCTION get_image_location(id_arg text, role text) IS 'input: id, role
 
-
 returns text; image location';
 
 
 --
--- Name: get_section_attendance(integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: get_section_attendance(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION get_section_attendance(section_id_arg integer) RETURNS SETOF text
+CREATE FUNCTION get_section_attendance(section_id_arg integer, session_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
 
  student_id_output TEXT;
 
- session_id_output INTEGER;
-
 BEGIN
 
- FOR session_id_output IN SELECT id FROM class_session WHERE section_id = section_id_arg LOOP
+ FOR student_id_output IN SELECT person_id || '#' || time FROM attendance WHERE session_id = session_id_arg LOOP
 
-  FOR student_id_output IN SELECT student_id || '#' || time FROM attendance WHERE session_id = session_id_output LOOP
-
-   RETURN NEXT student_id_output;
-
-  END LOOP;
+  RETURN NEXT student_id_output;
 
  END LOOP;
 
@@ -1166,14 +1250,13 @@ BEGIN
 END;$$;
 
 
-ALTER FUNCTION public.get_section_attendance(section_id_arg integer) OWNER TO postgres;
+ALTER FUNCTION public.get_section_attendance(section_id_arg integer, session_id_arg integer) OWNER TO postgres;
 
 --
--- Name: FUNCTION get_section_attendance(section_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: FUNCTION get_section_attendance(section_id_arg integer, session_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION get_section_attendance(section_id_arg integer) IS 'input: section id
-
+COMMENT ON FUNCTION get_section_attendance(section_id_arg integer, session_id_arg integer) IS 'input: section id
 
 returns setof text; id of the student and time it arrive format; student id - time';
 
@@ -1204,7 +1287,6 @@ ALTER FUNCTION public.get_session_date(session_id_arg integer) OWNER TO postgres
 --
 
 COMMENT ON FUNCTION get_session_date(session_id_arg integer) IS 'input: session id
-
 
 returns date; date that the class session happen';
 
@@ -1244,7 +1326,6 @@ ALTER FUNCTION public.getsalt(username_ text) OWNER TO postgres;
 
 COMMENT ON FUNCTION getsalt(username_ text) IS 'input: user name
 
-
 returns text; the username''s salt, FALSE if user does not exist';
 
 
@@ -1262,7 +1343,7 @@ CREATE FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) RE
 
 BEGIN
 
- SELECT INTO student_id_output, score_output student_id, score FROM grade_item_entry WHERE id = grade_item_entry_id_arg;
+ SELECT INTO student_id_output, score_output person_id, score FROM grade_item_entry WHERE id = grade_item_entry_id_arg;
 
  RETURN grade_item_entry_id_arg || '#' || student_id_output || '#' || score_output;
 
@@ -1276,7 +1357,6 @@ ALTER FUNCTION public.grade_item_entry_information(grade_item_entry_id_arg integ
 --
 
 COMMENT ON FUNCTION grade_item_entry_information(grade_item_entry_id_arg integer) IS 'input: grade item entry id
-
 
 returns text; entry information, format; id - student id - score';
 
@@ -1312,7 +1392,6 @@ ALTER FUNCTION public.grade_item_information(grade_item_id_arg integer) OWNER TO
 
 COMMENT ON FUNCTION grade_item_information(grade_item_id_arg integer) IS 'input: grade item id
 
-
 returns text; grade item information, format; id - name - total score - date';
 
 
@@ -1344,7 +1423,6 @@ ALTER FUNCTION public.grading_system_information(grading_system_id_arg integer) 
 --
 
 COMMENT ON FUNCTION grading_system_information(grading_system_id_arg integer) IS 'input: grading system id
-
 
 returns text; grading system information, format; id - name - weight';
 
@@ -1384,7 +1462,6 @@ ALTER FUNCTION public.login(name_arg text, password_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION login(name_arg text, password_arg text) IS 'input: name, password
 
-
 returns text; ''TRUE'' if the data match, ''FALSE'' otherwise';
 
 
@@ -1421,7 +1498,6 @@ ALTER FUNCTION public.parent_information(parent_id_arg text) OWNER TO postgres;
 
 COMMENT ON FUNCTION parent_information(parent_id_arg text) IS 'input: parent id
 
-
 returns text; parent information, format; id - first name - middle name - last name - email';
 
 
@@ -1437,7 +1513,7 @@ CREATE FUNCTION section_faculty(section_id_arg integer) RETURNS text
 
 BEGIN
 
- SELECT INTO faculty_id_output faculty_id FROM assignation WHERE section_id = section_id_arg;
+ SELECT INTO faculty_id_output person_id FROM person_load WHERE section_id = section_id_arg AND person_type = 'FACULTY';
 
  IF faculty_id_output ISNULL THEN
 
@@ -1459,7 +1535,6 @@ ALTER FUNCTION public.section_faculty(section_id_arg integer) OWNER TO postgres;
 --
 
 COMMENT ON FUNCTION section_faculty(section_id_arg integer) IS 'input: section id
-
 
 returns text; id of the faculty and ''NOT FOUND'' if it fail';
 
@@ -1505,15 +1580,14 @@ ALTER FUNCTION public.section_information(section_id_arg integer) OWNER TO postg
 
 COMMENT ON FUNCTION section_information(section_id_arg integer) IS 'input: grading system id, new weight
 
-
 returns text; information of the section, format: id - subject code - section code - subject description - section day - section time - section room - subject units - subject type';
 
 
 --
--- Name: student_absence_count(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: student_absence_count(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) RETURNS integer
+CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg integer) RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
 
@@ -1521,7 +1595,7 @@ CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg intege
 
 BEGIN
 
- SELECT INTO count count(*) FROM student_sessions_absented (student_id_arg, section_id_arg, term_id_arg);
+ SELECT INTO count count(*) FROM student_sessions_absented (student_id_arg, section_id_arg);
 
  IF count ISNULL THEN
 
@@ -1536,23 +1610,13 @@ BEGIN
 END;$$;
 
 
-ALTER FUNCTION public.student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) OWNER TO postgres;
+ALTER FUNCTION public.student_absence_count(student_id_arg text, section_id_arg integer) OWNER TO postgres;
 
 --
--- Name: FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
+-- Name: student_attendance_count(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION student_absence_count(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, scetion id, term id
-
-
-returns integer; count the row of the absences';
-
-
---
--- Name: student_attendance_count(text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer) RETURNS integer
+CREATE FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer) RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
 
@@ -1560,7 +1624,7 @@ CREATE FUNCTION student_attendance_count(student_id_arg text, section_id_arg int
 
 BEGIN
 
- SELECT INTO count count(*) FROM student_sessions_attended (student_id_arg, section_id_arg, term_id_arg);
+ SELECT INTO count count(*) FROM student_sessions_attended (student_id_arg, section_id_arg);
 
  IF count ISNULL THEN
 
@@ -1575,17 +1639,7 @@ BEGIN
 END;$$;
 
 
-ALTER FUNCTION public.student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer) OWNER TO postgres;
-
---
--- Name: FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION student_attendance_count(student_id_arg text, section_id_arg integer, term_id_arg integer) IS 'input: student id, section id, term id
-
-
-returns integer; number of times the student attend';
-
+ALTER FUNCTION public.student_attendance_count(student_id_arg text, section_id_arg integer) OWNER TO postgres;
 
 --
 -- Name: student_information(text); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1611,7 +1665,7 @@ CREATE FUNCTION student_information(student_id_arg text) RETURNS text
 
 BEGIN
 
- SELECT INTO first_name_output, middle_name_output, last_name_output, course_name_output,  course_code_output, year_output, email_output person.first_name, person.middle_name, person.last_name, course.name, course.code, person.year, person.email FROM person INNER JOIN student_course ON (person.id = student_course.student_id) INNER JOIN course ON (student_course.course_id = course.id) WHERE person.id = student_id_arg AND person.type = 'STUDENT';
+ SELECT INTO first_name_output, middle_name_output, last_name_output, course_name_output,  course_code_output, year_output, email_output person.first_name, person.middle_name, person.last_name, course.name, course.code, person.year, person.email FROM person INNER JOIN student_course ON (person.id = student_course.person_id) INNER JOIN course ON (student_course.course_id = course.id) WHERE person.id = student_id_arg AND person.type = 'STUDENT';
 
  RETURN student_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output;
 
@@ -1625,7 +1679,6 @@ ALTER FUNCTION public.student_information(student_id_arg text) OWNER TO postgres
 --
 
 COMMENT ON FUNCTION student_information(student_id_arg text) IS 'input: grading system id, new weight
-
 
 returns text; informatin of the student format: id - first name - middle name - last name - course - year - email';
 
@@ -1642,8 +1695,11 @@ CREATE FUNCTION student_last_attended(student_id_arg text, section_id_arg intege
 
 BEGIN
 
- SELECT INTO session_id_output MAX(session_id) FROM attendance INNER JOIN class_session ON (attendance.session_id = class_session.id) WHERE student_id = student_id_arg;
+ SELECT INTO session_id_output MAX(session_id) FROM attendance INNER JOIN class_session ON (attendance.session_id = class_session.id) WHERE person_id = student_id_arg AND class_session.section_id = section_id_arg;
 
+ IF session_id_output ISNULL THEN
+  RETURN DATE '01-01-0001 00:00';
+ END IF;
  RETURN get_session_date(session_id_output);
 
 END;$$;
@@ -1656,7 +1712,6 @@ ALTER FUNCTION public.student_last_attended(student_id_arg text, section_id_arg 
 --
 
 COMMENT ON FUNCTION student_last_attended(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
-
 
 returns text; session date';
 
@@ -1673,7 +1728,7 @@ sections INTEGER;
 
 BEGIN
 
- FOR sections in SELECT section_id FROM enroll WHERE student_id = student_id_arg and term_id = term_id_arg LOOP	
+ FOR sections in SELECT section_id FROM person_load WHERE person_id = student_id_arg AND term_id = term_id_arg AND person_type = 'STUDENT' LOOP	
 
  RETURN NEXT sections;	
 
@@ -1692,7 +1747,6 @@ ALTER FUNCTION public.student_load(student_id_arg text, term_id_arg integer) OWN
 
 COMMENT ON FUNCTION student_load(student_id_arg text, term_id_arg integer) IS 'input: student id, term id
 
-
 returns setof integer; setof section id that the student have';
 
 
@@ -1703,14 +1757,23 @@ returns setof integer; setof section id that the student have';
 CREATE FUNCTION student_load_information(student_id_arg text, term_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  section_id INTEGER;
+
 BEGIN
+
  FOR section_id IN (SELECT student_load(student_id_arg, term_id_arg)) LOOP
+
   informations = section_information(section_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -1721,7 +1784,6 @@ ALTER FUNCTION public.student_load_information(student_id_arg text, term_id_arg 
 --
 
 COMMENT ON FUNCTION student_load_information(student_id_arg text, term_id_arg integer) IS 'input: student id, term id
-
 
 returns setof text; section information that the student have';
 
@@ -1740,7 +1802,7 @@ BEGIN
 
  FOR session_id_output in SELECT id FROM class_session  WHERE section_id = section_id_arg LOOP
 
-  IF session_id_output NOT IN (SELECT session_id FROM attendance WHERE student_id = student_id_arg) THEN
+  IF session_id_output NOT IN (SELECT session_id FROM attendance WHERE person_id = student_id_arg) THEN
 
    RETURN NEXT session_id_output;
 
@@ -1761,7 +1823,6 @@ ALTER FUNCTION public.student_sessions_absented(student_id_arg text, section_id_
 
 COMMENT ON FUNCTION student_sessions_absented(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
 
-
 returns setof integer; id of the student absent sessions';
 
 
@@ -1772,14 +1833,23 @@ returns setof integer; id of the student absent sessions';
 CREATE FUNCTION student_sessions_absented_information(student_id_arg text, section_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  session_id INTEGER;
+
 BEGIN
+
  FOR session_id IN (SELECT student_sessions_absented(student_id_arg, section_id_arg)) LOOP
+
   informations = class_session_information(session_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -1790,7 +1860,6 @@ ALTER FUNCTION public.student_sessions_absented_information(student_id_arg text,
 --
 
 COMMENT ON FUNCTION student_sessions_absented_information(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
-
 
 returns setof integer; id of the student absent sessions';
 
@@ -1809,7 +1878,7 @@ BEGIN
 
  FOR session_id_output in SELECT id FROM class_session  WHERE section_id = section_id_arg LOOP
 
-  IF session_id_output IN (SELECT session_id FROM attendance WHERE student_id = student_id_arg) THEN
+  IF session_id_output IN (SELECT session_id FROM attendance WHERE person_id = student_id_arg) THEN
 
    RETURN NEXT session_id_output;
 
@@ -1830,7 +1899,6 @@ ALTER FUNCTION public.student_sessions_attended(student_id_arg text, section_id_
 
 COMMENT ON FUNCTION student_sessions_attended(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
 
-
 returns setof integer; id of the student attended sessions';
 
 
@@ -1841,14 +1909,23 @@ returns setof integer; id of the student attended sessions';
 CREATE FUNCTION student_sessions_attended_information(student_id_arg text, section_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+
  informations TEXT;
+
  session_id INTEGER;
+
 BEGIN
+
  FOR session_id IN (SELECT student_sessions_attended(student_id_arg, section_id_arg)) LOOP
+
   informations = class_session_information(session_id);
+
   RETURN NEXT informations;
+
  END LOOP;
+
  RETURN;
+
 END;$$;
 
 
@@ -1859,7 +1936,6 @@ ALTER FUNCTION public.student_sessions_attended_information(student_id_arg text,
 --
 
 COMMENT ON FUNCTION student_sessions_attended_information(student_id_arg text, section_id_arg integer) IS 'input: student id, section id
-
 
 returns setof text; information of the student attended sessions';
 
@@ -1872,15 +1948,15 @@ CREATE FUNCTION term_information(term_id_arg integer) RETURNS text
     LANGUAGE plpgsql
     AS $$DECLARE
 
- school_year TEXT;
+ school_year_output TEXT;
 
  semester_output TEXT;
 
 BEGIN
 
- SELECT INTO semester_output, school_year semester, school_year.school_year FROM term INNER JOIN school_year ON (term.school_year_id = school_year.id) WHERE term.id = term_id_arg;
+ SELECT INTO semester_output, school_year_output semester, school_year FROM term WHERE term.id = term_id_arg;
 
- RETURN term_id_arg || '#' || school_year || '#' || semester_output;
+ RETURN term_id_arg || '#' || school_year_output || '#' || semester_output;
 
 END;$$;
 
@@ -1892,7 +1968,6 @@ ALTER FUNCTION public.term_information(term_id_arg integer) OWNER TO postgres;
 --
 
 COMMENT ON FUNCTION term_information(term_id_arg integer) IS 'input: grading system id, new weight
-
 
 returns text; term information of format, id - school year - semester';
 
@@ -1958,96 +2033,26 @@ SELECT pg_catalog.setval('account_id_seq', 5, true);
 
 
 --
--- Name: assignation; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE assignation (
-    section_id integer NOT NULL,
-    faculty_id text NOT NULL,
-    id integer NOT NULL,
-    term_id integer
-);
-
-
-ALTER TABLE public.assignation OWNER TO postgres;
-
---
--- Name: assignation_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE assignation_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.assignation_id_seq OWNER TO postgres;
-
---
--- Name: assignation_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE assignation_id_seq OWNED BY assignation.id;
-
-
---
--- Name: assignation_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('assignation_id_seq', 5, true);
-
-
---
 -- Name: attendance; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE attendance (
     "time" time without time zone NOT NULL,
     confirmed boolean DEFAULT false NOT NULL,
-    id integer NOT NULL,
-    student_id text NOT NULL,
-    session_id integer
+    session_id integer NOT NULL,
+    person_id text NOT NULL,
+    person_type text DEFAULT 'STUDENT'::text NOT NULL
 );
 
 
 ALTER TABLE public.attendance OWNER TO postgres;
 
 --
--- Name: attendance_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE attendance_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.attendance_id_seq OWNER TO postgres;
-
---
--- Name: attendance_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE attendance_id_seq OWNED BY attendance.id;
-
-
---
--- Name: attendance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('attendance_id_seq', 17, true);
-
-
---
 -- Name: class_session; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE class_session (
-    id integer NOT NULL,
+    id bigint NOT NULL,
     section_id integer NOT NULL,
     status text DEFAULT 'ONGOING'::text NOT NULL,
     date date DEFAULT now() NOT NULL
@@ -2081,7 +2086,7 @@ ALTER SEQUENCE class_session_id_seq OWNED BY class_session.id;
 -- Name: class_session_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('class_session_id_seq', 6, true);
+SELECT pg_catalog.setval('class_session_id_seq', 9, true);
 
 
 --
@@ -2194,54 +2199,12 @@ SELECT pg_catalog.setval('department_name_seq', 1, false);
 
 
 --
--- Name: enroll; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE enroll (
-    student_id text NOT NULL,
-    term_id integer NOT NULL,
-    section_id integer NOT NULL,
-    id integer NOT NULL
-);
-
-
-ALTER TABLE public.enroll OWNER TO postgres;
-
---
--- Name: enroll_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE enroll_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.enroll_id_seq OWNER TO postgres;
-
---
--- Name: enroll_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE enroll_id_seq OWNED BY enroll.id;
-
-
---
--- Name: enroll_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('enroll_id_seq', 7, true);
-
-
---
 -- Name: faculty_department; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE faculty_department (
-    id integer NOT NULL,
-    faculty_id text NOT NULL,
+    person_id text NOT NULL,
+    person_type text DEFAULT 'FACULTY'::text NOT NULL,
     department_id integer NOT NULL
 );
 
@@ -2249,40 +2212,12 @@ CREATE TABLE faculty_department (
 ALTER TABLE public.faculty_department OWNER TO postgres;
 
 --
--- Name: faculty_department_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE faculty_department_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.faculty_department_id_seq OWNER TO postgres;
-
---
--- Name: faculty_department_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE faculty_department_id_seq OWNED BY faculty_department.id;
-
-
---
--- Name: faculty_department_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('faculty_department_id_seq', 1, true);
-
-
---
 -- Name: grade_item; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE grade_item (
-    id integer NOT NULL,
-    grading_system_id integer NOT NULL,
+    id bigint NOT NULL,
+    grading_system_id bigint NOT NULL,
     name text NOT NULL,
     total_score double precision NOT NULL,
     date timestamp without time zone NOT NULL
@@ -2296,10 +2231,11 @@ ALTER TABLE public.grade_item OWNER TO postgres;
 --
 
 CREATE TABLE grade_item_entry (
-    id integer NOT NULL,
-    grade_item_id integer NOT NULL,
+    id bigint NOT NULL,
+    grade_item_id bigint NOT NULL,
     score double precision NOT NULL,
-    student_id text NOT NULL
+    person_id text NOT NULL,
+    person_type text DEFAULT 'STUDENT'::text NOT NULL
 );
 
 
@@ -2330,7 +2266,7 @@ ALTER SEQUENCE grade_item_entry_id_seq OWNED BY grade_item_entry.id;
 -- Name: grade_item_entry_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_item_entry_id_seq', 16, true);
+SELECT pg_catalog.setval('grade_item_entry_id_seq', 18, true);
 
 
 --
@@ -2358,7 +2294,7 @@ ALTER SEQUENCE grade_item_id_seq OWNED BY grade_item.id;
 -- Name: grade_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_item_id_seq', 6, true);
+SELECT pg_catalog.setval('grade_item_id_seq', 8, true);
 
 
 --
@@ -2367,7 +2303,7 @@ SELECT pg_catalog.setval('grade_item_id_seq', 6, true);
 
 CREATE TABLE grading_system (
     weight double precision NOT NULL,
-    id integer NOT NULL,
+    id bigint NOT NULL,
     name text,
     section_id integer
 );
@@ -2410,40 +2346,14 @@ SELECT pg_catalog.setval('grading_system_id_seq', 48, true);
 CREATE TABLE linked_account (
     student_id text NOT NULL,
     verified boolean DEFAULT false NOT NULL,
-    id integer NOT NULL,
-    parent_id text NOT NULL
+    parent_id text NOT NULL,
+    student_type text DEFAULT 'STUDENT'::text,
+    parent_type text DEFAULT 'PARENT'::text,
+    la_id text NOT NULL
 );
 
 
 ALTER TABLE public.linked_account OWNER TO postgres;
-
---
--- Name: linked_account_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE linked_account_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.linked_account_id_seq OWNER TO postgres;
-
---
--- Name: linked_account_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE linked_account_id_seq OWNED BY linked_account.id;
-
-
---
--- Name: linked_account_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('linked_account_id_seq', 2, true);
-
 
 --
 -- Name: person; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -2456,7 +2366,7 @@ CREATE TABLE person (
     middle_name text NOT NULL,
     last_name text NOT NULL,
     account_id integer NOT NULL,
-    image_source text NOT NULL,
+    image_source text DEFAULT 'nopic.jpg'::text NOT NULL,
     email text,
     year integer
 );
@@ -2465,44 +2375,18 @@ CREATE TABLE person (
 ALTER TABLE public.person OWNER TO postgres;
 
 --
--- Name: school_year; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+-- Name: person_load; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
-CREATE TABLE school_year (
-    school_year text NOT NULL,
-    id integer NOT NULL
+CREATE TABLE person_load (
+    person_id text NOT NULL,
+    person_type text NOT NULL,
+    term_id integer NOT NULL,
+    section_id integer NOT NULL
 );
 
 
-ALTER TABLE public.school_year OWNER TO postgres;
-
---
--- Name: school_year_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE school_year_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.school_year_id_seq OWNER TO postgres;
-
---
--- Name: school_year_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE school_year_id_seq OWNED BY school_year.id;
-
-
---
--- Name: school_year_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('school_year_id_seq', 4, true);
-
+ALTER TABLE public.person_load OWNER TO postgres;
 
 --
 -- Name: section; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -2561,41 +2445,13 @@ SELECT pg_catalog.setval('section_id_seq', 3, true);
 --
 
 CREATE TABLE student_course (
-    id integer NOT NULL,
-    student_id text NOT NULL,
-    course_id integer NOT NULL
+    person_id text NOT NULL,
+    course_id integer NOT NULL,
+    person_type text DEFAULT 'STUDENT'::text NOT NULL
 );
 
 
 ALTER TABLE public.student_course OWNER TO postgres;
-
---
--- Name: student_course_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE student_course_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.student_course_id_seq OWNER TO postgres;
-
---
--- Name: student_course_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE student_course_id_seq OWNED BY student_course.id;
-
-
---
--- Name: student_course_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('student_course_id_seq', 2, true);
-
 
 --
 -- Name: subject; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -2645,9 +2501,9 @@ SELECT pg_catalog.setval('subject_id_seq', 5, true);
 --
 
 CREATE TABLE term (
-    school_year_id integer NOT NULL,
     id integer NOT NULL,
-    semester text
+    semester text,
+    school_year text DEFAULT '2012 - 2013'::text NOT NULL
 );
 
 
@@ -2720,20 +2576,6 @@ ALTER TABLE ONLY account ALTER COLUMN id SET DEFAULT nextval('account_id_seq'::r
 -- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY assignation ALTER COLUMN id SET DEFAULT nextval('assignation_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY attendance ALTER COLUMN id SET DEFAULT nextval('attendance_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
 ALTER TABLE ONLY class_session ALTER COLUMN id SET DEFAULT nextval('class_session_id_seq'::regclass);
 
 
@@ -2749,20 +2591,6 @@ ALTER TABLE ONLY course ALTER COLUMN id SET DEFAULT nextval('course_id_seq'::reg
 --
 
 ALTER TABLE ONLY department ALTER COLUMN id SET DEFAULT nextval('department_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY enroll ALTER COLUMN id SET DEFAULT nextval('enroll_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY faculty_department ALTER COLUMN id SET DEFAULT nextval('faculty_department_id_seq'::regclass);
 
 
 --
@@ -2790,28 +2618,7 @@ ALTER TABLE ONLY grading_system ALTER COLUMN id SET DEFAULT nextval('grading_sys
 -- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY linked_account ALTER COLUMN id SET DEFAULT nextval('linked_account_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY school_year ALTER COLUMN id SET DEFAULT nextval('school_year_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
 ALTER TABLE ONLY section ALTER COLUMN id SET DEFAULT nextval('section_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY student_course ALTER COLUMN id SET DEFAULT nextval('student_course_id_seq'::regclass);
 
 
 --
@@ -2840,38 +2647,21 @@ INSERT INTO account VALUES ('encube', 'sandrevenant', '0457dea5c1cd443ca6692282c
 
 
 --
--- Data for Name: assignation; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-INSERT INTO assignation VALUES (3, '1998-9999', 5, 6);
-INSERT INTO assignation VALUES (1, '1998-9999', 4, 6);
-INSERT INTO assignation VALUES (2, '1998-9999', 2, 6);
-
-
---
 -- Data for Name: attendance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO attendance VALUES ('17:43:49', true, 6, '2010-7171', NULL);
-INSERT INTO attendance VALUES ('19:41:31', true, 9, '2010-7171', NULL);
-INSERT INTO attendance VALUES ('19:41:54', true, 10, '2010-7171', NULL);
-INSERT INTO attendance VALUES ('19:56:18', true, 12, '2010-7171', NULL);
-INSERT INTO attendance VALUES ('17:09:19', true, 4, '2010-7171', 2);
-INSERT INTO attendance VALUES ('08:58:30', true, 14, '2010-7171', 3);
-INSERT INTO attendance VALUES ('22:18:26', true, 13, '2010-7171', 4);
-INSERT INTO attendance VALUES ('19:42:45', true, 11, '2010-7171', 5);
-INSERT INTO attendance VALUES ('12:23:00', false, 17, '2009-1625', 4);
-INSERT INTO attendance VALUES ('02:09:00', true, 16, '2009-1625', 2);
+INSERT INTO attendance VALUES ('02:19:19.628373', true, 9, '2009-1625', 'STUDENT');
+INSERT INTO attendance VALUES ('02:19:31.897553', true, 9, '2010-7171', 'STUDENT');
 
 
 --
 -- Data for Name: class_session; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO class_session VALUES (5, 1, 'ONGOING', '2012-09-28');
 INSERT INTO class_session VALUES (2, 1, 'DISMISSED', '2012-09-28');
-INSERT INTO class_session VALUES (3, 2, 'DISMISSED', '2012-09-28');
 INSERT INTO class_session VALUES (4, 2, 'DISMISSED', '2012-09-28');
+INSERT INTO class_session VALUES (8, 1, 'DISMISSED', '2012-10-11');
+INSERT INTO class_session VALUES (9, 1, 'ONGOING', '2012-10-11');
 
 
 --
@@ -2896,20 +2686,11 @@ INSERT INTO department VALUES (5, 'Chemical Engineering');
 
 
 --
--- Data for Name: enroll; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-INSERT INTO enroll VALUES ('2010-7171', 6, 1, 4);
-INSERT INTO enroll VALUES ('2010-7171', 6, 2, 5);
-INSERT INTO enroll VALUES ('2009-1625', 6, 1, 6);
-INSERT INTO enroll VALUES ('2009-1625', 6, 2, 7);
-
-
---
 -- Data for Name: faculty_department; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO faculty_department VALUES (1, '1998-9999', 1);
+INSERT INTO faculty_department VALUES ('2009-1625', 'FACULTY', 1);
+INSERT INTO faculty_department VALUES ('1998-9999', 'FACULTY', 1);
 
 
 --
@@ -2927,23 +2708,22 @@ INSERT INTO grade_item VALUES (6, 42, 'preliminary', 80, '2012-09-29 08:09:00');
 -- Data for Name: grade_item_entry; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO grade_item_entry VALUES (8, 1, 33, '2009-1625');
-INSERT INTO grade_item_entry VALUES (9, 3, 33, '2009-1625');
-INSERT INTO grade_item_entry VALUES (11, 5, 33, '2009-1625');
-INSERT INTO grade_item_entry VALUES (2, 1, 33, '2010-7171');
-INSERT INTO grade_item_entry VALUES (3, 2, 33, '2010-7171');
-INSERT INTO grade_item_entry VALUES (10, 5, 20, '2010-7171');
-INSERT INTO grade_item_entry VALUES (12, 3, 1, '2010-7171');
-INSERT INTO grade_item_entry VALUES (15, 6, 0, '2010-7171');
-INSERT INTO grade_item_entry VALUES (4, 2, 15, '2009-1625');
-INSERT INTO grade_item_entry VALUES (16, 6, 15, '2009-1625');
+INSERT INTO grade_item_entry VALUES (8, 1, 33, '2009-1625', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (16, 6, 15, '2009-1625', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (4, 2, 15, '2009-1625', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (15, 6, 0, '2010-7171', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (12, 3, 1, '2010-7171', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (10, 5, 20, '2010-7171', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (3, 2, 33, '2010-7171', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (2, 1, 33, '2010-7171', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (11, 5, 33, '2009-1625', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (9, 3, 33, '2009-1625', 'STUDENT');
 
 
 --
 -- Data for Name: grading_system; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO grading_system VALUES (15, 22, 'Prelim', 1);
 INSERT INTO grading_system VALUES (20, 44, 'Midterm', 1);
 INSERT INTO grading_system VALUES (20, 23, 'Prelim', 3);
 INSERT INTO grading_system VALUES (20, 15, 'Assignment', 1);
@@ -2952,14 +2732,15 @@ INSERT INTO grading_system VALUES (10, 47, 'Midterm', 2);
 INSERT INTO grading_system VALUES (10, 42, 'Quiz', 2);
 INSERT INTO grading_system VALUES (25, 48, 'quiz', 3);
 INSERT INTO grading_system VALUES (24, 41, 'Prelim', 2);
+INSERT INTO grading_system VALUES (16, 22, 'Prelim', 1);
 
 
 --
 -- Data for Name: linked_account; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO linked_account VALUES ('2009-1625', true, 1, 'P-2373');
-INSERT INTO linked_account VALUES ('2010-7171', true, 2, 'P-2373');
+INSERT INTO linked_account VALUES ('2009-1625', true, 'P-2373', 'STUDENT', 'PARENT', '2009-1625P-2373');
+INSERT INTO linked_account VALUES ('2010-7171', true, 'P-2373', 'STUDENT', 'PARENT', '2010-7171P-2373');
 
 
 --
@@ -2974,13 +2755,16 @@ INSERT INTO person VALUES ('2009-1625', 'STUDENT', 'novo', 'cubero', 'dimaporo',
 
 
 --
--- Data for Name: school_year; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: person_load; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO school_year VALUES ('2009-2010', 1);
-INSERT INTO school_year VALUES ('2010-2011', 2);
-INSERT INTO school_year VALUES ('2011-2012', 3);
-INSERT INTO school_year VALUES ('2012-2013', 4);
+INSERT INTO person_load VALUES ('2009-1625', 'STUDENT', 6, 1);
+INSERT INTO person_load VALUES ('2010-7171', 'STUDENT', 6, 2);
+INSERT INTO person_load VALUES ('2009-1625', 'STUDENT', 6, 2);
+INSERT INTO person_load VALUES ('2010-7171', 'STUDENT', 6, 1);
+INSERT INTO person_load VALUES ('2009-1625', 'FACULTY', 6, 1);
+INSERT INTO person_load VALUES ('2009-1625', 'FACULTY', 6, 2);
+INSERT INTO person_load VALUES ('1998-9999', 'FACULTY', 6, 3);
 
 
 --
@@ -2996,8 +2780,8 @@ INSERT INTO section VALUES ('C3S2', 4, '4:30-6:00', 3, 'TTh', 'SR', 6);
 -- Data for Name: student_course; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO student_course VALUES (1, '2009-1625', 1);
-INSERT INTO student_course VALUES (2, '2010-7171', 1);
+INSERT INTO student_course VALUES ('2009-1625', 1, 'STUDENT');
+INSERT INTO student_course VALUES ('2010-7171', 1, 'STUDENT');
 
 
 --
@@ -3015,7 +2799,7 @@ INSERT INTO subject VALUES ('CSC 181', 'Introduction To Software Engineering', 5
 -- Data for Name: term; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO term VALUES (4, 6, '2');
+INSERT INTO term VALUES (6, '2', '2012-2013');
 
 
 --
@@ -3035,19 +2819,11 @@ ALTER TABLE ONLY account
 
 
 --
--- Name: assignation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY assignation
-    ADD CONSTRAINT assignation_pkey PRIMARY KEY (id);
-
-
---
 -- Name: attendance_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
 ALTER TABLE ONLY attendance
-    ADD CONSTRAINT attendance_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT attendance_pkey PRIMARY KEY (person_id, person_type, session_id);
 
 
 --
@@ -3075,22 +2851,6 @@ ALTER TABLE ONLY department
 
 
 --
--- Name: enroll_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY enroll
-    ADD CONSTRAINT enroll_pkey PRIMARY KEY (id);
-
-
---
--- Name: faculty_department_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY faculty_department
-    ADD CONSTRAINT faculty_department_pkey PRIMARY KEY (id);
-
-
---
 -- Name: grade_item_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -3115,11 +2875,19 @@ ALTER TABLE ONLY grading_system
 
 
 --
--- Name: linked_account_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: laid_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
 ALTER TABLE ONLY linked_account
-    ADD CONSTRAINT linked_account_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT laid_pk PRIMARY KEY (la_id);
+
+
+--
+-- Name: pd_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY faculty_department
+    ADD CONSTRAINT pd_pk PRIMARY KEY (person_id, person_type, department_id);
 
 
 --
@@ -3131,11 +2899,19 @@ ALTER TABLE ONLY person
 
 
 --
--- Name: school_year_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+-- Name: pload_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
-ALTER TABLE ONLY school_year
-    ADD CONSTRAINT school_year_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY person_load
+    ADD CONSTRAINT pload_pk PRIMARY KEY (person_id, person_type, term_id, section_id);
+
+
+--
+-- Name: scourse_pk; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY student_course
+    ADD CONSTRAINT scourse_pk PRIMARY KEY (person_id, person_type, course_id);
 
 
 --
@@ -3144,14 +2920,6 @@ ALTER TABLE ONLY school_year
 
 ALTER TABLE ONLY section
     ADD CONSTRAINT section_pkey PRIMARY KEY (id);
-
-
---
--- Name: student_course_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
---
-
-ALTER TABLE ONLY student_course
-    ADD CONSTRAINT student_course_pkey PRIMARY KEY (id);
 
 
 --
@@ -3171,19 +2939,18 @@ ALTER TABLE ONLY term
 
 
 --
--- Name: assignation_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: linked_account_pk_trig; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY assignation
-    ADD CONSTRAINT assignation_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id) ON UPDATE CASCADE ON DELETE CASCADE;
+CREATE TRIGGER linked_account_pk_trig BEFORE INSERT ON linked_account FOR EACH ROW EXECUTE PROCEDURE autola_id();
 
 
 --
--- Name: assignation_term_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: attendance_person_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY assignation
-    ADD CONSTRAINT assignation_term_id_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE ONLY attendance
+    ADD CONSTRAINT attendance_person_fk FOREIGN KEY (person_id, person_type) REFERENCES person(id, type);
 
 
 --
@@ -3203,35 +2970,19 @@ ALTER TABLE ONLY class_session
 
 
 --
--- Name: enroll_section_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY enroll
-    ADD CONSTRAINT enroll_section_id_fkey FOREIGN KEY (section_id) REFERENCES section(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: enroll_term_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY enroll
-    ADD CONSTRAINT enroll_term_id_fkey FOREIGN KEY (term_id) REFERENCES term(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: faculty_department_department_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY faculty_department
-    ADD CONSTRAINT faculty_department_department_id_fkey FOREIGN KEY (department_id) REFERENCES department(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
 -- Name: grade_item_entry_grade_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY grade_item_entry
     ADD CONSTRAINT grade_item_entry_grade_item_id_fkey FOREIGN KEY (grade_item_id) REFERENCES grade_item(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: grade_item_entry_person_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY grade_item_entry
+    ADD CONSTRAINT grade_item_entry_person_fk FOREIGN KEY (person_id, person_type) REFERENCES person(id, type);
 
 
 --
@@ -3251,11 +3002,75 @@ ALTER TABLE ONLY grading_system
 
 
 --
+-- Name: laid_par_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY linked_account
+    ADD CONSTRAINT laid_par_fk FOREIGN KEY (parent_id, parent_type) REFERENCES person(id, type);
+
+
+--
+-- Name: laid_stu_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY linked_account
+    ADD CONSTRAINT laid_stu_fk FOREIGN KEY (student_id, student_type) REFERENCES person(id, type);
+
+
+--
+-- Name: pd_dept; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY faculty_department
+    ADD CONSTRAINT pd_dept FOREIGN KEY (department_id) REFERENCES department(id);
+
+
+--
+-- Name: pd_prsn; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY faculty_department
+    ADD CONSTRAINT pd_prsn FOREIGN KEY (person_id, person_type) REFERENCES person(id, type);
+
+
+--
 -- Name: person_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY person
     ADD CONSTRAINT person_account_id_fkey FOREIGN KEY (account_id) REFERENCES account(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pload_person_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY person_load
+    ADD CONSTRAINT pload_person_fk FOREIGN KEY (person_id, person_type) REFERENCES person(id, type);
+
+
+--
+-- Name: pload_section_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY person_load
+    ADD CONSTRAINT pload_section_fk FOREIGN KEY (section_id) REFERENCES section(id);
+
+
+--
+-- Name: pload_term_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY person_load
+    ADD CONSTRAINT pload_term_fk FOREIGN KEY (term_id) REFERENCES term(id);
+
+
+--
+-- Name: scourse_person_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY student_course
+    ADD CONSTRAINT scourse_person_fk FOREIGN KEY (person_id, person_type) REFERENCES person(id, type);
 
 
 --
@@ -3275,14 +3090,6 @@ ALTER TABLE ONLY student_course
 
 
 --
--- Name: term_school_year_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY term
-    ADD CONSTRAINT term_school_year_id_fkey FOREIGN KEY (school_year_id) REFERENCES school_year(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
 -- Name: public; Type: ACL; Schema: -; Owner: postgres
 --
 
@@ -3293,214 +3100,201 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --
+-- Name: account; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE account FROM PUBLIC;
+REVOKE ALL ON TABLE account FROM postgres;
+GRANT ALL ON TABLE account TO postgres;
+GRANT SELECT,UPDATE ON TABLE account TO student;
+GRANT SELECT,UPDATE ON TABLE account TO parent;
+GRANT SELECT,UPDATE ON TABLE account TO faculty;
+GRANT ALL ON TABLE account TO su;
+
+
+--
+-- Name: attendance; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE attendance FROM PUBLIC;
+REVOKE ALL ON TABLE attendance FROM postgres;
+GRANT ALL ON TABLE attendance TO postgres;
+GRANT SELECT,INSERT ON TABLE attendance TO student;
+GRANT SELECT ON TABLE attendance TO parent;
+GRANT ALL ON TABLE attendance TO faculty;
+GRANT ALL ON TABLE attendance TO su;
+
+
+--
+-- Name: class_session; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE class_session FROM PUBLIC;
+REVOKE ALL ON TABLE class_session FROM postgres;
+GRANT ALL ON TABLE class_session TO postgres;
+GRANT SELECT ON TABLE class_session TO student;
+GRANT SELECT ON TABLE class_session TO parent;
+GRANT SELECT ON TABLE class_session TO faculty;
+GRANT ALL ON TABLE class_session TO su;
+
+
+--
+-- Name: course; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE course FROM PUBLIC;
+REVOKE ALL ON TABLE course FROM postgres;
+GRANT ALL ON TABLE course TO postgres;
+GRANT SELECT ON TABLE course TO student;
+GRANT SELECT ON TABLE course TO parent;
+GRANT SELECT ON TABLE course TO faculty;
+GRANT ALL ON TABLE course TO su;
+
+
+--
+-- Name: department; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE department FROM PUBLIC;
+REVOKE ALL ON TABLE department FROM postgres;
+GRANT ALL ON TABLE department TO postgres;
+GRANT SELECT ON TABLE department TO student;
+GRANT SELECT ON TABLE department TO parent;
+GRANT SELECT ON TABLE department TO faculty;
+GRANT ALL ON TABLE department TO su;
+
+
+--
+-- Name: grade_item; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE grade_item FROM PUBLIC;
+REVOKE ALL ON TABLE grade_item FROM postgres;
+GRANT ALL ON TABLE grade_item TO postgres;
+GRANT SELECT ON TABLE grade_item TO student;
+GRANT SELECT ON TABLE grade_item TO parent;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE grade_item TO faculty;
+GRANT ALL ON TABLE grade_item TO su;
+
+
+--
+-- Name: grade_item_entry; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE grade_item_entry FROM PUBLIC;
+REVOKE ALL ON TABLE grade_item_entry FROM postgres;
+GRANT ALL ON TABLE grade_item_entry TO postgres;
+GRANT SELECT ON TABLE grade_item_entry TO student;
+GRANT SELECT ON TABLE grade_item_entry TO parent;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE grade_item_entry TO faculty;
+GRANT ALL ON TABLE grade_item_entry TO su;
+
+
+--
+-- Name: grading_system; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE grading_system FROM PUBLIC;
+REVOKE ALL ON TABLE grading_system FROM postgres;
+GRANT ALL ON TABLE grading_system TO postgres;
+GRANT SELECT ON TABLE grading_system TO student;
+GRANT SELECT ON TABLE grading_system TO parent;
+GRANT SELECT,INSERT,UPDATE ON TABLE grading_system TO faculty;
+GRANT ALL ON TABLE grading_system TO su;
+
+
+--
+-- Name: linked_account; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE linked_account FROM PUBLIC;
+REVOKE ALL ON TABLE linked_account FROM postgres;
+GRANT ALL ON TABLE linked_account TO postgres;
+GRANT SELECT ON TABLE linked_account TO student;
+GRANT SELECT ON TABLE linked_account TO parent;
+GRANT SELECT ON TABLE linked_account TO faculty;
+GRANT ALL ON TABLE linked_account TO su;
+
+
+--
+-- Name: person; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE person FROM PUBLIC;
+REVOKE ALL ON TABLE person FROM postgres;
+GRANT ALL ON TABLE person TO postgres;
+GRANT SELECT ON TABLE person TO student;
+GRANT SELECT ON TABLE person TO parent;
+GRANT SELECT ON TABLE person TO faculty;
+GRANT ALL ON TABLE person TO su;
+
+
+--
+-- Name: person_load; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE person_load FROM PUBLIC;
+REVOKE ALL ON TABLE person_load FROM postgres;
+GRANT ALL ON TABLE person_load TO postgres;
+GRANT SELECT ON TABLE person_load TO student;
+GRANT SELECT ON TABLE person_load TO parent;
+GRANT ALL ON TABLE person_load TO faculty;
+GRANT ALL ON TABLE person_load TO su;
+
+
+--
+-- Name: section; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE section FROM PUBLIC;
+REVOKE ALL ON TABLE section FROM postgres;
+GRANT ALL ON TABLE section TO postgres;
+GRANT SELECT ON TABLE section TO student;
+GRANT SELECT ON TABLE section TO parent;
+GRANT SELECT ON TABLE section TO faculty;
+GRANT ALL ON TABLE section TO su;
+
+
+--
+-- Name: student_course; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE student_course FROM PUBLIC;
+REVOKE ALL ON TABLE student_course FROM postgres;
+GRANT ALL ON TABLE student_course TO postgres;
+GRANT SELECT ON TABLE student_course TO student;
+GRANT SELECT ON TABLE student_course TO parent;
+GRANT SELECT ON TABLE student_course TO faculty;
+GRANT ALL ON TABLE student_course TO su;
+
+
+--
+-- Name: subject; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE subject FROM PUBLIC;
+REVOKE ALL ON TABLE subject FROM postgres;
+GRANT ALL ON TABLE subject TO postgres;
+GRANT SELECT ON TABLE subject TO student;
+GRANT SELECT ON TABLE subject TO parent;
+GRANT SELECT ON TABLE subject TO faculty;
+GRANT ALL ON TABLE subject TO su;
+
+
+--
+-- Name: term; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON TABLE term FROM PUBLIC;
+REVOKE ALL ON TABLE term FROM postgres;
+GRANT ALL ON TABLE term TO postgres;
+GRANT SELECT ON TABLE term TO student;
+GRANT SELECT ON TABLE term TO parent;
+GRANT SELECT ON TABLE term TO faculty;
+GRANT ALL ON TABLE term TO su;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-drop table faculty_department;
-create table person_department (
-       id text,
-       type text,
-       dep_id int,
-       constraint pd_pk primary key (id, type, dep_id),
-       constraint pd_prsn foreign key (id, type) references
-          person (id, type),
-       constraint pd_dept foreign key (dep_id) references 
-          department (id)
-);
-
-delete from attendance;
-alter table attendance drop column session_id;
-alter table attendance add column session_id integer not null;
-alter table attendance drop constraint attendance_pkey;
-alter table attendance drop column id;
-alter table attendance add column person_id text;
-alter table attendance add column type text;
-alter table attendance add constraint attendance_pkey
-  primary key (person_id, type, session_id, time);
-alter table attendance add constraint attendance_person_fk
-  foreign key (person_id, type) references
-  person (id, type);
-
-alter table grade_item_entry add column type text;
-alter table grade_item_entry add constraint
-   grade_item_entry_person_fk foreign key
-   (student_id, type) references person
-   (id, type);
-
-drop table enroll;
-drop table assignation;
-create table person_load (
-    id text,
-    type text,
-    term_id integer,
-    section_id integer,
-    constraint pload_pk primary key (id, type, term_id, section_id),
-    constraint pload_person_fk foreign key (id, type)
-      references person (id, type),
-    constraint pload_term_fk foreign key (term_id) references
-      term (id),
-    constraint pload_section_fk foreign key (section_id) references
-      section (id)  
-);
-
-delete from student_course;
-alter table student_course drop constraint
-  student_course_pkey;
-alter table student_course drop column id;
-alter table student_course add column type text;
-alter table student_course 
-    add constraint scourse_person_fk foreign key 
-    (student_id, type) references person (id, type);
-alter table student_course add constraint scourse_pk
-   primary key (student_id, type, course_id);
-
-delete from linked_account;
-alter table linked_account drop constraint 
-  linked_account_pkey;
-alter table linked_account drop column id;
-alter table linked_account add column student_type text;
-alter table linked_account add column parent_type text;
-alter table linked_account add column la_id text;
-alter table linked_account add constraint laid_pk
- primary key (la_id);
-alter table linked_account add constraint laid_stu_fk
- foreign key (student_id, student_type) references
- person (id, type);
-alter table linked_account add constraint laid_par_fk
-foreign key (parent_id, parent_type) references
- person (id, type);
-
-
-create or replace function autola_id() returns trigger as
-$$
- begin
-    new.la_id = new.student_id || new.parent_id;
-    return new;
- end;
-$$
- language plpgsql volatile;
-
-create trigger linked_account_pk_trig
-  before insert
-  on linked_account
-  for each row
-  execute procedure autola_id();
-
--- sample usage
-insert into linked_account 
-    (student_id, student_type, 
-    parent_id, parent_type, verified) 
-    values
-    ('2009-1625', 'STUDENT', 'P-2373', 'PARENT', true);
--- the trigger will automatically fill-in the PK part
-
-
-create group su;
-create group faculty;
-create group student;
-create group parent;
-grant select on table subject to group student;
-grant select on table subject to group parent;
-grant select on table subject to group faculty;
-grant all on table subject to group su;
-
-grant select on table section to group student;
-grant select on table section to group parent;
-grant select on table section to group faculty;
-grant all on table section to group su;
-
-grant select on table grading_system to group student;
-grant select on table grading_system to group parent;
-grant select, update, insert on table grading_system to group faculty;
-grant all on table grading_system to group su;
-
-grant select,update on table account to group student;
-grant select,update on table account to group parent;
-grant select,update on table account to group faculty;
-grant all on table account to group su;
-
-grant select on table class_session to group student;
-grant select on table class_session to group parent;
-grant select on table class_session to group faculty;
-grant all on table class_session to group su;
-
-grant select on table grade_item to group student;
-grant select on table grade_item to group parent;
-grant select, update, insert, delete on table grade_item to group faculty;
-grant all on table grade_item to group su;
-
-grant select on table course to group student;
-grant select on table course to group parent;
-grant select on table course to group faculty;
-grant all on table course to group su;
-
-grant select on table person to group student;
-grant select on table person to group parent;
-grant select on table person to group faculty;
-grant all on table person to group su;
-
-grant select on table term to group student;
-grant select on table term to group parent;
-grant select on table term to group faculty;
-grant all on table term to group su;
-
-grant select on table department to group student;
-grant select on table department to group parent;
-grant select on table department to group faculty;
-grant all on table department to group su;
-
-grant select on table grade_item_entry to group student;
-grant select on table grade_item_entry to group parent;
-grant select, insert, update, delete on table grade_item_entry to group faculty;
-grant all on table grade_item_entry to group su;
-
-grant select on table student_course to group student;
-grant select on table student_course to group parent;
-grant select on table student_course to group faculty;
-grant all on table student_course to group su;
-
-grant select on table linked_account to group student;
-grant select on table linked_account to group parent;
-grant select on table linked_account to group faculty;
-grant all on table linked_account to group su;
-
-grant select, insert on table attendance to group student;
-grant select on table attendance to group parent;
-grant all on table attendance to group faculty;
-grant all on table attendance to group su;
-
-grant select on table person_load to group student;
-grant select on table person_load to group parent;
-grant all on table person_load to group faculty;
-grant all on table person_load to group su;
-
-
--- use any of this roles appropriately
--- in your pg-connection strings
--- initially, super will query into account
--- and query person to determine the person type
--- of this user. from there, a switch to the connection
--- string will be made.
-create role stu_user login 
-  password 'cfh345623'
-  nosuperuser inherit nocreatedb nocreaterole
-  noreplication;
-grant student to stu_user;
-
-create role fac_user login 
-  password 'reiyt73u'
-  nosuperuser inherit nocreatedb nocreaterole
-  noreplication;
-grant faculty to fac_user;
-
-create role par_user login 
-  password 'koj87cxw'
-  nosuperuser inherit nocreatedb nocreaterole
-  noreplication;
-grant parent to par_user;
-
-create role super login 
-  password 'gf09bnz1'
-  nosuperuser inherit nocreatedb nocreaterole
-  noreplication;
-grant su to super;
