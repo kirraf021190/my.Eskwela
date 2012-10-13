@@ -1560,7 +1560,7 @@ BEGIN
 
  SELECT INTO first_name_output, middle_name_output, last_name_output, email_output first_name, middle_name, last_name, email FROM person WHERE id = parent_id_arg AND type = 'PARENT';
 
- RETURN parent_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || email_output;
+ RETURN parent_id_arg || '#' || first_name_output || ' ' || middle_name_output || ' ' || last_name_output || '#' || email_output;
 
 END;$$;
 
@@ -1750,7 +1750,7 @@ BEGIN
 
  SELECT INTO first_name_output, middle_name_output, last_name_output, course_name_output,  course_code_output, year_output, email_output,image_source_output person.first_name, person.middle_name, person.last_name, course.name, course.code, person.year, person.email,person.image_source FROM person INNER JOIN student_course ON (person.id = student_course.person_id) INNER JOIN course ON (student_course.course_id = course.id) WHERE person.id = student_id_arg AND person.type = 'STUDENT';
 
- RETURN student_id_arg || '#' || last_name_output || ', ' || first_name_output || ' ' || middle_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output || '#' || image_source_output;
+ RETURN student_id_arg || '#' || first_name_output || ' ' || middle_name_output || ' ' || last_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output || '#' || image_source_output;
 
 END;$$;
 
