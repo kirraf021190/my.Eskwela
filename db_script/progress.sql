@@ -102,7 +102,7 @@ BEGIN
 
      SELECT INTO status_var status FROM class_session WHERE id = session_id_arg;
 
-     IF (status_var = 'ONGOING' AND (student_id_arg NOT IN (SELECT person_id FROM attendance WHERE session_id = session_id_arg))) THEN
+     IF (status_var = 'ONGOING' AND (student_id_arg NOT IN (SELECT person_id FROM attendance WHERE session_id = session_id_arg AND person_type = 'STUDENT'))) THEN
 
       INSERT INTO attendance (session_id, time, person_id) VALUES(session_id_arg, time_arg, student_id_arg);
 
@@ -224,7 +224,7 @@ CREATE FUNCTION add_grade_item_entry(grade_item_id_arg integer, score_arg double
 
 BEGIN
 
- SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE person_id = student_id_arg AND grade_item_id = grade_item_id_arg;
+ SELECT INTO grade_item_entry_id id FROM grade_item_entry WHERE person_id = student_id_arg AND grade_item_id = grade_item_id_arg AND person_type = 'STUDENT';
 
  IF grade_item_entry_id ISNULL THEN
 
@@ -251,6 +251,24 @@ COMMENT ON FUNCTION add_grade_item_entry(grade_item_id_arg integer, score_arg do
 
 returns boolean; TRUE if grade item entry was successfully updated and FALSE otherwise';
 
+
+--
+-- Name: add_grading_system(text, double precision, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION add_grading_system(name_arg text, weight_arg double precision, section_id_arg integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$BEGIN
+ IF name_arg NOT IN (SELECT name FROM grading_system WHERE section_id = section_id_arg) THEN
+  INSERT INTO grading_system(name,weight,section_id) VALUES(name_arg,weight_arg,section_id_arg);
+  RETURN TRUE;
+ ELSE
+  RETURN FALSE;
+ END IF;
+END;$$;
+
+
+ALTER FUNCTION public.add_grading_system(name_arg text, weight_arg double precision, section_id_arg integer) OWNER TO postgres;
 
 --
 -- Name: autola_id(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -343,9 +361,9 @@ CREATE FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text) 
     LANGUAGE plpgsql
     AS $$BEGIN
 
-     IF NOT (SELECT confirmed FROM attendance WHERE session_id = session_id_arg and person_id = student_id_arg) THEN
+     IF NOT (SELECT confirmed FROM attendance WHERE session_id = session_id_arg AND person_id = student_id_arg AND person_type = 'STUDENT') THEN
 
-      UPDATE attendance SET confirmed = TRUE WHERE session_id = session_id_arg and person_id = student_id_arg;
+      UPDATE attendance SET confirmed = TRUE WHERE session_id = session_id_arg and person_id = student_id_arg AND person_type = 'STUDENT';
 
       RETURN TRUE;
 
@@ -510,6 +528,41 @@ returns boolean; TRUE if grade item was successfully deleted and FALSE otherwise
 
 
 --
+-- Name: delete_grade_system_entry(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION delete_grade_system_entry(grade_system_id_arg integer, section_id_arg integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$BEGIN
+
+     DELETE FROM grading_system WHERE id = grade_system_id_arg AND section_id = section_id_arg;
+
+     return TRUE;
+
+END;$$;
+
+
+ALTER FUNCTION public.delete_grade_system_entry(grade_system_id_arg integer, section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: delete_grading_system(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION delete_grading_system(grading_system_id integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$BEGIN
+ IF grading_system_id IN (SELECT id FROM grading_system) THEN
+  DELETE FROM grading_system WHERE id = grading_system_id;
+  RETURN TRUE;
+ ELSE
+  RETURN FALSE;
+ END IF;
+END$$;
+
+
+ALTER FUNCTION public.delete_grading_system(grading_system_id integer) OWNER TO postgres;
+
+--
 -- Name: dismiss_class_session(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -589,7 +642,7 @@ student_id_output TEXT;
 
 BEGIN
 
- FOR student_id_output in SELECT person_id FROM person_load WHERE section_id = section_id_arg AND person_type = 'STUDENT'LOOP
+ FOR student_id_output in SELECT person_id FROM person_load WHERE section_id = section_id_arg AND person_type = 'STUDENT' LOOP
 
  RETURN NEXT student_id_output;	
 
@@ -667,11 +720,13 @@ CREATE FUNCTION faculty_information(faculty_id_arg text) RETURNS text
 
  email_output TEXT;
 
+ image_source_output TEXT;
+
 BEGIN
 
- SELECT INTO first_name_output, middle_name_output, last_name_output, department_name_output, email_output person.first_name, person.middle_name, person.last_name, department.name, person.email FROM person INNER JOIN faculty_department ON (person.id = faculty_department.person_id) INNER JOIN department ON (faculty_department.department_id = department.id) WHERE person.id = faculty_id_arg AND person.type = 'FACULTY';
+ SELECT INTO first_name_output, middle_name_output, last_name_output, department_name_output, email_output, image_source_output person.first_name, person.middle_name, person.last_name, department.name, person.email, person.image_source FROM person INNER JOIN faculty_department ON (person.id = faculty_department.person_id) INNER JOIN department ON (faculty_department.department_id = department.id) WHERE person.id = faculty_id_arg AND person.type = 'FACULTY';
 
- RETURN faculty_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' || department_name_output || '#' || email_output;
+ RETURN faculty_id_arg || '#' || first_name_output || ' ' || middle_name_output || ' '|| last_name_output || '#' || department_name_output || '#' || email_output || '#' || image_source_output;
 
 END;$$;
 
@@ -1099,7 +1154,7 @@ CREATE FUNCTION get_grading_system(section_id_arg integer) RETURNS SETOF integer
 
 BEGIN
 
- FOR grade_item_id IN SELECT id FROM grading_system WHERE section_id = section_id_arg LOOP
+ FOR grade_item_id IN SELECT id FROM grading_system WHERE section_id = section_id_arg ORDER BY weight desc LOOP
 
   RETURN NEXT grade_item_id;
 
@@ -1228,38 +1283,58 @@ returns text; image location';
 
 
 --
--- Name: get_section_attendance(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: get_ongoing_session(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION get_section_attendance(section_id_arg integer, session_id_arg integer) RETURNS SETOF text
+CREATE FUNCTION get_ongoing_session(section_id_arg integer) RETURNS integer
     LANGUAGE plpgsql
     AS $$DECLARE
 
- student_id_output TEXT;
+     id_output integer;
+
+BEGIN 
+
+     SELECT INTO id_output id FROM class_session WHERE section_id = section_id_arg AND status = 'ONGOING';
+
+     if id_output isnull then
+
+     return 0;
+
+     else
+
+    return id_output;
+
+    end if;
+
+END;$$;
+
+
+ALTER FUNCTION public.get_ongoing_session(section_id_arg integer) OWNER TO postgres;
+
+--
+-- Name: get_section_attendance(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_section_attendance(session_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+
+    student_id_output TEXT;
 
 BEGIN
 
- FOR student_id_output IN SELECT person_id || '#' || time FROM attendance WHERE session_id = session_id_arg LOOP
+  FOR student_id_output IN SELECT person_id || '#' || person.last_name || ', ' || person.first_name || ' ' || person.middle_name || '#' || time || '#' || confirmed FROM attendance,person WHERE attendance.session_id = session_id_arg AND attendance.person_id = person.id ORDER BY time DESC LOOP
 
-  RETURN NEXT student_id_output;
+   RETURN NEXT student_id_output;
 
- END LOOP;
+  END LOOP;
 
  RETURN;
 
 END;$$;
 
 
-ALTER FUNCTION public.get_section_attendance(section_id_arg integer, session_id_arg integer) OWNER TO postgres;
-
---
--- Name: FUNCTION get_section_attendance(section_id_arg integer, session_id_arg integer); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION get_section_attendance(section_id_arg integer, session_id_arg integer) IS 'input: section id
-
-returns setof text; id of the student and time it arrive format; student id - time';
-
+ALTER FUNCTION public.get_section_attendance(session_id_arg integer) OWNER TO postgres;
 
 --
 -- Name: get_session_date(integer); Type: FUNCTION; Schema: public; Owner: postgres
@@ -1567,7 +1642,7 @@ BEGIN
 
  SELECT INTO section_name_output, subject_name_output, subject_type_output, subject_description_output, section_time_output, section_day_output, room_name_output, subject_unit_output section.name, subject.name, subject.type, subject.description, section.time, section.day, section.room, subject.units FROM section INNER JOIN subject ON (section.subject_id = subject.id) WHERE section.id = section_id_arg;
 
- RETURN section_id_arg || '#' || subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || '#' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output;
+ RETURN section_id_arg || '#' || subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || ' ' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output;
 
 END;$$;
 
@@ -1663,11 +1738,13 @@ CREATE FUNCTION student_information(student_id_arg text) RETURNS text
 
  email_output TEXT;
 
+ image_source_output TEXT;
+
 BEGIN
 
- SELECT INTO first_name_output, middle_name_output, last_name_output, course_name_output,  course_code_output, year_output, email_output person.first_name, person.middle_name, person.last_name, course.name, course.code, person.year, person.email FROM person INNER JOIN student_course ON (person.id = student_course.person_id) INNER JOIN course ON (student_course.course_id = course.id) WHERE person.id = student_id_arg AND person.type = 'STUDENT';
+ SELECT INTO first_name_output, middle_name_output, last_name_output, course_name_output,  course_code_output, year_output, email_output,image_source_output person.first_name, person.middle_name, person.last_name, course.name, course.code, person.year, person.email,person.image_source FROM person INNER JOIN student_course ON (person.id = student_course.person_id) INNER JOIN course ON (student_course.course_id = course.id) WHERE person.id = student_id_arg AND person.type = 'STUDENT';
 
- RETURN student_id_arg || '#' || first_name_output || '#' || middle_name_output || '#' || last_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output;
+ RETURN student_id_arg || '#' || last_name_output || ', ' || first_name_output || ' ' || middle_name_output || '#' ||  course_code_output || '#' || course_name_output || '#' || year_output || '#' || email_output || '#' || image_source_output;
 
 END;$$;
 
@@ -1698,8 +1775,11 @@ BEGIN
  SELECT INTO session_id_output MAX(session_id) FROM attendance INNER JOIN class_session ON (attendance.session_id = class_session.id) WHERE person_id = student_id_arg AND class_session.section_id = section_id_arg;
 
  IF session_id_output ISNULL THEN
+
   RETURN DATE '01-01-0001 00:00';
+
  END IF;
+
  RETURN get_session_date(session_id_output);
 
 END;$$;
@@ -2037,11 +2117,11 @@ SELECT pg_catalog.setval('account_id_seq', 5, true);
 --
 
 CREATE TABLE attendance (
-    "time" time without time zone NOT NULL,
-    confirmed boolean DEFAULT false NOT NULL,
+    confirmed boolean DEFAULT true NOT NULL,
     session_id integer NOT NULL,
     person_id text NOT NULL,
-    person_type text DEFAULT 'STUDENT'::text NOT NULL
+    person_type text DEFAULT 'STUDENT'::text NOT NULL,
+    "time" timestamp without time zone NOT NULL
 );
 
 
@@ -2086,7 +2166,7 @@ ALTER SEQUENCE class_session_id_seq OWNED BY class_session.id;
 -- Name: class_session_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('class_session_id_seq', 9, true);
+SELECT pg_catalog.setval('class_session_id_seq', 17, true);
 
 
 --
@@ -2294,7 +2374,7 @@ ALTER SEQUENCE grade_item_id_seq OWNED BY grade_item.id;
 -- Name: grade_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grade_item_id_seq', 8, true);
+SELECT pg_catalog.setval('grade_item_id_seq', 9, true);
 
 
 --
@@ -2336,7 +2416,7 @@ ALTER SEQUENCE grading_system_id_seq OWNED BY grading_system.id;
 -- Name: grading_system_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('grading_system_id_seq', 48, true);
+SELECT pg_catalog.setval('grading_system_id_seq', 62, true);
 
 
 --
@@ -2650,8 +2730,16 @@ INSERT INTO account VALUES ('encube', 'sandrevenant', '0457dea5c1cd443ca6692282c
 -- Data for Name: attendance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO attendance VALUES ('02:19:19.628373', true, 9, '2009-1625', 'STUDENT');
-INSERT INTO attendance VALUES ('02:19:31.897553', true, 9, '2010-7171', 'STUDENT');
+INSERT INTO attendance VALUES (true, 12, '2010-7171', 'STUDENT', '2012-10-13 09:47:26');
+INSERT INTO attendance VALUES (true, 12, '2009-1625', 'STUDENT', '2012-10-13 09:47:34');
+INSERT INTO attendance VALUES (true, 13, '2010-7171', 'STUDENT', '2012-10-13 09:49:19');
+INSERT INTO attendance VALUES (true, 13, '2009-1625', 'STUDENT', '2012-10-13 09:49:33');
+INSERT INTO attendance VALUES (true, 14, '2010-7171', 'STUDENT', '2012-10-13 10:43:48');
+INSERT INTO attendance VALUES (true, 14, '2009-1625', 'STUDENT', '2012-10-13 10:44:24');
+INSERT INTO attendance VALUES (true, 15, '2009-1625', 'STUDENT', '2012-10-13 10:47:06');
+INSERT INTO attendance VALUES (true, 15, '2010-7171', 'STUDENT', '2012-10-13 10:47:16');
+INSERT INTO attendance VALUES (true, 17, '2009-1625', 'STUDENT', '2012-10-13 22:28:00');
+INSERT INTO attendance VALUES (true, 17, '2010-7171', 'STUDENT', '2012-10-14 22:28:00');
 
 
 --
@@ -2661,7 +2749,14 @@ INSERT INTO attendance VALUES ('02:19:31.897553', true, 9, '2010-7171', 'STUDENT
 INSERT INTO class_session VALUES (2, 1, 'DISMISSED', '2012-09-28');
 INSERT INTO class_session VALUES (4, 2, 'DISMISSED', '2012-09-28');
 INSERT INTO class_session VALUES (8, 1, 'DISMISSED', '2012-10-11');
-INSERT INTO class_session VALUES (9, 1, 'ONGOING', '2012-10-11');
+INSERT INTO class_session VALUES (9, 1, 'DISMISSED', '2012-10-11');
+INSERT INTO class_session VALUES (10, 3, 'DISMISSED', '2012-10-13');
+INSERT INTO class_session VALUES (11, 3, 'DISMISSED', '2012-10-13');
+INSERT INTO class_session VALUES (12, 3, 'DISMISSED', '2012-10-13');
+INSERT INTO class_session VALUES (13, 3, 'DISMISSED', '2012-10-13');
+INSERT INTO class_session VALUES (14, 3, 'DISMISSED', '2012-10-13');
+INSERT INTO class_session VALUES (15, 1, 'DISMISSED', '2012-10-13');
+INSERT INTO class_session VALUES (17, 1, 'ONGOING', '2012-10-13');
 
 
 --
@@ -2689,7 +2784,6 @@ INSERT INTO department VALUES (5, 'Chemical Engineering');
 -- Data for Name: faculty_department; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO faculty_department VALUES ('2009-1625', 'FACULTY', 1);
 INSERT INTO faculty_department VALUES ('1998-9999', 'FACULTY', 1);
 
 
@@ -2698,10 +2792,8 @@ INSERT INTO faculty_department VALUES ('1998-9999', 'FACULTY', 1);
 --
 
 INSERT INTO grade_item VALUES (1, 41, 'preliminary', 50, '2012-09-26 00:55:48.419224');
-INSERT INTO grade_item VALUES (2, 42, 'Quiz, about algorithm', 20, '2012-09-26 00:56:47.595565');
-INSERT INTO grade_item VALUES (3, 42, 'quiz', 35, '2012-09-26 19:15:56.924893');
 INSERT INTO grade_item VALUES (5, 41, 'quiz', 40, '2012-09-26 23:32:28.603076');
-INSERT INTO grade_item VALUES (6, 42, 'preliminary', 80, '2012-09-29 08:09:00');
+INSERT INTO grade_item VALUES (9, 59, 'Assignment 1', 50, '2012-10-13 16:59:59');
 
 
 --
@@ -2709,15 +2801,9 @@ INSERT INTO grade_item VALUES (6, 42, 'preliminary', 80, '2012-09-29 08:09:00');
 --
 
 INSERT INTO grade_item_entry VALUES (8, 1, 33, '2009-1625', 'STUDENT');
-INSERT INTO grade_item_entry VALUES (16, 6, 15, '2009-1625', 'STUDENT');
-INSERT INTO grade_item_entry VALUES (4, 2, 15, '2009-1625', 'STUDENT');
-INSERT INTO grade_item_entry VALUES (15, 6, 0, '2010-7171', 'STUDENT');
-INSERT INTO grade_item_entry VALUES (12, 3, 1, '2010-7171', 'STUDENT');
 INSERT INTO grade_item_entry VALUES (10, 5, 20, '2010-7171', 'STUDENT');
-INSERT INTO grade_item_entry VALUES (3, 2, 33, '2010-7171', 'STUDENT');
 INSERT INTO grade_item_entry VALUES (2, 1, 33, '2010-7171', 'STUDENT');
-INSERT INTO grade_item_entry VALUES (11, 5, 33, '2009-1625', 'STUDENT');
-INSERT INTO grade_item_entry VALUES (9, 3, 33, '2009-1625', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (11, 5, 12, '2009-1625', 'STUDENT');
 
 
 --
@@ -2725,14 +2811,14 @@ INSERT INTO grade_item_entry VALUES (9, 3, 33, '2009-1625', 'STUDENT');
 --
 
 INSERT INTO grading_system VALUES (20, 44, 'Midterm', 1);
-INSERT INTO grading_system VALUES (20, 23, 'Prelim', 3);
 INSERT INTO grading_system VALUES (20, 15, 'Assignment', 1);
-INSERT INTO grading_system VALUES (15, 26, 'Finals', 3);
 INSERT INTO grading_system VALUES (10, 47, 'Midterm', 2);
-INSERT INTO grading_system VALUES (10, 42, 'Quiz', 2);
-INSERT INTO grading_system VALUES (25, 48, 'quiz', 3);
 INSERT INTO grading_system VALUES (24, 41, 'Prelim', 2);
 INSERT INTO grading_system VALUES (16, 22, 'Prelim', 1);
+INSERT INTO grading_system VALUES (10, 59, 'Assignment', 3);
+INSERT INTO grading_system VALUES (30, 58, 'Prelim', 3);
+INSERT INTO grading_system VALUES (25, 60, 'Quiz', 3);
+INSERT INTO grading_system VALUES (30, 26, 'Finals', 3);
 
 
 --
@@ -2747,11 +2833,10 @@ INSERT INTO linked_account VALUES ('2010-7171', true, 'P-2373', 'STUDENT', 'PARE
 -- Data for Name: person; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO person VALUES ('1998-9999', 'FACULTY', 'eddei', 'eh', 'pasa', 2, 'NO IMAGE', 'yolo@gmail.com', NULL);
 INSERT INTO person VALUES ('P-2373', 'PARENT', 'uno', 'unta', 'dong', 4, 'NO IMAGE', 'uno@gmail.com', NULL);
-INSERT INTO person VALUES ('2009-1625', 'FACULTY', 'novo', 'cubero', 'dimaporo', 1, 'NO IMAGE', 'hun@gmail.com', NULL);
-INSERT INTO person VALUES ('2010-7171', 'STUDENT', 'shadow', 'strider', 'dawn', 3, 'NO IMAGE', 'shadow@gmail.com', 4);
-INSERT INTO person VALUES ('2009-1625', 'STUDENT', 'novo', 'cubero', 'dimaporo', 1, 'NO IMAGE', 'encube@gmail.com', 3);
+INSERT INTO person VALUES ('2010-7171', 'STUDENT', 'Kevin Eric', 'Ridao', 'Siangco', 3, 'hawke.jpg', 'shdwstrider@gmail.com', 4);
+INSERT INTO person VALUES ('2009-1625', 'STUDENT', 'Novo', 'Cubero', 'Dimaporo', 1, 'nero.jpg', 'encube@gmail.com', 3);
+INSERT INTO person VALUES ('1998-9999', 'FACULTY', 'Eddie', 'Inc', 'Singko', 5, 'edisingko.jpg', 'smilingsingko@gmail.com', NULL);
 
 
 --
@@ -2762,9 +2847,9 @@ INSERT INTO person_load VALUES ('2009-1625', 'STUDENT', 6, 1);
 INSERT INTO person_load VALUES ('2010-7171', 'STUDENT', 6, 2);
 INSERT INTO person_load VALUES ('2009-1625', 'STUDENT', 6, 2);
 INSERT INTO person_load VALUES ('2010-7171', 'STUDENT', 6, 1);
-INSERT INTO person_load VALUES ('2009-1625', 'FACULTY', 6, 1);
-INSERT INTO person_load VALUES ('2009-1625', 'FACULTY', 6, 2);
 INSERT INTO person_load VALUES ('1998-9999', 'FACULTY', 6, 3);
+INSERT INTO person_load VALUES ('1998-9999', 'FACULTY', 6, 2);
+INSERT INTO person_load VALUES ('1998-9999', 'FACULTY', 6, 1);
 
 
 --
