@@ -1638,11 +1638,17 @@ CREATE FUNCTION section_information(section_id_arg integer) RETURNS text
 
  subject_description_output TEXT;
 
+ faculty TEXT;
+
 BEGIN
 
  SELECT INTO section_name_output, subject_name_output, subject_type_output, subject_description_output, section_time_output, section_day_output, room_name_output, subject_unit_output section.name, subject.name, subject.type, subject.description, section.time, section.day, section.room, subject.units FROM section INNER JOIN subject ON (section.subject_id = subject.id) WHERE section.id = section_id_arg;
 
- RETURN section_id_arg || '#' || subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || ' ' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output;
+ SELECT INTO faculty first_name || ' ' || middle_name || ' ' || last_name FROM person WHERE id = section_faculty(section_id_arg);
+
+ 
+
+ RETURN section_id_arg || '#' || subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || ' ' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output || '#' || faculty;
 
 END;$$;
 
@@ -1655,7 +1661,7 @@ ALTER FUNCTION public.section_information(section_id_arg integer) OWNER TO postg
 
 COMMENT ON FUNCTION section_information(section_id_arg integer) IS 'input: grading system id, new weight
 
-returns text; information of the section, format: id - subject code - section code - subject description - section day - section time - section room - subject units - subject type';
+returns text; information of the section, format: id - subject code - section code - subject description - section day - section time - section room - subject units - subject type - faculty name';
 
 
 --
