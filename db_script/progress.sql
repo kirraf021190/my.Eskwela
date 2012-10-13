@@ -1067,6 +1067,31 @@ returns setof integer; id of the grade item entry id that the grade item have';
 
 
 --
+-- Name: get_grade_item_entry_in_section(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION get_grade_item_entry_in_section(student_id_arg text, section_id_arg integer) RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $$DECLARE
+ grading_system_id_var INTEGER;
+ grade_item_id_var INTEGER;
+ grade_item_entry_output TEXT;
+
+BEGIN
+ FOR grading_system_id_var IN SELECT id FROM grading_system WHERE section_id = section_id_arg LOOP
+  FOR grade_item_id_var IN SELECT id FROM grade_item WHERE grading_system_id = grading_system_id_var LOOP
+   FOR grade_item_entry_output IN SELECT grading_system.name || '#' || grade_item.name || '#' || grade_item_entry.score || '#' || grade_item.total_score || '#' || grade_item.date FROM grading_system INNER JOIN grade_item ON (grading_system.id = grade_item.grading_system_id) INNER JOIN grade_item_entry ON (grade_item_entry.grade_item_id = grade_item.id) WHERE grade_item_id = grade_item_id_var AND person_id = student_id_arg AND person_type = 'STUDENT' LOOP
+    RETURN NEXT grade_item_entry_output;
+   END LOOP;
+  END LOOP;
+ END LOOP;
+ RETURN;
+END;$$;
+
+
+ALTER FUNCTION public.get_grade_item_entry_in_section(student_id_arg text, section_id_arg integer) OWNER TO postgres;
+
+--
 -- Name: get_grade_item_entry_information(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
