@@ -16,10 +16,10 @@ function getFacInfo() {
   getFacClasses()
   $.post('../scripts/queries/getInfo',function(data){
   if(data.length>0){
-          info = data.split(",")
+          info = data.split("#")
           var table = document.getElementById('userinfo') 
-          table.rows[1].cells[1].innerHTML = info[0]
-          table.rows[2].cells[1].innerHTML = info[1]
+          table.rows[1].cells[1].innerHTML = info[1]
+          table.rows[2].cells[1].innerHTML = info[0]
           table.rows[3].cells[1].innerHTML = info[2]
           table.rows[4].cells[1].innerHTML = info[3]
        }
@@ -86,35 +86,35 @@ function getFacClasses(){
        if(data.length>0){
           classes = data.split("@")
           for(i=0; i<classes.length-1; i++){
-	     details = classes[i].split("$")
+	     details = classes[i].split("#")
 	     
              var tbody = document.getElementById
 	("classList").getElementsByTagName('TBODY')[0];
 	var row = document.createElement('TR')
 	
 	var td1 = document.createElement('TD')
-	td1.innerHTML = details[0];
+	td1.innerHTML = details[1];
 		
 	var td2 = document.createElement('TD')
-	td2.innerHTML = details[1];
+	td2.innerHTML = details[2];
 	
 	var td3 = document.createElement('TD')
-	td3.innerHTML = details[2];
+	td3.innerHTML = details[3];
 		
 	var td4 = document.createElement('TD')
-	td4.innerHTML = details[3];
+	td4.innerHTML = details[4];
 		
 	var td5 = document.createElement('TD')
-	td5.innerHTML = details[4];
+	td5.innerHTML = details[5];
 
 	var td6 = document.createElement('TD')
-	td6.innerHTML = details[5];
+	td6.innerHTML = details[7];
 
 	var td9 = document.createElement('TD')
-	td9.innerHTML = '<center><input type="button" value="View" id="view_button" onclick="location.href=\'../scripts/form/section?sec='+details[1]+'&scode='+details[6]+'\'"></center>'
+	td9.innerHTML = '<center><input type="button" value="View" id="view_button" onclick="location.href=\'../scripts/form/section?sec='+details[1]+'&scode='+details[0]+'\'"></center>'
 	
 	var td10 = document.createElement('TD')
-	td10.innerHTML = details[6];
+	td10.innerHTML = details[0];
 	td10.setAttribute("style", 'display: none');
 		
 		row.appendChild(td1);
@@ -139,7 +139,7 @@ $.post('../scripts/queries/getAttendanceBySubject',function(data){
        if(data.length>0){
           classes = data.split("@")
           for(i=0; i<classes.length-1; i++){
-	     details = classes[i].split("$")
+	     details = classes[i].split("#")
 	     
              var tbody = document.getElementById
 	("students_attendance").getElementsByTagName('TBODY')[0];
@@ -180,55 +180,98 @@ $.post('../scripts/queries/getAttendanceBySubject',function(data){
 	  }
        }
     });
+
+$.post('../scripts/queries/getCurrentSession',function(data){
+	if(data == '0') {
+		var div1 = document.getElementById("dvattendance");
+		var b = document.createElement('input')
+		b.setAttribute("class" , 'startsessionbutton');
+		b.setAttribute("type" , 'button');
+		b.setAttribute("value", 'Start Class');
+		b.setAttribute("id", 'view_button');
+		div1.appendChild(b);
+	}
+	else { 
+		var div1 = document.getElementById("dvattendance");
+		var b = document.createElement('input')
+		b.setAttribute("class" , 'endsessionbutton');
+		b.setAttribute("type" , 'button');
+		b.setAttribute("value", 'End Class');
+		b.setAttribute("id", 'view_button');
+		div1.appendChild(b);
+	}
+		
+
+});
+
 getgradesystem();
 getgradeitems();
-refreshtab();
+//refreshtab();
 }
 
 function addAttendance(idnum){
-
-	$.post('../scripts/queries/addAttendance',{idnum_:idnum},function(data){
-		if(data == 'true') {
-			$.post('../../scripts/queries/getAttendanceBySubject',function(data){
-				if(data.length>0){
-          			classes = data.split("@")
-	    			details = classes[0].split("$")
-	     
-             		var tbody = document.getElementById("students_attendance").getElementsByTagName('TBODY')[0];
-					var row = document.createElement('TR')
-	
-					var td1 = document.createElement('TD')
-					td1.innerHTML = details[0];
-		
-					var td2 = document.createElement('TD')
-					td2.innerHTML = details[1];
-	
-					var td3 = document.createElement('TD')
-					td3.innerHTML = details[2];	
-					
-					var b = document.createElement('input')
-					b.setAttribute("class" , 'confattend'); 
- 					b.setAttribute("type" , 'button');
-					b.setAttribute("value", 'Confirm');
-					b.setAttribute("id", 'view_button');
-					var cn = document.createElement('center')
-					cn.appendChild(b)
-					
-					var td4 = document.createElement('TD')
-					td4.appendChild(cn);
-									
-					row.appendChild(td1);
-					row.appendChild(td2);
-					row.appendChild(td3);
-					row.appendChild(td4);
-					$(tbody).prepend(row).children(':first').hide().fadeIn(1000, function() { });
-					$().toastmessage('showSuccessToast', 'Attendance Logged');		
-                }
-    		});
+	var isvalid = true;
+	$('#attendbody tr').each(function(index){
+		if(this.cells[0].innerHTML == idnum ) {
+			$().toastmessage('showErrorToast', idnum + '  ' + 'already exists!');
+			isvalid = false;
+			return false;
 		}
-		else
-			$().toastmessage('showErrorToast', 'Student Not Found');
 	});
+	if(isvalid) {
+		$.post('../scripts/queries/addAttendance',{idnum_:idnum},function(data){
+			if(data == 'True') {
+				$.post('../scripts/queries/getAttendanceBySubject',function(data){
+					if(data.length>0){
+          				classes = data.split("@")
+	    				details = classes[0].split("#")
+	     
+            	 		var tbody = document.getElementById("students_attendance").getElementsByTagName('TBODY')[0];
+						var row = document.createElement('TR')
+	
+						var td1 = document.createElement('TD')
+						td1.innerHTML = details[0];
+		
+						var td2 = document.createElement('TD')
+						td2.innerHTML = details[1];
+		
+						var td3 = document.createElement('TD')
+						td3.innerHTML = details[2];	
+					
+						var b = document.createElement('input')
+						b.setAttribute("class" , 'confattend'); 
+ 						b.setAttribute("type" , 'button');
+						b.setAttribute("value", 'Confirm');
+						b.setAttribute("id", 'view_button');
+						var cn = document.createElement('center')
+						cn.appendChild(b)
+					
+						var td4 = document.createElement('TD')
+						td4.appendChild(cn);
+						
+						var td5 = document.createElement('TD')
+						td5.innerHTML = '<center><b style = "color:green">YES</b></center>';
+									
+						row.appendChild(td1);
+						row.appendChild(td2);
+						row.appendChild(td3);
+						row.appendChild(td5);
+													
+						$(tbody).prepend(row).children(':first').hide().fadeIn(1000, function() { });
+						$().toastmessage('showSuccessToast', 'Attendance Logged');		
+                	}
+    			});
+			}
+			else {
+				if(data == 'False')
+					$().toastmessage('showErrorToast', 'Class not started');
+				
+				else
+					$().toastmessage('showErrorToast', 'Student not found!');
+			}
+
+		});
+	}
 }
 
 function getgradesystem() {
@@ -275,6 +318,11 @@ function setGradeSystem(name,weight){
 	var table = document.getElementById("users");
 	var temp = 0;
 	var valid = true;
+	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	if(!reg.test(weight)) {
+		$().toastmessage('showErrorToast', 'Invalid Input');
+		return;
+	}
 	for(var i = 1; i < table.rows.length; i++) {
    		 if(table.rows[i].cells[0].innerHTML.toLowerCase() == name.toLowerCase()) {
    		 	valid = false;
@@ -345,11 +393,17 @@ function editweight(v,n){
 	n.innerHTML = v
 	var table = document.getElementById("users");
 	var temp = 0;
+	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	if(!reg.test(v)) {
+		$().toastmessage('showErrorToast', 'Invalid Input');
+		n.parentNode.childNodes[1].revert();
+		return false;
+	}
 	for(var i = 1; i < table.rows.length; i++) {
    		 temp = temp + parseInt(table.rows[i].cells[1].innerHTML);
 	}
 	if(temp > 100) {
-		 $().toastmessage('showErrorToast', 'Exceeded 100%');
+		$().toastmessage('showErrorToast', 'Exceeded 100%');
 		n.parentNode.childNodes[1].revert();
 	}
 	else {
@@ -520,6 +574,11 @@ function getgradeitems(){
 
 
 function addgradeitem(name,maxscore,gradecat){
+	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	if(!reg.test(maxscore)) {
+		$().toastmessage('showErrorToast', 'Invalid Input');
+		return;
+	}
 	
 	var table = document.getElementById("gradeitemtable");
 	var valid = true;
@@ -556,9 +615,17 @@ function addgradeitem(name,maxscore,gradecat){
  				b.setAttribute("type" , 'button');
 				b.setAttribute("value", 'Delete');
 				b.setAttribute("id", 'view_button');
+				
+				var b1 = document.createElement('input')
+				b1.setAttribute("class" , 'viewgradeitem'); 
+ 				b1.setAttribute("type" , 'button');
+				b1.setAttribute("value", 'View');
+				b1.setAttribute("style", 'width: 50px');
+				b1.setAttribute("id", 'view_button');
 	
 				row.appendChild(td1);
 				row.appendChild(td2);
+				cn.appendChild(b1);
 				cn.appendChild(b);
 				td4.appendChild(cn);
 				row.appendChild(td3);
@@ -588,6 +655,12 @@ function addgradeitem(name,maxscore,gradecat){
 
 function editmaxscore(v,n){
 	n.innerHTML = v
+	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	if(!reg.test(v)) {
+		$().toastmessage('showErrorToast', 'Invalid Input');
+		n.parentNode.childNodes[1].revert();
+		return false;
+	}
 		$.post('../scripts/queries/editMaxScore',{name_:n.parentNode.childNodes[0].innerHTML, maxscore_:n.innerHTML},function(data){
 			if(data == 'true') {
 				$().toastmessage('showNoticeToast', n.parentNode.childNodes[0].innerHTML + '  ' + 'updated');
@@ -608,5 +681,191 @@ function deletegradeitem(n){
 	});
 }
 
+function getstudentgrades(n){
+	$('#gradeitemlabel').html(n.parentNode.parentNode.parentNode.childNodes[0].innerHTML);
+	$.post('../scripts/queries/getStudentGrades',{gradeitem_:n.parentNode.parentNode.parentNode.childNodes[0].innerHTML},function(data){
+		if(data.length>0){
+			var tbody = document.getElementById("studentgradeitems").getElementsByTagName('TBODY')[0]
+    		classes = data.split("@")
+        	for(i=0; i<classes.length-1; i++){
+	     		details = classes[i].split("$")
 
+				var row = document.createElement('TR')
+	
+				var td1 = document.createElement('TD')
+				td1.innerHTML = details[0];
+				td1.setAttribute("style" , 'text-align:center');
 
+		
+				var td2 = document.createElement('TD')
+				td2.setAttribute("style" , 'text-align:center');
+				td2.innerHTML = details[1]
+				
+				var td3 = document.createElement('TD')
+				td2.setAttribute("class" , 'editstudscore');
+				td3.setAttribute("style" , 'text-align:center');
+				td3.innerHTML = details[2]
+
+				var td4 = document.createElement('TD')
+				var cn = document.createElement('center')
+				var b = document.createElement('input')
+				b.setAttribute("class" , 'delstudgrade'); 
+ 				b.setAttribute("type" , 'button');
+				b.setAttribute("value", 'Delete');
+				b.setAttribute("id", 'view_button');
+		
+				row.appendChild(td1);
+				row.appendChild(td2);
+				cn.appendChild(b);
+				td4.appendChild(cn)
+				row.appendChild(td3);
+				row.appendChild(td4);
+				tbody.appendChild(row);             
+			}
+		}
+   
+	});
+}
+
+function addstudentgrade(studentid,score,gradeitem){
+	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	if(!reg.test(score)) {
+		$().toastmessage('showErrorToast', 'Invalid Input');
+		return;
+	}
+	
+	var table = document.getElementById("studentgradeitems");
+	var valid = true;
+	for(var i = 1; i < table.rows.length; i++) {
+   		 if(table.rows[i].cells[1].innerHTML.toLowerCase() == studentid.toLowerCase()) {
+   		 	valid = false;
+   		 	$().toastmessage('showErrorToast', table.rows[i].cells[1].innerHTML + ' ' + 'already exists!');
+			return;
+   		 }
+	}
+	if(valid) {
+		$.post('../scripts/queries/addStudentGrade',{studentid_:studentid,score_:score,gradeitem_:gradeitem},function(data){
+			if(data == 'true') {			
+				$.post('../scripts/queries/getStudentGrades',{gradeitem_:gradeitem},function(data){
+					classes = data.split("@")
+	    			details = classes[0].split("$")
+	    			
+					var row = document.createElement('TR')
+	
+					var td1 = document.createElement('TD')
+					td1.innerHTML = details[0];
+					td1.setAttribute("style" , 'text-align:center');	
+		
+					var td2 = document.createElement('TD')
+					td2.setAttribute("style" , 'text-align:center');
+					td2.innerHTML = details[1];
+				
+					var td3 = document.createElement('TD')
+					td2.setAttribute("class" , 'editstudscore');
+					td3.setAttribute("style" , 'text-align:center');
+					td3.innerHTML = details[2];
+	
+					var td4 = document.createElement('TD')
+					var cn = document.createElement('center')
+					var b = document.createElement('input')
+					b.setAttribute("class" , 'delstudgrade'); 
+ 					b.setAttribute("type" , 'button');
+					b.setAttribute("value", 'Delete');
+					b.setAttribute("id", 'view_button');
+	
+					row.appendChild(td1);
+					row.appendChild(td2);
+					cn.appendChild(b);
+					td4.appendChild(cn);
+					row.appendChild(td3);
+					row.appendChild(td4);
+				
+					if($('#sgibody tr').length == 0) {
+						$('#sgibody').prepend(row).children(':first').hide().fadeIn(1000, function() { });
+						$().toastmessage('showSuccessToast',  details[0] + '  ' + 'Added');
+						return;
+					}
+					
+					$('#sgibody tr').each(function(index){
+						if(details[0].split(",")[0].localeCompare(this.cells[0].innerHTML.split(",")[0]) == -1) {
+							$(this).before(row).prev().hide().fadeIn(1000, function() { });
+							$().toastmessage('showSuccessToast', details[0] + '  ' + 'Added');
+							return false;
+						}
+						if($(this).is(':last-child')) {
+    						$(this).after(row).next().hide().fadeIn(1000, function() { });
+							$().toastmessage('showSuccessToast', details[0] + '  ' + 'Added');
+						}																	    
+					});
+				});
+			}
+			else
+				$().toastmessage('showErrorToast', 'Student not found');
+
+		});
+	}
+}
+
+function autocomp() {
+	$.post('../scripts/queries/studentIdAutoComp',function(data) {
+		var t = data.split('@');
+		//alert(eval('[' + data.split('@') + ']'));
+		$( "#dfidnumber" ).autocomplete({
+				source: t,
+				close: function( event, ui ) {
+                getstudentstats(this.value);
+          	    }
+			});
+	});
+}
+
+function startsession() {
+	$.post('../scripts/queries/startClassSession',function(data) {
+		if(data == 'True') {
+			var div1 = document.getElementById("dvattendance");
+			var b = document.createElement('input')
+			b.setAttribute("class" , 'endsessionbutton');
+			b.setAttribute("type" , 'button');
+			b.setAttribute("value", 'End Class');
+			b.setAttribute("id", 'view_button');
+			$('.startsessionbutton').animate().fadeOut(400,function() {
+				$(this).remove();
+				$(div1).append(b).animate().hide().fadeIn(1000, function() { })
+			});
+		}
+	});
+}
+
+function endsession() {
+	$.post('../scripts/queries/dismissClassSession',function(data) {
+		$('#attendbody tr').each(function() { 
+			$(this).animate().fadeOut(400,function(){ 
+				$(this).remove()
+			}); 
+		});
+		var div1 = document.getElementById("dvattendance");
+		var b = document.createElement('input')
+		b.setAttribute("class" , 'startsessionbutton');
+		b.setAttribute("type" , 'button');
+		b.setAttribute("value", 'Start Class');
+		b.setAttribute("id", 'view_button');
+		$('.endsessionbutton').animate().fadeOut(400,function() {
+			$(this).remove();
+			$(div1).append(b).animate().hide().fadeIn(1000, function() { })
+		});
+
+		
+	});
+}
+
+function getstudentstats(idnum) {
+	document.getElementById("frmpic").src = "images/ajax-loader.gif";
+	$.post('../scripts/queries/getStudentStats',{idnum_:idnum},function(data){
+  		if(data.length>0){
+    		info = data.split("#")
+          	document.getElementById("dfname").value = info[1]
+          	document.getElementById("dfcourse").value = info[2]
+          	document.getElementById("frmpic").src = "images/users/" + info[6];
+       	}
+	});
+}

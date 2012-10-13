@@ -253,7 +253,8 @@ def addAttendance(req, idnum_):
 	b = cgi.escape(idnum_)
 	x = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 	e = doSql()
-	f = e.execqry("SELECT addattend('"+session['scode']+"','"+x+"','"+b+"')", True)[0][0]
+	t = e.execqry("SELECT get_ongoing_session('"+session['scode']+"')", False)[0][0]
+	f = e.execqry("SELECT add_attendance('"+str(t)+"','"+b+"','"+x+"')", True)[0][0]
 	return f
 		
 def changepassword(req, oldpass, newpass):
@@ -336,8 +337,17 @@ def inputGrade(req, subject, testNum, score):
 def getAttendanceBySubject(req):
 	session = Session.Session(req)
 	a = doSql()
-	f = a.execqry("SELECT getattend('"+session['scode']+"')", False) [0][0]
-	return f
+	t = a.execqry("SELECT get_ongoing_session('"+session['scode']+"')", False)[0][0]
+	session['session_id'] = str(t)
+	session.save()
+	f = a.execqry("SELECT get_section_attendance('"+session['session_id']+"')", False) 
+	p = ''
+	if (f[0][0] == 'None'):
+		return ''
+	else:
+		for x in xrange(len(f)):
+			p = p + f[x][0] + '@'
+		return p
 	
 def getCurrentClass(req):
 	session = Session.Session(req)
@@ -427,7 +437,7 @@ def studentIdAutoComp(req):
 	#return [('2010-7171',), ('2008-1234',)]
 	#return ['a','b','c']
 	p = ''
-	z = [('2010-7171',), ('2008-1234',)]
+	z = [('2010-7171',), ('2009-1625',)]
 	for x in xrange(len(z)): 
 		p = p + z[x][0] + '@'
 	return p
@@ -437,3 +447,25 @@ def startClassSession(req):
 	a = doSql()
 	f = a.execqry("SELECT add_class_session('"+session['scode']+"')", True) [0][0]
 	return f
+	
+def getCurrentSession(req):
+	session = Session.Session(req)
+	return session['session_id']
+	
+def dismissClassSession(req):
+	session = Session.Session(req)
+	a = doSql()
+	t1 = a.execqry("SELECT get_ongoing_session('"+session['scode']+"')", False)[0][0]
+	f = a.execqry("SELECT dismiss_class_session('"+str(t1)+"')", True) [0][0]
+	t = a.execqry("SELECT get_ongoing_session('"+session['scode']+"')", False)[0][0]
+	session['session_id'] = str(t)
+	session.save()
+	return t
+	
+def getStudentStats(req,idnum_):
+	session = Session.Session(req)
+	a = doSql()
+	b = cgi.escape(idnum_)
+	f = a.execqry("select student_information('"+b+"')", False)[0][0]
+	return f
+
