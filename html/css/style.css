@@ -365,7 +365,7 @@
 	}  
 
 	#td_action {
-		width: 120px;
+		width: 220px;
 	}
 	.td_teacherinfo:hover {
 		color: #000;
@@ -618,44 +618,73 @@
 		text-align: center; 
 	}
 	
-	 body{ font: 80% "Trebuchet MS", sans-serif; margin: 50px;}
-          .textbox {
-            font: Arial, Sans-serif;
-            margin-bottom: 5px;
-            display: block;
-            padding: solid;
-            border:solid 1px;
-            width: 150px; 
-	   }  
+	body { 
+		font: 80% "Trebuchet MS", sans-serif; 
+		margin: 50px;
+	}
+
+	.textbox {
+            	font: Arial, Sans-serif;
+           	margin-bottom: 5px;
+           	display: block;
+           	padding: solid;
+           	border:solid 1px;
+           	width: 150px; 
+	}  
          
-           img.r50 {
-               border:0,
-               margin:0 10px;
-               width:100px;
-               height:150px;
-           }
+	img.r50 {
+		border:0,
+		margin:0 10px;
+		width:100px;
+		height:150px;
+	}
            
-          
-           label { display:block; }
+	label { 
+		display:block;
+	}
 
-           fieldset { padding:0; border:0; margin-top:25px; }
-           div#dvattendance { width: 350px; margin: 20px 0; }
-           div#dvattendance p, td, th {font: 0.9em Arial, Helvetica, sans-serif; white-space:nowrap;} 
-	   div#dvattendance table { margin: 1em 0; border-collapse: collapse; width: 100%; }
-	   div#dvattendance table td, div#dvattendance table th { border: 1px solid #D6DDE6; padding: .6em 10px; text-align: left;}
-	   div#dvattendance table tr:hover {
+	fieldset { 
+		padding:0; 
+		border:0; 
+		margin-top:25px; 
+	}
+	
+	div#dvattendance { 
+		width: 350px; 
+		margin: 20px 0; 
+	}
+
+	div#dvattendance p, td, th {
+		font: 0.9em Arial, Helvetica, sans-serif; 
+		white-space:nowrap;
+	} 
+	
+	div#dvattendance table { 
+		margin: 1em 0; 
+		border-collapse: collapse; 
+		width: 100%; 
+	}
+
+	div#dvattendance table td, div#dvattendance table th { 
+		border: 1px solid #D6DDE6; 
+		padding: .6em 10px; 
+		text-align: left;
+	}
+
+	div#dvattendance table tr:hover {
   		background-color: #A9F5A9;
-  		color: #000000;}
+  		color: #000000;
+	}
 
-           div#dvattendance table  th {
+	div#dvattendance table  th {
 	  	border: 1px solid #828282;
   		background-color: #BCBCBC;
   		font-weight: bold;
   		text-align: left;
   		padding-left: 4px;
-	  }  
+	}  
          
-          div#dvattendance caption {
+	div#dvattendance caption {
   		font: bold 0.9em Arial, Helvetica, sans-serif;
   		color: #33517A;
   		text-align: left;
@@ -663,7 +692,22 @@
   		padding-bottom: 8px;
 	}
          
-           .ui-dialog .ui-state-error { padding: .3em; }
-	   .validateTips { border: 1px solid transparent; padding: 0.3em; }
-		
-			
+	.ui-dialog .ui-state-error { 
+		padding: .3em; 
+	}
+
+	.validateTips { 
+		border: 1px solid transparent; 
+		padding: 0.3em; 
+	}
+
+	.ui-tabs-panel {
+		height: 350px;
+		overflow: auto;
+	}
+	
+	#profilepic {
+		width: 220px;
+		height: 240px;
+	}
+
