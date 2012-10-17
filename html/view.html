@@ -1,285 +1,286 @@
+<!DOCTYPE html>
 <html>
-  <head>
+   <head>
 	<link type="text/css" href="css/style.css" rel="stylesheet">
 	<link type="text/css" href="css/style1.css" rel="stylesheet">
 	<link type="text/css" href="css/jquery.toastmessage.css" rel="stylesheet">
+	<link type="text/css" href="css/jquery.selectbox.css" rel="stylesheet">
 	<link rel="stylesheet" type="text/css" href="../javascript/jquery/css/south-street/jquery-ui-1.8.12.custom.css" />
-	  <script type="text/javascript" src="../javascript/jquery/js/jquery-1.5.1.min.js"> </script>
-	  <script type="text/javascript" src="../javascript/jquery/js/jquery-ui-1.8.12.custom.min.js"></script>
-	  <script type="text/javascript" src="../javascript/apMessage.js"></script>
-	  <script type="text/javascript" src="../javascript/jquery.jeditable.mini.js"></script>
-	  <script type="text/javascript" src="../javascript/glob.js"></script>
-	  <script type="text/javascript" src="../javascript/javascriptz.js"></script>
-	  <script type="text/javascript" src="../javascript/jquery.toastmessage.js"></script>
+		<script type="text/javascript" src="../javascript/jquery/js/jquery-1.5.1.min.js"> </script>
+		<script type="text/javascript" src="../javascript/jquery/js/jquery-ui-1.8.12.custom.min.js"></script>
+		<script type="text/javascript" src="../javascript/apMessage.js"></script>
+		<script type="text/javascript" src="../javascript/jquery.jeditable.mini.js"></script>
+		<script type="text/javascript" src="../javascript/glob.js"></script>
+		<script type="text/javascript" src="../javascript/javascriptz.js"></script>
+		<script type="text/javascript" src="../javascript/jquery.toastmessage.js"></script>
+		<script type="text/javascript" src="../javascript/jquery.selectbox-0.2.min.js"></script>
 
-	     <script type="text/javascript">
-		function isThere(id_,time_) {
-			try {
-     	 			val = document.getElementById(id_).value
-	 			document.getElementById(id_ + "tym").value = time_
-	  			res = true
-			}
-			catch(err){
-				res = false;
-			}
-		return res;
+<script type="text/javascript">
+	function isThere(id_,time_) {
+	     try {
+	     	 val = document.getElementById(id_).value
+		  document.getElementById(id_ + "tym").value = time_
+		  res = true
 		}
+	    catch(err){
+		   res = false;
+		}
+	return res;
+	}
 
-	jQuery.extend({
-	     getValues: function(url){ 
-		  var result = null;
-		  $.ajax({
-		     url:url,
-		     type: 'get', 
-		     dataType:'text',
-		     async:false,
-		     success: function(data){
-		          result = data; 
-		     }
-		  });
-	       return result;
-	     }
-	});        
+jQuery.extend({
+     getValues: function(url){ //+++
+          var result = null;
+          $.ajax({
+             url:url,
+             type: 'get', 
+             dataType:'text',
+             async:false,
+             success: function(data){
+                  result = data;
+             }
+          });
+       return result;
+     }
+})         
 
 $(document).ready(function() {
+	
 	$("input#sections").autocomplete({
 		source: ["CENG1","CENG2"] 
-		}); //autocomplete
+	}); //autocomplete
 
-$("button").button(); //button
-$("#tabs").tabs(); //tabs
-$("#radio").buttonset(); //radio
+	$("button").button(); //button
+	
+	$("#tabs").tabs(); //tabs
 
-$('.edit').live("hover",function ()
-	{
-	$(this).editable(function(value,settings){
-             	editweight(value,this);					            	
-	}, {
-              	event: 'dblclick',
-              });
+	$("#radio").buttonset(); //radio
+	
+	$('.edit').live("hover",function ()
+	 {
+		$(this).editable(function(value,settings){
+		     	editweight(value,this);					            	
+		      }, {
+			event: 'dblclick',
+		});
 	});
 
-$('.editmaxscore').live("hover",function ()
-	{
-              $(this).editable(function(value,settings){
-              editmaxscore(value,this);
-              }, {
-              	event: 'dblclick',
-              });
- });
+	$('.editmaxscore').live("hover",function ()
+	 {
+		$(this).editable(function(value,settings){
+		      editmaxscore(value,this);
+		      }, {
+		      	event: 'dblclick',
+		});
+	});
 
-$(".del").live("click",function () {
-		deletecat(this.parentNode.parentNode.parentNode);
- });
-
-$(".delgradeitem").live("click",function () {
-		deletegradeitem(this.parentNode.parentNode.parentNode);
- });
+	$('.editstudscore').live("hover",function ()
+	 {
+		$(this).editable(function(value,settings){
+		      editstudentgrade(value,this);
+		      }, {
+		      	event: 'dblclick',
+		});
+	 });
  
-$(".confattend").live("click",function () {
-		confirmattend(this.parentNode.parentNode.parentNode);
- });
+	$(".del").live("click",function () {
+		deletecat(this.parentNode.parentNode.parentNode);
+	});
 
-$(".viewgradeitem").live("click",function () {
-			  getstudentgrades(this);
-		      $('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
-		      		$('#viewgradeitemz').show("drop", { direction: "down" }, 500);
-		      });
-	      
- });
+	$(".delgradeitem").live("click",function () {
+		deletegradeitem(this.parentNode.parentNode.parentNode);
+	});
 
-$("#slidetest").live("click",function () {
-		      $('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
-		      		$('#viewgradeitemz').show("drop", { direction: "down" }, 500);
-		      });
-		      
- });
+	$(".delstudgrade").live("click",function () {
+		deletestudentgrade(this.parentNode.parentNode.parentNode);
+	});
 
-$("#backbutton").live("click",function () {
-	var gradetablebody = document.getElementById("sgibody");
-		$(gradetablebody.childNodes).each(function() { 
+	$(".confattend").live("click",function () {
+			confirmattend(this.parentNode.parentNode.parentNode);
+	 });
+	
+	$(".viewgradeitem").live("click",function () {
+		getstudentgrades(this);
+			$('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
+			$('#viewgradeitemz').show("drop", { direction: "down" }, 500);
+		});			      
+	 });
+
+	$("#slidetest").live("click",function () {
+			$('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
+			$('#viewgradeitemz').show("drop", { direction: "down" }, 500);
+		});			      
+	 });
+
+	$("#backbutton").live("click",function () {
+		var gradetablebody = document.getElementById("sgibody");
+			$(gradetablebody.childNodes).each(function() { 
 			$(this).remove(); 
 		});
-		$('#viewgradeitemz').hide("drop", { direction: "down" }, 500, function() {
+			$('#viewgradeitemz').hide("drop", { direction: "down" }, 500, function() {
 			$('.gradezitemz').show("fade", { direction: "up" }, 500);
-	      		$(this).hide();
+			$(this).hide();
 		});		      
- });
+	 });
 
-$(".endsessionbutton").live("click",function () {
-		     endsession();		      
- });
+	$(".endsessionbutton").live("click",function () {
+		endsession();		      
+	 });
 
-$(".startsessionbutton").live("click",function () {
-		     startsession();	      
- });
+	$(".startsessionbutton").live("click",function () {
+		startsession();	      
+	 });
 
-$("#addattendform").click(
-function ()
- {
-    if (document.getElementById("sections").value.length > 0)
-       {
-              document.getElementById("frmpic").src = "images/placeholder.png";
-          	//document.getElementById("dfname").value = ""
-          	//document.getElementById("dftimein").value = ""
-			$("#dfidnumber").val('');
-          	 	$("#dfname").val('');
-          	 	$("#dfcourse").val('');
-             		$("#attendance-form").dialog("open");
-       }
-    else
-       $("#warning").dialog("open");
- });
+	$("#addattendform").click(
+		function () {
+			if (document.getElementById("sections").value.length > 0)
+				{
+					document.getElementById("frmpic").src = "images/placeholder.png";
+						$("#dfidnumber").val('');
+						$("#dfname").val('');
+						$("#dfcourse").val('');
+						$("#attendance-form").dialog("open");
+				}
+			else
+						$("#warning").dialog("open");
+	 });
 
-$("#add-cat").click(
-function ()
- {
- 			  $("#catname").val('');
-			  $("#catweight").val('');
-              $("#setgradesystem").dialog("open");
- });
+	$("#add-cat").click(
+		function () {
+			$("#catname").val('');
+			$("#catweight").val('');
+			$("#setgradesystem").dialog("open");
+	 });
 
-$("#attendance-form").dialog({
-	autoOpen:false,
-	height: 350,
-	width:450,
-	modal: false,
-	buttons: {
-	 	"Close": function () {$(this).dialog("close");},
-		},//buttons
-	position: {
-	       my: 'left',
-	       at: 'right',
-	       //of: $(document)
-	       of: $("#students_attendance"),
-	       offset: "50"
-	    }
-	}); //attendance form
-
-$("#setgradesystem").dialog({
-	autoOpen:false,
-	height: 350,
-	width:350,
-	modal: true,
-	buttons: {
-		 "Save": function () {
-			setGradeSystem($("#catname").val(),$("#catweight").val() );
-			$(this).dialog("close");
-		 },
-		 "Close": function () {
-			$(this).dialog("close");
-	 	},
-	} //buttons
-});
-
-$("#warning").dialog({
-	autoOpen: false,
-	show: "highlight",
-	hide: "explode",
-	buttons: {
-		  "Ok": function () {$(this).dialog("close");}
-		}
-	});            
-}); 
-
-/*document on ready
-/* adding a data to the table
-var country=$('select[name="country"]').attr('value'); //get value from comisTherebo box
-var txt=$('input[name="city"]').attr('value'); //get value from input text
-
-$( "#students_attendance tbody" ).append( "<tr>" +
-				"<td>" + name.val() + "</td>" + 
-				"<td>" + email.val() + "</td>" + 
-				"<td>" + password.val() + "</td>" +
-			"</tr>" ); */
-
-
-$(function() {						
-	$("#dialog-form").dialog({
-	autoOpen:false,
-	height: 350,
-	width:350,
-	modal: true,
-	buttons: {
-		 "Close": function () {$(this).dialog("close");}
-		} //buttons
-	});
-});
-
-$(function() {						
 	$("#attendance-form").dialog({
-	autoOpen:false,
-	height: 350,
-	width:350,
-	modal: false,
-	buttons: {
-		 "Close": function () {$(this).dialog("close");}
-		} //buttons
+		autoOpen:false,
+		height: 350,
+		width:450,
+		modal: false,
+		buttons: {
+		 	"Close": function () {$(this).dialog("close");},
+		},
+		position: {
+		       my: 'left',
+		       at: 'right',
+		       of: $("#students_attendance"),
+		       offset: "50"
+		    }
 	});
-});
 
-$(function() {						
 	$("#setgradesystem").dialog({
-	autoOpen:false,
-	height: 350,
-	width:350,
-	modal: true,
-	 //buttons
-	});
-});
-
-$(function() {						
-	$("#dialog-form1").dialog({
-	autoOpen:false,
-	height: 350,
-	width:350,
-	modal: true,
-	buttons: {
-		 "Close": function () {$(this).dialog("close");}
-		} //buttons
-	});
-});
-
-$(function() {						
-	$("#dialog-form2").dialog({
-	autoOpen:false,
-	height: 350,
-	width:350,
-	modal: true,
-	buttons: {
-		 "Close": function () {$(this).dialog("close");}
-		} //buttons
-	});
-});
-$(function() {
-	$( "#dialog-form5" ).dialog({
-		autoOpen: false,
-		height: 300,
-		width: 350,
+		autoOpen:false,
+		height: 350,
+		width:350,
 		modal: true,
 		buttons: {
-			"Save": function() {
-				addgradeitem($('#grade1').val(),$('#maxscore1').val(),$('#period1').val());
-				$(this).dialog( "close" );
+			 "Save": function () {
+				setGradeSystem($("#catname").val(),$("#catweight").val() );
+				$(this).dialog("close");
 			},
-			Cancel: function() {
-				$(this).dialog( "close" );
-			}
-		},
+			 "Close": function () {
+			 	$(this).dialog("close");
+	 		},
+		} 
 	});
-			
-		$( "#add-grditem" )
-			.button()
-			.click(function() {
-				$('#grade1').val( '' );
-				$('#maxscore1').val( '' );
-				$('#period1').val( '' );
-				gradecatdropdown();
-				$( "#dialog-form5" ).dialog( "open" );
+
+	$("#warning").dialog({
+		autoOpen: false,
+		show: "highlight",
+		hide: "explode",
+		buttons: {
+		  	"Ok": function () {$(this).dialog("close");}
+		}
+	});            
+});
+
+
+	$(function() {						
+		$("#dialog-form").dialog({
+			autoOpen:false,
+			height: 350,
+			width:350,
+			modal: true,
+			buttons: {
+			 	"Close": function () {$(this).dialog("close");}
+			}
+		});
+	});
+
+	$(function() {						
+		$("#attendance-form").dialog({
+			autoOpen:false,
+			height: 350,
+			width:350,
+			modal: false,
+			buttons: {
+				"Close": function () {$(this).dialog("close");}
+			}
+		});
+	});
+
+	$(function() {						
+		$("#setgradesystem").dialog({
+			autoOpen:false,
+			height: 350,
+			width:350,
+			modal: true,
 			});
 	});
 
-$(function() {
+	$(function() {						
+		$("#dialog-form1").dialog({
+			autoOpen:false,
+			height: 350,
+			width:350,
+			modal: true,
+			buttons: {
+			 	"Close": function () {$(this).dialog("close");}
+		} //buttons
+									});
+	});
+
+	$(function() {						
+		$("#dialog-form2").dialog({
+			autoOpen:false,
+			height: 350,
+			width:350,
+			modal: true,
+			buttons: {
+				 "Close": function () {$(this).dialog("close");}
+	} //buttons
+									});
+	});
+
+	$(function() {
+		$( "#dialog-form5" ).dialog({
+			autoOpen: false,
+			height: 300,
+			width: 350,
+			modal: true,
+			buttons: {
+				"Save": function() {
+					addgradeitem($('#grade1').val(),$('#maxscore1').val());
+					$(this).dialog( "close" );
+				},
+				Cancel: function() {
+					$(this).dialog( "close" );
+				}
+			},
+	});
+			
+	$( "#add-grditem" )
+		.button()
+		.click(function() {
+			$('#grade1').val( '' );
+			$('#maxscore1').val( '' );
+			$('#period1').val( '' );
+				gradecatdropdown();
+			$( "#dialog-form5" ).dialog( "open" );
+		});
+	});
+
+	$(function() {
 		$( "#addstudgradeform" ).dialog({
 			autoOpen: false,
 			height: 300,
@@ -287,103 +288,99 @@ $(function() {
 			modal: true,
 			buttons: {
 				"Save": function() {
-					addstudentgrade($('#addstudid').val(),$('#addstudscore').val(),$('#gradeitemlabel').text());
-					$(this).dialog( "close" );
+					addstudentgrade($('#addstudid').val(),$('#addstudscore').val());
 				},
 				Cancel: function() {
 					$(this).dialog( "close" );
 				}
 			},
-		});
-
-$( "#add-stud-grade" )
-	.button()
-	.click(function() {
-		$('#addstudid').val( '' );
-		$('#addstudscore').val( '' );
-		$( "#addstudgradeform" ).dialog( "open" );
 	});
-});
-
-$(function() {
-	$("#dfidnumber").keyup(function(e) {
-		if(this.value.length < 2 || this.value.length < 9)
-			document.getElementById("frmpic").src = "images/ajax-loader.gif";
-		if(this.value.length == 9 && e.which != 13)
-			getstudentstats(this.value);
-		autocomp();
+			
+	$( "#add-stud-grade" )
+		.button()
+		.click(function() {
+			$('#addstudid').val( '' );
+			$('#addstudscore').val( '' );
+			$( "#addstudgradeform" ).dialog( "open" );
+	});
+							});
+	$(function() {
+		$("#dfidnumber").keyup(function(e) {
+			if(this.value.length < 2 || this.value.length < 9)
+				document.getElementById("frmpic").src = "pictures/ajax-loader.gif";
+			if(this.value.length == 9 && e.which != 13)
+				getstudentstats(this.value);
+			autocomp(this);
 			if(e.which == 13) {
-    				addAttendance($("#dfidnumber").val());
+    			addAttendance($("#dfidnumber").val());
     			return false;
     		}
 	});
-});
-
+		$("#addstudid").keyup(function(e) {
+			autocomp(this);
+		});
+		
+	});
 </script>  
+    <title> Class Page</title>
+   	 </head>
+    		<body onload = "getattend()">
 
-	<title> Class Page</title>
-		</head>
-			<body onload = "getattend()">
-
-				<div class="header">
-					<table style="width: 100%">
-						<table style="width: 100%">
-							<tr>
-								<td width="20em" id="minlogo_td">
-									<img src="images/logo_index.png"><br>
-								</td>
-								<td>
-									<p class="header_text" style="text-align:right">
-									<a id = "tp" href="prof_index.html">Home</a>&nbsp;  | &nbsp;<a href="help.html">Help</a> &nbsp;  | &nbsp;  <a href="../../scripts/form/logout">Logout</a></p>					
-								</td>
-							</tr>
-						</table>
-					</table>
-				</div>	
+	<div class="header">
+			<table style="width: 100%">
+				<table style="width: 100%">
+					<tr>
+						<td width="20em" id="minlogo_td">
+							<img src="pictures/logo_index.png"><br>
+						</td>
+						<td>
+							<p class="header_text" style="text-align:right">
+									<a id = "tp" href="prof_index.html">Home</a>&nbsp;  | &nbsp;<a href="help.html">Help</a> &nbsp;  | &nbsp;  <a href="../../scripts/form/logout">Logout</a></p>					</td>
+					</tr>
+				</table>
+			</table>
+		</div>	
 
 	
-<div id="tabs"> 
-	<ul>
-		<li><a href="#0"><span>Attendance</span></a></li>
-		<li><a href="#1"><span>View</span></a></li>
+     <div id="tabs"> 
+        <ul>
+            <li><a href="#0"><span>Attendance</span></a></li>
+			<li><a href="#1"><span>View</span></a></li>
 			<li><a href="#2"><span>Grading System</span></a></li>
-	</ul>
-         
-<div id="0">  
-	<div>
-		<table id = "attendanceinputs">
-			<tr>
-				<td id="desc">
-                         		Section:
-				</td>
-				<td>	
-            	          		<input  id="sections"  class="textbox" name="sections" value = "" readonly="readonly">                 
-				</td>
-				<td>
-            	         		 <div id="radio">
-                       			 </div>
-                     		</td>
-                     		<td>
-                       			  <button id = "addattendform"> Attendance Form </button>
-                     		</td>
-               		</tr>
-		</table>
-	</div>
-
-	<div id="setgradesystem">
-		<p class="validateTips">All form fields are required.</p>
-			<form>
-				<fieldset>
-					<label for="name">Category Name</label>
-					<input type="text" name="name" id="catname" class="text ui-widget-content ui-corner-all" />
-
-					<label for="pass">Weight</label>
-					<input type="text" name="email" id="catweight" value="" class="text ui-widget-content ui-corner-all" />
-				</fieldset>
-			</form>
-	</div>	
-
-	<div id="dvattendance" class="ui-widget">
+        </ul>
+         <div id="0">  
+         <div>
+             <table id = "attendanceinputs">
+               <tr>
+                     <td id="desc">
+                         Section:
+                     </td>
+                     <td>	
+            	          <input  id="sections"  class="textbox" name="sections" value = "" readonly="readonly">                 
+                     </td>
+                     <td>
+            	          <div id="radio">
+                        </div>
+                     </td>
+                     <td>
+                         <button id = "addattendform"> Attendance Form </button>
+                     </td>
+                 </tr>
+                
+                 
+             </table></div>
+             <div id="setgradesystem">
+								<p class="validateTips">All form fields are required.</p>
+									<form>
+									<fieldset>
+										<label for="name">Category Name</label>
+										<input type="text" name="name" id="catname" class="text ui-widget-content ui-corner-all" />
+										<label for="pass">Weight</label>
+										<input type="text" name="email" id="catweight" value="" class="text ui-widget-content ui-corner-all" />
+									</fieldset>
+									</form>
+							</div>	
+             <div id="dvattendance" class="ui-widget">
              <table id="students_attendance" class="ui-widget ui-widget-content">
                  <caption> Class Attendance </caption>
                  <!-- table header -->
@@ -404,14 +401,14 @@ $(function() {
               </div> <!-- ui widget -->
          </div> <!-- id = 0 -->
         
-	<div id="attendance-form" title="Attendance"> 
+        <div id="attendance-form" title="Attendance"> 
             <table style="text-align: left; width: 100%;" cellpadding="2" cellspacing="2">
               <tr>
                 <td>
                	   <form>
                	         <fieldset>
                	 	     <label for="dfidnumber">ID Number:</label>
-               	 	     <input maxlength = "9" style ="width:200" type="text" name="dfidnumber" id="dfidnumber" class="textbox ui-widget-content ui-corner-all" />
+               	 	     <input placeholder = "Search ID.." maxlength = "9" style ="width:200" type="text" name="dfidnumber" id="dfidnumber" class="textbox ui-widget-content ui-corner-all" />
                	 	     <label for="dfname">Name:</label>
                	 	     <input style ="width:200" readonly="readonlly" type="text" name="dfname" id="dfname" class="textbox ui-widget-content ui-corner-all" />
                	 	     <label for="dfcourse">Course</label>
@@ -430,77 +427,66 @@ $(function() {
             Please select a section before proceeding.
         </div>
 
-	<div id="1">
-		view thing here
-	</div>
-		
-	<div id="2">
-		<script type="text/javascript">
-			$(function() {
-				$('div.tabs').tabs();
-			});
-		</script>
-
-	<div id="tabs-nested" class="tabs">
-		<ul>
-		    <li><a href="#cat"><span>Categories</span></a></li>
-		    <li><a href="#grades"><span>Grade Items</span></a></li>
-		    <li><a href="#report"><span>Report</span></a></li>
-		    <li><a href="#att"><span>Attendance</span></a></li>
-		</ul>
-				
-		<div id="cat" class="tab_content">
-			<div id="dvscale" class="ui-widget">
+			<div id="1">
 				<div>
-					<div id="dialog-form" title="Add New Category">
-					<p class="validateTips">All form fields are required.</p>
-					<form class="form">
-					<fieldset>
-						<label for="name">Category Name</label>
-						<input type="text" name="name" id="name" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
-						<label for="weight">Weight</label>
-						<input type="text" name="weight" id="weight" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>
-						<label for="aggregation">Aggregation</label>
-						<select type="aggregation" name="aggregation" id="aggregation" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>
-							<option>Weighted Mean of Grades</option>
-							<option>Mean of Grades</option>
-							<option>Simple Weighted Mean of Grades</option>
-							<option>Mean of Grades w/ Extra Credits</option>
-							<option>Lowest Grade</option>
-							<option>Mode of Grades</option>
-							<option>Highest Grade</option>
-							<option>Sum of Grades</option>
-						</select>			
-					</fieldset>
-					</form>
-					</div><!-- end of div id=dialog-form -->
+			 		<select id = "enrolledlist">
+			 			<option>Select Student</option>
+			 		</select>
+			 	<div id = "viewstudinfo">
+			 		<br></br>
+			 		<table style="text-align: left; width: 50%" border ="0" >
+			 			<tr>
+			 				<td> 
+			 					<p id = "studviewid">ID Number</p>
+			 					<br></br>
+               	 	 			<p id = "studeviewname">Name</p>
+               	 	     		<br></br>
+               	 	   			<p id = "studviewcourse">Course</p>
+               	 	    		<br></br>
+               	 	     		<p id = "studviewemail">Email</p>			 		
+			 				</td>
+			 				<td>
+			 					<image src="pictures/nopic.jpg" class="r50" id="studentviewpic" width="50" height="50">
+
+			 				</td>
+			 			</tr>
+			 	</table>
+			 	<table id="viewstudabsences" class="ui-widget ui-widget-content" style = "width:10%">
+                	<caption> Absences </caption>
+                	<thead>
+                		<tr class="ui-widget-header">
+    		        		<th scope="col">Date</th>
+                    	</tr>
+                 	</thead>
+                  	<tbody id = "viewabsencesbody">
+	                
+	           		</tbody>
+              </table>
+			 	</div>
+			 	</div>
+			 		
+			</div>
+		
+         <div id="2">
+		 <script type="text/javascript">
+$(function() {
+	$('div.tabs').tabs();
+});
+</script>
+
+		 <div id="tabs-nested" class="tabs">
+	<ul>
+            <li><a href="#cat"><span>Categories</span></a></li>
+	    <li><a href="#grades"><span>Grade Items</span></a></li>
+	</ul>
+				<div id="cat" class="tab_content">
+		<div id="dvscale" class="ui-widget">
+			<div>
+		
 
 <!-- sugod -->
-
 <p id = "gradesystemnotifier"></p>
-	<div id="dialog-form2" title="Update Category">
-		<p class="validateTips">All form fields are required.</p>
-			<form class="form">
-				<fieldset>
-					<input type="hidden" name="origname" id="origname" />
-					<label for="name1">Category Name</label>
-					<input type="text" name="name1" id="name1" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
-					<label for="weight1">Weight</label>
-					<input type="text" name="weight1" id="weight1" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>
-					<label for="aggregation1">Aggregation</label>
-					<select type="aggregation" name="aggregation1" id="aggregation1" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>
-						<option>Weighted Mean of Grades</option>
-						<option>Mean of Grades</option>
-						<option>Simple Weighted Mean of Grades</option>
-						<option>Mean of Grades w/ Extra Credits</option>
-						<option>Lowest Grade</option>
-						<option>Mode of Grades</option>
-						<option>Highest Grade</option>
-						<option>Sum of Grades</option>
-					</select>			
-				</fieldset>
-			</form>
-		</div><!-- end of div id=dialog-form -->
+
 <!-- taman dri... -->
 
 
@@ -522,25 +508,31 @@ $(function() {
 		
 		<button id="add-cat">Add Category</button>
 		<div class="instructions_dialog">
+
+			
+
 		</div>
-		</div> <!-- end of div -->
+
+	</div> <!-- end of div -->
 	</div>
 </div> <!-- end of div id=1 -->
-
 <div id="grades" class="tab_content">
-<div id="dvscale" class="ui-widget gradezitemz">
+<select id = 'gradecat'>
+    	<option>Select Category</option>
+    </select>
+<div id="dvscale" class="ui-widget gradezitemz" style = "display:none">
 	
 
 	
 <!------View Students--->
 
 	<table class="ui-widget ui-widget-content" id="gradeitemtable">
-				<caption> Grade Items </caption>
+				<caption id="gradeitemcap"> Grade Items </caption>
 				<thead>
 					<tr class="ui-widget-header">
 						<th scope="col" align = "middle"><center>Name</center></th>
 						<th scope="col"><center>Max Score</center></th>
-						<th scope="col"><center>Grade Category</center></th>
+						<th scope="col"><center>Date Added</center></th>
 						<th scope="col"><center>Action</center></th>
 					</tr>
 				</thead>
@@ -557,7 +549,9 @@ $(function() {
 	
 
 	
-<p id = "gradeitemlabel">Grade Item Name Here</p>
+<p id = "gradeitemlabel" style = "font-weight:bold">Grade Item Name Here</p>
+<p id = "gradeitemidlabel" style = "font-weight:bold; display: none">Grade Item ID Here</p>
+
 	<table class="ui-widget ui-widget-content" id="studentgradeitems">
 				<caption> Student Grades </caption>
 				<thead>
@@ -577,101 +571,56 @@ $(function() {
 		<button id="add-stud-grade">Add Student Grade</button>
 		<button id="backbutton">Back</button>
 
-	</div> 
+
+		
+		
+
+</div> 
+
 </div> <!-- end of div id=2 -->
 
-<div id="report" class="tab_content">	
-	<div id="dvscale" class="ui-widget">             
-		<table class="ui-widget ui-widget-content"  id="students">
-			<caption> Grade Report </caption>
-                 <thead>
-						<tr class="ui-widget-header">
-							<th scope="col"> Student Name</th>
-							<th scope="col"> ID Number</th>
-							<div id="headRep">
-							</div>
-							
-							<th scope="col"> Grade</th>
-
-						</tr>
-                  </thead>
-                  <tbody></tbody>		
-         </table> <!-- end of datatable2 -->
 
 
-			<button>Export Grades</button>
-			
-	</div> <!-- end of div id="dvscale" -->
-</div> <!-- end of div id=3 -->
-
-<div id="att" class="tab_content">
-	<div id="dvscale" class="ui-widget">             
-
-
-		<button id="attendance-form">Add Attendance</button> 
-		
-		<table class="ui-widget ui-widget-content"  id="attendance">
-			<caption> Class Attendance </caption>
-                		 <thead>
-					<tr class="ui-widget-header">
-						<th scope="col"> <center> ID Number <center> </th>
-						<th scope="col"> <center> Student Name <center> </th>
-						<th scope="col"> <center> Time In <center> </th>
-					</tr>
-                  		</thead>
-                 		<tbody>
-				</tbody>		
-         	</table> 
-
-	<div id="attendanceform" title="Attendance Form">
-		<p class="validateTips">All form fields are required.</p>
-			<form>
-				<fieldset>
-					
-					<label id="idnumberlabel" for="idnumberlabel" >ID Number</label>
-					<input type="text" name="idnumber" id="idnumber" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
-					<label id="studnamelabel" for="studnamelabel" >Student Name</label>
-					<input type="text" name="studname" id="studname" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
-				</fieldset>
-			</form>
-		</div><!-- end of div id="attendanceform" --> 
-	</div> <!-- end of div id="dvscale" -->
-    
-</div> <!-- end of div id=4 -->
-					
       </div>  <!-- tabs -->
 	  </div>
-	  <div id="dialog-form5" title="Add Grade Item">	
+	  <div id="dialog-form5" title="Add Grade Item">
 			<p class="validateTips">All form fields are required.</p>
+
 				<form class="form">
 					<fieldset>
-						<input type="hidden" name="origgrade" id="origgrade" />
+							<input type="hidden" name="origgrade" id="origgrade" />
+
 						<label for="grade1">Grade Item Name</label>
-						<input type="text" name="grade1" id="grade1" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
+							<input type="text" name="grade1" id="grade1" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
+					
 						<label for="maxscore1">Max Score</label>
-						<input type="text" name="maxscore1" id="maxscore1" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>
-						<label for="period1">Grade Category</label>
-						<select type="text" name="period1" id="period1" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3" />
+							<input type="text" name="maxscore1" id="maxscore1" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>
 							
 						</select>		
 					</fieldset>
 				</form>
-			</div>
-		</div> <!-- end of div id=4 -->
-	</div>  <!-- tabs -->
-</div>
-	  <div id="addstudgradeform" title="Add Grade Item">				
-		<p class="validateTips">All form fields are required.</p>
-			<form class="form">
-				<fieldset>
-					<input type="hidden" name="origgrade" id="origgrade" />
-					<label for="grade1">Student ID Number:</label>
-					<input type="text" name="grade1" id="addstudid" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
-					<label for="maxscore1">Score</label>
-					<input type="text" name="maxscore1" id="addstudscore" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>							
-					</select>		
-				</fieldset>
-			</form>
 		</div>
-	</body>
+		</div> <!-- end of div id=4 -->
+					
+      </div>  <!-- tabs -->
+	  </div>
+	  <div id="addstudgradeform" title="Add Grade Item">
+				
+			<p class="validateTips">All form fields are required.</p>
+
+				<form class="form">
+					<fieldset>
+							<input type="hidden" name="origgrade" id="origgrade" />
+
+						<label for="grade1">Student ID Number:</label>
+							<input type="text" name="grade1" id="addstudid" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"  />
+						<label for="maxscore1">Score</label>
+							<input type="text" name="maxscore1" id="addstudscore" value="" class="text ui-widget-content ui-corner-all" style="border: 1px solid #b3b3b3"/>							
+						</select>		
+					</fieldset>
+				</form>
+		</div>
+		
+	  
+</body>
 </html>
