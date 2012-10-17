@@ -2,10 +2,10 @@ function getStudInfo() {
   getClasses()
   $.post('../scripts/queries/getInfo',function(data){
   if(data.length>0){
-          info = data.split(",")
+          info = data.split("#")
           var table = document.getElementById('userinfo') 
-          table.rows[1].cells[1].innerHTML = info[0]
-          table.rows[2].cells[1].innerHTML = info[1]
+          table.rows[1].cells[1].innerHTML = info[1]
+          table.rows[2].cells[1].innerHTML = info[0]
           table.rows[3].cells[1].innerHTML = info[2]
           table.rows[4].cells[1].innerHTML = info[3]
        }
@@ -22,45 +22,48 @@ function getFacInfo() {
           table.rows[2].cells[1].innerHTML = info[0]
           table.rows[3].cells[1].innerHTML = info[2]
           table.rows[4].cells[1].innerHTML = info[3]
+          document.getElementById("profilepic").src = "pictures/users/" + info[4];
+
+          
        }
 	});
 	
 }
 function getClasses(){
-    $.post('../scripts/queries/getClasses',function(data){
+    $.post('../scripts/queries/getStudentClasses',function(data){
        if(data.length>0){
           classes = data.split("@")
           for(i=0; i<classes.length-1; i++){
-	     details = classes[i].split("$")
+	     details = classes[i].split("#")
 	     
              var tbody = document.getElementById
 	("classList").getElementsByTagName('TBODY')[0];
 	var row = document.createElement('TR')
 	
 	var td1 = document.createElement('TD')
-	td1.innerHTML = details[0];
+	td1.innerHTML = details[1];
 		
 	var td2 = document.createElement('TD')
-	td2.innerHTML = details[1];
+	td2.innerHTML = details[2];
 	
 	var td3 = document.createElement('TD')
-	td3.innerHTML = details[2];
+	td3.innerHTML = details[3];
 		
 	var td4 = document.createElement('TD')
-	td4.innerHTML = details[3];
+	td4.innerHTML = details[4];
 		
 	var td5 = document.createElement('TD')
-	td5.innerHTML = details[4];
+	td5.innerHTML = details[5];
 
 	var td6 = document.createElement('TD')
-	td6.innerHTML = details[5];
+	td6.innerHTML = details[7];
 
 	var td7 = document.createElement('TD')
-	td7.innerHTML = details[6];
+	td7.innerHTML = details[8];
 
 
 	var td9 = document.createElement('TD')
-	td9.innerHTML = '<script type="text/javascript" src="try1.js"></script><center><input type="button" value="View" id="view_button" onclick="location.href=\'../scripts/form/section?sec='+details[1]+'&scode='+details[7]+'\'"></center>'
+	td9.innerHTML = '<script type="text/javascript" src="try1.js"></script><center><input type="button" value="View" id="view_button" onclick="location.href=\'../scripts/form/section?sec='+details[1]+'&scode='+details[0]+'\'"></center>'
 	
 	var td10 = document.createElement('TD')
 	td10.innerHTML = details[7];
@@ -204,8 +207,8 @@ $.post('../scripts/queries/getCurrentSession',function(data){
 
 });
 
+getenrollednames();
 getgradesystem();
-getgradeitems();
 //refreshtab();
 }
 
@@ -213,7 +216,7 @@ function addAttendance(idnum){
 	var isvalid = true;
 	$('#attendbody tr').each(function(index){
 		if(this.cells[0].innerHTML == idnum ) {
-			$().toastmessage('showErrorToast', idnum + '  ' + 'already exists!');
+			$().toastmessage('showErrorToast', this.cells[1].innerHTML + '  ' + 'is already logged in!');
 			isvalid = false;
 			return false;
 		}
@@ -221,7 +224,7 @@ function addAttendance(idnum){
 	if(isvalid) {
 		$.post('../scripts/queries/addAttendance',{idnum_:idnum},function(data){
 			if(data == 'True') {
-				$.post('../scripts/queries/getAttendanceBySubject',function(data){
+				$.post('../../scripts/queries/getAttendanceBySubject',function(data){
 					if(data.length>0){
           				classes = data.split("@")
 	    				details = classes[0].split("#")
@@ -264,7 +267,14 @@ function addAttendance(idnum){
 			}
 			else {
 				if(data == 'False')
-					$().toastmessage('showErrorToast', 'Class not started');
+					$.post('../../scripts/queries/getCurrentSession',function(data){
+						if(data == '0') {
+							$().toastmessage('showErrorToast', 'Class not started');
+						}
+						else {
+							$().toastmessage('showErrorToast', 'Student is already logged in!');
+						}
+					});
 				
 				else
 					$().toastmessage('showErrorToast', 'Student not found!');
@@ -276,49 +286,89 @@ function addAttendance(idnum){
 
 function getgradesystem() {
 	$.post('../scripts/queries/getGradeSystem',function(data){
-       if(data.length>0){
-          classes = data.split("@")
-          for(i=0; i<classes.length-1; i++){
-	     details = classes[i].split("$")
+		if(data.length>0){
+			classes = data.split("@")
+        	for(i=0; i<classes.length-1; i++){
+	     		details = classes[i].split("#")
 	     
-             var tbody = document.getElementById
-	("users").getElementsByTagName('TBODY')[0];
-	var row = document.createElement('TR')
+       		 	var tbody = document.getElementById("users").getElementsByTagName('TBODY')[0];
+				var row = document.createElement('TR')
 	
-	var td1 = document.createElement('TD')
-	td1.innerHTML = details[0];
+				var td1 = document.createElement('TD')
+				td1.innerHTML = details[1];
 		
-	var td2 = document.createElement('TD')
-	td2.setAttribute("class" , 'edit'); 
-	td2.innerHTML = details[1]
+				var td2 = document.createElement('TD')
+				td2.setAttribute("class" , 'edit'); 
+				td2.innerHTML = details[2]
 
-	var td3 = document.createElement('TD')
-	var cn = document.createElement('center')
-	var b = document.createElement('input')
-	b.setAttribute("class" , 'del'); 
- 	b.setAttribute("type" , 'button');
-	b.setAttribute("value", 'Delete');
-	b.setAttribute("id", 'view_button');
+				var td3 = document.createElement('TD')
+				var cn = document.createElement('center')
+				var b = document.createElement('input')
+				b.setAttribute("class" , 'del'); 
+ 				b.setAttribute("type" , 'button');
+				b.setAttribute("value", 'Delete');
+				b.setAttribute("id", 'view_button');
+	
+				var td4 = document.createElement('TD')
+				td4.setAttribute("class" , 'edit'); 
+				td4.setAttribute("style", 'display: none');
+				td4.innerHTML = details[0]
+	
+				gradecatlist = document.getElementById("gradecat");
+				if(classes[0] != "None"){
+					var opt = document.createElement('OPTION');
+					opt.innerText = details[1];
+					opt.value = details[0];
+					$('#gradecat').append(opt);
+				}
 		
-		row.appendChild(td1);
-		row.appendChild(td2);
-		cn.appendChild(b);
-		td3.appendChild(cn)
-		row.appendChild(td3);
-		tbody.appendChild(row);             
-	  }
-       }
+				row.appendChild(td1);
+				row.appendChild(td2);
+				cn.appendChild(b);
+				td3.appendChild(cn)
+				row.appendChild(td3);
+				row.appendChild(td4);
+				if(classes[0] != "None"){
+					tbody.appendChild(row); 
+				}
+				if(i == classes.length-2){
+					$(function() {
+						$("#gradecat").selectbox({
+							onOpen: function (inst) {
+								$('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
+									$(document.getElementById("gradeitembody").childNodes).each(function() { 
+										$(this).remove(); 
+			 						});
+								});
+								$('#viewgradeitemz').hide("fade", { direction: "up"}, 500, function() {
+									$(document.getElementById("sgibody").childNodes).each(function() { 
+										$(this).remove(); 
+			 						});
+								});
+							},
+							onChange: function (val, inst) {
+								if(val != "Select Category") {
+									getgradeitems(val);
+									$('.gradezitemz').show("fade", { direction: "up" }, 500,function() {
+									});
+								}
+							},
+						effect: "slide"
+						});
+					});
+				}
+			}
+		}
        
-    });
+	});
 }
 
 
 function setGradeSystem(name,weight){
-	
 	var table = document.getElementById("users");
 	var temp = 0;
 	var valid = true;
-	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	var reg = new RegExp("^[+]?[0-9]+$");
 	if(!reg.test(weight)) {
 		$().toastmessage('showErrorToast', 'Invalid Input');
 		return;
@@ -342,58 +392,104 @@ function setGradeSystem(name,weight){
 	
 	if(valid){
 		$.post('../scripts/queries/setGradeSystem',{name_:name,weight_:weight},function(data){
-			if(data == 'true') {
-				var row = document.createElement('TR')
+			if(data == 'True') {			
+				$.post('../scripts/queries/getGradeSystem',function(data) {
+					if(data.length>0){
+         				classes = data.split("@")
+          				for(i=0; i<classes.length-1; i++){
+          					details = classes[i].split("#")
+          					if(details[1] == name && details[2] == weight) {
+          						var row = document.createElement('TR')
 	
-				var td1 = document.createElement('TD')
-				td1.innerHTML = name;
+								var td1 = document.createElement('TD')
+								td1.innerHTML = name;
+			
+								var td2 = document.createElement('TD')
+								td2.setAttribute("class" , 'edit'); 
+								td2.innerHTML = weight;
 	
-		
-				var td2 = document.createElement('TD')
-				td2.setAttribute("class" , 'edit'); 
-				td2.innerHTML = weight;
+								var td3 = document.createElement('TD')
+								var cn = document.createElement('center')
+								var b = document.createElement('input')
+								b.setAttribute("class" , 'del'); 
+								b.setAttribute("type" , 'button');
+								b.setAttribute("value", 'Delete');
+								b.setAttribute("id", 'view_button');
+								
+								var td4 = document.createElement('TD')
+								td4.setAttribute("class" , 'edit'); 
+								td4.setAttribute("style", 'display: none');
+								td4.innerHTML = details[0]
 	
-				var td3 = document.createElement('TD')
-				var cn = document.createElement('center')
-				var b = document.createElement('input')
-				b.setAttribute("class" , 'del'); 
- 				b.setAttribute("type" , 'button');
-				b.setAttribute("value", 'Delete');
-				b.setAttribute("id", 'view_button');
-	
-				row.appendChild(td1);
-				row.appendChild(td2);
-				cn.appendChild(b);
-				td3.appendChild(cn)
-				row.appendChild(td3);				
+								row.appendChild(td1);
+								row.appendChild(td2);
+								cn.appendChild(b);
+								td3.appendChild(cn)
+								row.appendChild(td3);
+								row.appendChild(td4);
+								
+								$(function() {
+									$("#gradecat").selectbox("detach")
+									gradecatlist = document.getElementById("gradecat");
+									var opt = document.createElement('OPTION');
+									opt.innerText = details[1];
+									opt.value = details[0];
+									$('#gradecat').append(opt);
+									$("#gradecat").selectbox({
+										onOpen: function (inst) {
+													$('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
+														$(document.getElementById("gradeitembody").childNodes).each(function() { 
+															$(this).remove(); 
+			 											});
+													});
+													$('#viewgradeitemz').hide("fade", { direction: "up"}, 500, function() {
+														$(document.getElementById("sgibody").childNodes).each(function() { 
+															$(this).remove(); 
+			 											});
+													});
+												},
+										onChange: function (val, inst) {
+													if(val != "Select Category") {
+														getgradeitems(val);
+														$('.gradezitemz').show("fade", { direction: "up" }, 500,function() {
+														});
+													}
+												},
+										effect: "slide"
+									});
+								});	
 
-				if($('#gradecattablebody tr').length == 0) {
-					$("#gradecattablebody").prepend(row).children(':first').hide().fadeIn(1000, function() { });
-					$().toastmessage('showSuccessToast', name + '  ' + 'added');
-					return;
-				}
+								if($('#gradecattablebody tr').length == 0) {
+									$("#gradecattablebody").prepend(row).children(':first').hide().fadeIn(1000, function() { });
+									$().toastmessage('showSuccessToast', name + '  ' + 'added');
+								return;
+								}
 					
-				$('#gradecattablebody tr').each(function(index){
-					if(this.cells[1].innerHTML <= parseInt(weight) ) {
-						$(this).before(row).prev().hide().fadeIn(1000, function() { });
-						$().toastmessage('showSuccessToast', name + '  ' + 'added');
-						return false;
+								$('#gradecattablebody tr').each(function(index){
+									if(this.cells[1].innerHTML <= parseInt(weight) ) {
+										$(this).before(row).prev().hide().fadeIn(1000, function() { });
+										$().toastmessage('showSuccessToast', name + '  ' + 'added');
+										return false;
+									}
+									if($(this).is(':last-child')) {
+    									$(this).after(row).next().hide().fadeIn(1000, function() { });
+										$().toastmessage('showSuccessToast', name + '  ' + 'added');
+									}																		    
+								})
+          					}
+						}
 					}
-					if($(this).is(':last-child')) {
-    					$(this).after(row).next().hide().fadeIn(1000, function() { });
-						$().toastmessage('showSuccessToast', name + '  ' + 'added');
-					}																		    
-				})			
+				});
 			}
-		
 		});
 	}
 }
+
 function editweight(v,n){
 	n.innerHTML = v
 	var table = document.getElementById("users");
 	var temp = 0;
-	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	var reg = new RegExp("^[+]?[0-9]+$");
 	if(!reg.test(v)) {
 		$().toastmessage('showErrorToast', 'Invalid Input');
 		n.parentNode.childNodes[1].revert();
@@ -407,7 +503,7 @@ function editweight(v,n){
 		n.parentNode.childNodes[1].revert();
 	}
 	else {
-		$.post('../scripts/queries/editCatWeight',{name_:n.parentNode.childNodes[0].innerHTML, weight_:n.innerHTML},function(data){
+		$.post('../scripts/queries/editCatWeight',{catid_:n.parentNode.childNodes[3].innerHTML, weight_:n.innerHTML},function(data){
 			$().toastmessage('showNoticeToast', n.parentNode.childNodes[0].innerHTML + '  ' + 'updated');
 			$(n).animate().hide().fadeIn(1000, function() { });
 		});
@@ -416,12 +512,49 @@ function editweight(v,n){
 }
 
 function deletecat(n){
-	$.post('../scripts/queries/deleteCategory',{name_:n.childNodes[0].innerHTML},function(data){
-		if(data == 'true') {
+	$.post('../scripts/queries/deleteCategory',{catid_:n.childNodes[3].innerHTML},function(data){
+		if(data == 'True') {
 			$().toastmessage('showErrorToast', n.childNodes[0].innerHTML + '  ' + 'deleted');
 			$(n).animate().fadeOut(400,function(){ 
 				$(n).remove()
 			});
+			$("#gradecat").val(0);
+			$('.gradezitemz').hide();
+			$(document.getElementById("gradeitembody").childNodes).each(function() { 
+				$(this).remove(); 
+			 });
+			$('#viewgradeitemz').hide();
+			$(document.getElementById("sgibody").childNodes).each(function() { 
+				$(this).remove();
+			});
+	
+			$(function() {
+									$("#gradecat").selectbox("detach")
+									gradecatlist = document.getElementById("gradecat");
+									$("option[value='"+n.childNodes[3].innerHTML+"']").remove();
+									$("#gradecat").selectbox({
+										onOpen: function (inst) {
+													$('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
+														$(document.getElementById("gradeitembody").childNodes).each(function() { 
+															$(this).remove(); 
+			 											});
+													});
+													$('#viewgradeitemz').hide("fade", { direction: "up"}, 500, function() {
+														$(document.getElementById("sgibody").childNodes).each(function() { 
+															$(this).remove(); 
+			 											});
+													});
+												},
+										onChange: function (val, inst) {
+												  	if(val != "Select Category") {
+														getgradeitems(val);
+														$('.gradezitemz').show("fade", { direction: "up" }, 500,function() {
+														});
+													}
+												},
+										effect: "slide"
+									});
+								});	
 		}
 
 	});
@@ -519,29 +652,34 @@ function gradecatdropdown (){
 	});
 }
 
-function getgradeitems(){
-	$.post('../scripts/queries/getGradeItems',function(data){
+function getgradeitems(v){
+	$.post('../scripts/queries/getGradeItems',{catid_:v},function(data){
 		if(data.length>0){
 			var tbody = document.getElementById("gradeitemtable").getElementsByTagName('TBODY')[0]
     		classes = data.split("@")
         	for(i=0; i<classes.length-1; i++){
-	     		details = classes[i].split("$")
+	     		details = classes[i].split("#")
 
 				var row = document.createElement('TR')
 	
 				var td1 = document.createElement('TD')
-				td1.innerHTML = details[0];
+				td1.innerHTML = details[1];
 				td1.setAttribute("style" , 'text-align:center');
 
 		
 				var td2 = document.createElement('TD')
 				td2.setAttribute("class" , 'editmaxscore'); 
 				td2.setAttribute("style" , 'text-align:center');
-				td2.innerHTML = details[1]
+				td2.innerHTML = details[2]
 				
 				var td3 = document.createElement('TD')
 				td3.setAttribute("style" , 'text-align:center');
-				td3.innerHTML = details[2]
+				td3.innerHTML = details[3]
+				
+				var td5 = document.createElement('TD')
+				td5.setAttribute("class" , 'edit'); 
+				td5.setAttribute("style", 'display: none');
+				td5.innerHTML = details[0]
 
 				var td4 = document.createElement('TD')
 				var cn = document.createElement('center')
@@ -565,6 +703,7 @@ function getgradeitems(){
 				td4.appendChild(cn)
 				row.appendChild(td3);
 				row.appendChild(td4);
+				row.appendChild(td5);
 				tbody.appendChild(row);             
 			}
 		}
@@ -573,8 +712,8 @@ function getgradeitems(){
 }
 
 
-function addgradeitem(name,maxscore,gradecat){
-	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+function addgradeitem(name,maxscore){
+	var reg = new RegExp("^[+]?[0-9]+$");
 	if(!reg.test(maxscore)) {
 		$().toastmessage('showErrorToast', 'Invalid Input');
 		return;
@@ -590,79 +729,93 @@ function addgradeitem(name,maxscore,gradecat){
    		 }
 	}
 	if(valid) {
-		$.post('../scripts/queries/addGradeItem',{name_:name,maxscore_:maxscore,gradecat_:gradecat},function(data){
-			if(data == 'true') {
-				var row = document.createElement('TR')
+		$.post('../scripts/queries/addGradeItem',{name_:name,maxscore_:maxscore,catid_:$('#gradecat :selected').val()},function(data){
+			if(data == 'True') {
+				$.post('../scripts/queries/getGradeItems',{catid_:$('#gradecat :selected').val()},function(data){
+					var tbody = document.getElementById("gradeitemtable").getElementsByTagName('TBODY')[0]
+    				classes = data.split("@")
+        			for(i=0; i<classes.length-1; i++){
+	     				details = classes[i].split("#")
+	     				if(details[1] == name && details[2] == maxscore){
+							var row = document.createElement('TR')
 	
-				var td1 = document.createElement('TD')
-				td1.innerHTML = name;
-				td1.setAttribute("style" , 'text-align:center');	
-		
-				var td2 = document.createElement('TD')
-				td2.setAttribute("class" , 'editmaxscore'); 
-				td2.setAttribute("style" , 'text-align:center');
+							var td1 = document.createElement('TD')
+							td1.innerHTML = details[1];
+							td1.setAttribute("style" , 'text-align:center');
 
-				td2.innerHTML = maxscore;
+							var td2 = document.createElement('TD')
+							td2.setAttribute("class" , 'editmaxscore'); 
+							td2.setAttribute("style" , 'text-align:center');
+							td2.innerHTML = details[2]
 				
-				var td3 = document.createElement('TD')
-				td3.setAttribute("style" , 'text-align:center');
-				td3.innerHTML = gradecat;
-	
-				var td4 = document.createElement('TD')
-				var cn = document.createElement('center')
-				var b = document.createElement('input')
-				b.setAttribute("class" , 'delgradeitem'); 
- 				b.setAttribute("type" , 'button');
-				b.setAttribute("value", 'Delete');
-				b.setAttribute("id", 'view_button');
+							var td3 = document.createElement('TD')
+							td3.setAttribute("style" , 'text-align:center');
+							td3.innerHTML = details[3]
 				
-				var b1 = document.createElement('input')
-				b1.setAttribute("class" , 'viewgradeitem'); 
- 				b1.setAttribute("type" , 'button');
-				b1.setAttribute("value", 'View');
-				b1.setAttribute("style", 'width: 50px');
-				b1.setAttribute("id", 'view_button');
-	
-				row.appendChild(td1);
-				row.appendChild(td2);
-				cn.appendChild(b1);
-				cn.appendChild(b);
-				td4.appendChild(cn);
-				row.appendChild(td3);
-				row.appendChild(td4);
+							var td5 = document.createElement('TD')
+							td5.setAttribute("class" , 'edit'); 
+							td5.setAttribute("style", 'display: none');
+							td5.innerHTML = details[0]
+
+							var td4 = document.createElement('TD')
+							var cn = document.createElement('center')
+							var b = document.createElement('input')
+							b.setAttribute("class" , 'delgradeitem'); 
+ 							b.setAttribute("type" , 'button');
+							b.setAttribute("value", 'Delete');
+							b.setAttribute("id", 'view_button');
 				
-				if($('#gradeitembody tr').length == 0) {
-					$('#gradeitembody').prepend(row).children(':first').hide().fadeIn(1000, function() { });
-					$().toastmessage('showSuccessToast', name + '  ' + 'added');
-					return;
-				}
+							var b1 = document.createElement('input')
+							b1.setAttribute("class" , 'viewgradeitem'); 
+ 							b1.setAttribute("type" , 'button');
+							b1.setAttribute("value", 'View');
+							b1.setAttribute("style", 'width: 50px');
+							b1.setAttribute("id", 'view_button');
+		
+							row.appendChild(td1);
+							row.appendChild(td2);
+							cn.appendChild(b1);
+							cn.appendChild(b);
+							td4.appendChild(cn)
+							row.appendChild(td3);
+							row.appendChild(td4);
+							row.appendChild(td5);
+				
+							if($('#gradeitembody tr').length == 0) {
+								$('#gradeitembody').prepend(row).children(':first').hide().fadeIn(1000, function() { });
+								$().toastmessage('showSuccessToast', name + '  ' + 'added');
+								return;
+							}
 					
-				$('#gradeitembody tr').each(function(index){
-					if(name.localeCompare(this.cells[0].innerHTML) == -1) {
-						$(this).before(row).prev().hide().fadeIn(1000, function() { });
-						$().toastmessage('showSuccessToast', name + '  ' + 'added');
-						return false;
+							$('#gradeitembody tr').each(function(index){
+								if(name.localeCompare(this.cells[0].innerHTML) == -1) {
+									$(this).before(row).prev().hide().fadeIn(1000, function() { });
+									$().toastmessage('showSuccessToast', name + '  ' + 'added');
+									return false;
+								}
+								if($(this).is(':last-child')) {
+    								$(this).after(row).next().hide().fadeIn(1000, function() { });
+									$().toastmessage('showSuccessToast', name + '  ' + 'added');
+								}																		    
+							});
+						}
 					}
-					if($(this).is(':last-child')) {
-    					$(this).after(row).next().hide().fadeIn(1000, function() { });
-						$().toastmessage('showSuccessToast', name + '  ' + 'added');
-					}																		    
-				})			
+				})
 			}
-		});
+		})
 	}
 }
 
 function editmaxscore(v,n){
 	n.innerHTML = v
-	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+	var reg = new RegExp("^[+]?[0-9]+$");
 	if(!reg.test(v)) {
 		$().toastmessage('showErrorToast', 'Invalid Input');
 		n.parentNode.childNodes[1].revert();
 		return false;
 	}
-		$.post('../scripts/queries/editMaxScore',{name_:n.parentNode.childNodes[0].innerHTML, maxscore_:n.innerHTML},function(data){
-			if(data == 'true') {
+		$.post('../scripts/queries/editMaxScore',{gradeitemid_:n.parentNode.childNodes[4].innerHTML, maxscore_:n.innerHTML},function(data){
+			if(data == 'True') {
 				$().toastmessage('showNoticeToast', n.parentNode.childNodes[0].innerHTML + '  ' + 'updated');
 				$(n).animate().hide().fadeIn(1000, function() { });
 			}
@@ -670,8 +823,8 @@ function editmaxscore(v,n){
 }
 
 function deletegradeitem(n){
-	$.post('../scripts/queries/deleteGradeItem',{name_:n.childNodes[0].innerHTML},function(data){
-		if(data == 'true') {
+	$.post('../scripts/queries/deleteGradeItem',{name_:n.childNodes[4].innerHTML},function(data){
+		if(data == 'True') {
 			$().toastmessage('showErrorToast', n.childNodes[0].innerHTML + '  ' + 'deleted');
 			$(n).animate().fadeOut(400,function(){ 
 				$(n).remove()
@@ -683,17 +836,17 @@ function deletegradeitem(n){
 
 function getstudentgrades(n){
 	$('#gradeitemlabel').html(n.parentNode.parentNode.parentNode.childNodes[0].innerHTML);
-	$.post('../scripts/queries/getStudentGrades',{gradeitem_:n.parentNode.parentNode.parentNode.childNodes[0].innerHTML},function(data){
+	$('#gradeitemidlabel').html(n.parentNode.parentNode.parentNode.childNodes[4].innerHTML);
+	$.post('../scripts/queries/getStudentGrades',{gradeitemid_:n.parentNode.parentNode.parentNode.childNodes[4].innerHTML},function(data){
 		if(data.length>0){
-			var tbody = document.getElementById("studentgradeitems").getElementsByTagName('TBODY')[0]
+			var tbody = document.getElementById('sgibody');
     		classes = data.split("@")
         	for(i=0; i<classes.length-1; i++){
-	     		details = classes[i].split("$")
-
+	     		details = classes[i].split("#")
 				var row = document.createElement('TR')
 	
 				var td1 = document.createElement('TD')
-				td1.innerHTML = details[0];
+				td1.innerHTML = details[2];
 				td1.setAttribute("style" , 'text-align:center');
 
 		
@@ -702,9 +855,9 @@ function getstudentgrades(n){
 				td2.innerHTML = details[1]
 				
 				var td3 = document.createElement('TD')
-				td2.setAttribute("class" , 'editstudscore');
+				td3.setAttribute("class" , 'editstudscore');
 				td3.setAttribute("style" , 'text-align:center');
-				td3.innerHTML = details[2]
+				td3.innerHTML = details[3]
 
 				var td4 = document.createElement('TD')
 				var cn = document.createElement('center')
@@ -713,6 +866,10 @@ function getstudentgrades(n){
  				b.setAttribute("type" , 'button');
 				b.setAttribute("value", 'Delete');
 				b.setAttribute("id", 'view_button');
+				
+				var td5 = document.createElement('TD')
+				td5.setAttribute("style", 'display: none');
+				td5.innerHTML = details[0]
 		
 				row.appendChild(td1);
 				row.appendChild(td2);
@@ -720,15 +877,16 @@ function getstudentgrades(n){
 				td4.appendChild(cn)
 				row.appendChild(td3);
 				row.appendChild(td4);
-				tbody.appendChild(row);             
+				row.appendChild(td5);
+				tbody.appendChild(row);           
 			}
 		}
    
 	});
 }
 
-function addstudentgrade(studentid,score,gradeitem){
-	var reg = new RegExp("^[+]?[0-9]+?[0-9]+$");
+function addstudentgrade(studentid,score){
+	var reg = new RegExp("^[+]?[0-9]+$");
 	if(!reg.test(score)) {
 		$().toastmessage('showErrorToast', 'Invalid Input');
 		return;
@@ -744,16 +902,16 @@ function addstudentgrade(studentid,score,gradeitem){
    		 }
 	}
 	if(valid) {
-		$.post('../scripts/queries/addStudentGrade',{studentid_:studentid,score_:score,gradeitem_:gradeitem},function(data){
-			if(data == 'true') {			
-				$.post('../scripts/queries/getStudentGrades',{gradeitem_:gradeitem},function(data){
+		$.post('../scripts/queries/addStudentGrade',{studentid_:studentid,score_:score,gradeitemid_:$('#gradeitemidlabel').html()},function(data){
+			if(data == 'True') {			
+				$.post('../scripts/queries/getStudentGrades',{gradeitemid_:$('#gradeitemidlabel').html()},function(data){
 					classes = data.split("@")
-	    			details = classes[0].split("$")
+	    			details = classes[classes.length - 2].split("#")
 	    			
 					var row = document.createElement('TR')
 	
 					var td1 = document.createElement('TD')
-					td1.innerHTML = details[0];
+					td1.innerHTML = details[2];
 					td1.setAttribute("style" , 'text-align:center');	
 		
 					var td2 = document.createElement('TD')
@@ -761,9 +919,9 @@ function addstudentgrade(studentid,score,gradeitem){
 					td2.innerHTML = details[1];
 				
 					var td3 = document.createElement('TD')
-					td2.setAttribute("class" , 'editstudscore');
+					td3.setAttribute("class" , 'editstudscore');
 					td3.setAttribute("style" , 'text-align:center');
-					td3.innerHTML = details[2];
+					td3.innerHTML = details[3];
 	
 					var td4 = document.createElement('TD')
 					var cn = document.createElement('center')
@@ -772,6 +930,10 @@ function addstudentgrade(studentid,score,gradeitem){
  					b.setAttribute("type" , 'button');
 					b.setAttribute("value", 'Delete');
 					b.setAttribute("id", 'view_button');
+					
+					var td5 = document.createElement('TD')
+					td5.setAttribute("style", 'display: none');
+					td5.innerHTML = details[0]
 	
 					row.appendChild(td1);
 					row.appendChild(td2);
@@ -779,7 +941,12 @@ function addstudentgrade(studentid,score,gradeitem){
 					td4.appendChild(cn);
 					row.appendChild(td3);
 					row.appendChild(td4);
+					row.appendChild(td5);
+					
+					$('#sgibody').append(row).children(':last').hide().fadeIn(1000, function() { });
+					$().toastmessage('showSuccessToast',  details[1] + '  ' + 'Added');
 				
+					/*
 					if($('#sgibody tr').length == 0) {
 						$('#sgibody').prepend(row).children(':first').hide().fadeIn(1000, function() { });
 						$().toastmessage('showSuccessToast',  details[0] + '  ' + 'Added');
@@ -797,6 +964,7 @@ function addstudentgrade(studentid,score,gradeitem){
 							$().toastmessage('showSuccessToast', details[0] + '  ' + 'Added');
 						}																	    
 					});
+					*/
 				});
 			}
 			else
@@ -806,11 +974,39 @@ function addstudentgrade(studentid,score,gradeitem){
 	}
 }
 
-function autocomp() {
+function deletestudentgrade(n){
+	$.post('../scripts/queries/deleteStudentGrade',{gradeid_:n.childNodes[4].innerHTML},function(data){
+		if(data == 'True') {
+			$().toastmessage('showErrorToast', n.childNodes[1].innerHTML + '  ' + 'deleted');
+			$(n).animate().fadeOut(400,function(){ 
+				$(n).remove()
+			});
+		}
+
+	});
+}
+
+function editstudentgrade(v,n){
+	n.innerHTML = v
+	var reg = new RegExp("^[+]?[0-9]+$");
+	if(!reg.test(v)) {
+		$().toastmessage('showErrorToast', 'Invalid Input');
+		n.parentNode.childNodes[1].revert();
+		return false;
+	}
+		$.post('../scripts/queries/editStudentGradeScore',{gradeitemid_:n.parentNode.childNodes[4].innerHTML, newscore_:n.innerHTML},function(data){
+			if(data == 'True') {
+				$().toastmessage('showNoticeToast', n.parentNode.childNodes[1].innerHTML + '  ' + 'updated');
+				$(n).animate().hide().fadeIn(1000, function() { });
+			}
+		});
+}
+
+function autocomp(inst) {
 	$.post('../scripts/queries/studentIdAutoComp',function(data) {
 		var t = data.split('@');
 		//alert(eval('[' + data.split('@') + ']'));
-		$( "#dfidnumber" ).autocomplete({
+		$(inst).autocomplete({
 				source: t,
 				close: function( event, ui ) {
                 getstudentstats(this.value);
@@ -859,13 +1055,52 @@ function endsession() {
 }
 
 function getstudentstats(idnum) {
-	document.getElementById("frmpic").src = "images/ajax-loader.gif";
+	document.getElementById("frmpic").src = "pictures/ajax-loader.gif";
 	$.post('../scripts/queries/getStudentStats',{idnum_:idnum},function(data){
   		if(data.length>0){
     		info = data.split("#")
           	document.getElementById("dfname").value = info[1]
           	document.getElementById("dfcourse").value = info[2]
-          	document.getElementById("frmpic").src = "images/users/" + info[6];
+          	document.getElementById("frmpic").src = "pictures/users/" + info[6];
        	}
+	});
+}
+
+function getenrollednames() {
+	$.post('../scripts/queries/getEnrolledNames',function(data) {
+		var names = data.split('@');
+		for(i=0; i<names.length-1; i++){
+			details = names[i].split("#")
+			var opt = document.createElement('OPTION');
+			opt.innerText = details[1];
+			opt.value = details[0];
+			$('#enrolledlist').append(opt);
+			if(i == names.length-2){
+					$(function() {
+						$("#enrolledlist").selectbox({
+							onOpen: function (inst) {
+								/*$('.gradezitemz').hide("fade", { direction: "up"}, 500, function() {
+									$(document.getElementById("gradeitembody").childNodes).each(function() { 
+										$(this).remove(); 
+			 						});
+								});
+								$('#viewgradeitemz').hide("fade", { direction: "up"}, 500, function() {
+									$(document.getElementById("sgibody").childNodes).each(function() { 
+										$(this).remove(); 
+			 						});
+								});*/
+							},
+							onChange: function (val, inst) {
+								/*if(val != "Select Category") {
+									getgradeitems(val);
+									$('.gradezitemz').show("fade", { direction: "up" }, 500,function() {
+									});
+								}*/
+							},
+						effect: "slide"
+						});
+					});
+				}
+		}
 	});
 }
