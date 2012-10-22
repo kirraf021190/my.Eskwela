@@ -2,7 +2,6 @@
 		font: 80% "Trebuchet MS", sans-serif; 
 		margin: 50px;
 		background-color: #E04848;
-		background-image:url(../pictures/pic.jpg); /*edited*/
 		background-attachment:fixed;
 		background-position: center;
 		background-repeat: repeat;
@@ -48,7 +47,6 @@
 		border-collapse: collapse; 
 		margin: 0 auto;
 		border: 0px solid yellow;
-		
 	}
 		   
 	.div_login {
@@ -322,7 +320,7 @@
 		padding: 15px;
 		border: 0px solid black;
 		position: absolute;
-		right: 200px;
+		right: 90px;
 		top: 120px;
 		font-style: italic;
 		 padding: 5px 10px;
@@ -340,22 +338,6 @@
 		  -webkit-box-shadow: 0 0 0 4px #E77574, 2px 1px 4px 4px rgba(8,6,0,.5);
 		   box-shadow: 0 0 0 4px #E77574, 2px 1px 6px 4px rgba(8,6,0,.5);
 	
-	}
-	
-	.class_recorddiv {
-		width:680px;
-		padding: 15px;
-		border: 0px solid black;
-		position: absolute;
-		left: 500px;
-		top: 77px;
-		border-radius: 3px;
-		-moz-border-radius: 3px;
-		-webkit-border-radius: 3px;
-	 	-moz-box-shadow: 0 0 0 4px #E77574, 2px 1px 4px 4px rgba(8,6,0,.5);
-		-webkit-box-shadow: 0 0 0 4px #E77574, 2px 1px 4px 4px rgba(8,6,0,.5);
-		box-shadow: 0 0 0 4px #E77574, 2px 1px 6px 4px rgba(8,6,0,.5);
-		overflow: scroll;
 	}
 	
 	.form {
@@ -382,7 +364,7 @@
 	}  
 
 	#td_action {
-		width: 120px;
+		width: 220px;
 	}
 	.td_teacherinfo:hover {
 		color: #000;
@@ -601,9 +583,6 @@
 		padding: .6em 10px; 
 		text-align: center; 
 	}
-	tbody#gradeitembody td{
-		text-align:center;
-	}
 		
 	.ui-dialog .ui-state-error { 
 		padding: .3em; 
@@ -637,183 +616,97 @@
 		padding: 0.4em; 
 		text-align: center; 
 	}
-	div#viewgradeitemz { 
-		width: 350px;
-		margin: 20px 0; 
-		margin-right:50cm;	
+	
+	body { 
+		font: 80% "Trebuchet MS", sans-serif; 
+		margin: 50px;
 	}
-		   
-	div#viewgradeitemz p, td, th {
+
+	.textbox {
+            	font: Arial, Sans-serif;
+           	margin-bottom: 5px;
+           	display: block;
+           	padding: solid;
+           	border:solid 1px;
+           	width: 150px; 
+	}  
+         
+	img.r50 {
+		border:0,
+		margin:0 10px;
+		width:100px;
+		height:150px;
+	}
+           
+	label { 
+		display:block;
+	}
+
+	fieldset { 
+		padding:0; 
+		border:0; 
+		margin-top:25px; 
+	}
+	
+	div#dvattendance { 
+		width: 350px; 
+		margin: 20px 0; 
+	}
+
+	div#dvattendance p, td, th {
 		font: 0.9em Arial, Helvetica, sans-serif; 
 		white-space:nowrap;
 	} 
-		   
-	div#viewgradeitemz table {
-		margin: 1em 0; border-collapse: collapse; 
+	
+	div#dvattendance table { 
+		margin: 1em 0; 
+		border-collapse: collapse; 
 		width: 100%; 
 	}
-		   
-	div#viewgradeitemz table td, div#dvscale table th { 
+
+	div#dvattendance table td, div#dvattendance table th { 
 		border: 1px solid #D6DDE6; 
 		padding: .6em 10px; 
 		text-align: left;
 	}
-	
-	div#viewgradeitemz table tr:hover {
-		background-color: #96DAFF;
-		color: #000000;
+
+	div#dvattendance table tr:hover {
+  		background-color: #A9F5A9;
+  		color: #000000;
 	}
-		   
-	div#viewgradeitemz table  th {
-		border: 1px solid #828282;
-		background-color: #BCBCBC;
-		font-weight: bold;
-		text-align: left;
-		padding-left: 4px;
-		padding-top: 6px;
-		padding-bottom: 6px;
 
-
+	div#dvattendance table  th {
+	  	border: 1px solid #828282;
+  		background-color: #BCBCBC;
+  		font-weight: bold;
+  		text-align: left;
+  		padding-left: 4px;
 	}  
-			 
-	div#viewgradeitemz caption {
-		font: bold 0.9em Arial, Helvetica, sans-serif;
-		color: #33517A;
-		text-align: left;
-		padding-top: 3px;
-		padding-bottom: 8px;
+         
+	div#dvattendance caption {
+  		font: bold 0.9em Arial, Helvetica, sans-serif;
+  		color: #33517A;
+  		text-align: left;
+  		padding-top: 3px;
+  		padding-bottom: 8px;
 	}
-	
-	div#viewgradeitemz { 
-		width: 350px;
-		margin: 20px 0; 
-		margin-right:50cm;	
+         
+	.ui-dialog .ui-state-error { 
+		padding: .3em; 
 	}
-		   
-	div#viewstudinfo p, td, th {
-		font: 0.9em Arial, Helvetica, sans-serif; 
-		white-space:nowrap;
-	} 
-		   
-	div#viewstudinfo table {
-		margin: 1em 0; border-collapse: collapse; 
-		width: 100%; 
-	}
-		   
-	div#viewstudinfo table td, div#dvscale table th { 
-		padding: .6em 10px; 
-		text-align: left;
-	}
-		   
-	div#viewstudinfo table  th {
-		border: 1px solid #828282;
-		background-color: #BCBCBC;
-		font-weight: bold;
-		text-align: left;
-		padding-left: 4px;
-		padding-top: 6px;
-		padding-bottom: 6px;
 
+	.validateTips { 
+		border: 1px solid transparent; 
+		padding: 0.3em; 
+	}
 
-	}  
-			 
-	div#viewstudinfo caption {
-		font: bold 0.9em Arial, Helvetica, sans-serif;
-		color: #33517A;
-		text-align: left;
-		padding-top: 3px;
-		padding-bottom: 8px;
-	}
-	
-	div#classrecordz { 
-		margin: 20px 0; 
-		margin-right:50cm;	
-	}
-		   
-	div#classrecordz p, td, th {
-		font: 0.9em Arial, Helvetica, sans-serif; 
-		white-space:nowrap;
-	} 
-		   
-	div#classrecordz table {
-		margin: 1em 0; border-collapse: collapse; 
-		width: 100%; 
-	}
-		   
-	div#classrecordz table td, div#dvscale table th { 
-		border: 1px solid #D6DDE6; 
-		padding: .6em 10px; 
-		text-align: left;
-	}
-	
-	div#classrecordz table tr:hover {
-		background-color: #96DAFF;
-		color: #000000;
-	}
-		   
-	div#classrecordz table  th {
-		border: 1px solid #828282;
-		background-color: #BCBCBC;
-		font-weight: bold;
-		text-align: left;
-		padding-left: 4px;
-		padding-top: 6px;
-		padding-bottom: 6px;
-
-
-	}  
-			 
-	div#classrecordz caption {
-		font: bold 0.9em Arial, Helvetica, sans-serif;
-		color: #33517A;
-		text-align: left;
-		padding-top: 3px;
-		padding-bottom: 8px;
-	}
-	
-	
 	.ui-tabs-panel {
-        height: 350px;
-        overflow: auto;
-    }
- 
- 		
-.table_studinfo {
-        text-align: center;
-        border: 1px solid black;
-        border-radius: 20px;    
-        border-collapse: collapse;
-        text-align: center;
-        table-layout: fixed;
-        margin: 0 auto;
-        -webkit-box-shadow: 0px 0px 7px rgba(0,0,0,0.6);
-        -moz-box-shadow: 0px 0px 7px rgba(0,0,0,0.6);
-        box-shadow: 0px 0px 7px rgba(0,0,0,0.6);
-        -moz-border-radius: 10px; 
- }
-
-.table_studinfo th{
-        background-color: #DCDCDC;
-        font-weight: bold;
-        color: #000;
-        border: 1px solid #9f9d97;
-        border-collapse: collapse;
-        padding: 10px 0px 10px;
-}
-    
-.table_studinfo td{
-        border: 1px solid #9f9d97;
-        border-collapse: collapse;
-        padding: 10px 0px 10px;
-        background-color: #f5f3e5;
-        white-space: pre-wrap; /* css-3 */
-        white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
-        white-space: -pre-wrap; /* Opera 4-6 */
-        white-space: -o-pre-wrap; /* Opera 7 */
-        word-wrap: break-word; /* Internet Explorer 5.5+ */
-
-}
-.ui-tabs-panel {
 		height: 350px;
 		overflow: auto;
 	}
+	
+	#profilepic {
+		width: 220px;
+		height: 240px;
+	}
+
