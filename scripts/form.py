@@ -24,9 +24,11 @@ def login(req, username, pwd):
 		session['usertype'] = a.execqry("select account_role('"+username+"')", False)[0][0]
 		session.save()
 		if (session['usertype'] == 'STUDENT'):
-			return "<html><body onload='location.href=\"../../html/index.html\"'></body></html>"
-		else:
+			return "<html><body onload='location.href=\"../../html/student_index.html\"'></body></html>"
+		elif (session['usertype'] == 'FACULTY'):
 			return "<html><body onload='location.href=\"../../html/prof_index.html\"'></body></html>"
+		else:
+			return "<html><body onload='location.href=\"../../html/parent_index.html\"'></body></html>"
 
 	else:
 		session['invalid'] = 'Invalid username or password'
