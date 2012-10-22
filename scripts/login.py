@@ -34,9 +34,6 @@ def index(req):
 					<td>
 						<input type="submit" value="Log In" class="submit_button"/>
 					</td> 
-					<td>
-						<a href="../html/registration.html">Signup</a>
-					</td>
 					</tr>
 				</table>	
 			</div>
