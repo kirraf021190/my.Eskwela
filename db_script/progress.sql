@@ -323,6 +323,7 @@ returns boolean; TRUE if grade item entry was successfully updated and FALSE oth
 CREATE FUNCTION add_grading_system(name_arg text, weight_arg double precision, section_id_arg integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+<<<<<<< HEAD
 
  IF name_arg NOT IN (SELECT name FROM grading_system WHERE section_id = section_id_arg) THEN
 
@@ -336,12 +337,21 @@ CREATE FUNCTION add_grading_system(name_arg text, weight_arg double precision, s
 
  END IF;
 
+=======
+ IF name_arg NOT IN (SELECT name FROM grading_system WHERE section_id = section_id_arg) THEN
+  INSERT INTO grading_system(name,weight,section_id) VALUES(name_arg,weight_arg,section_id_arg);
+  RETURN TRUE;
+ ELSE
+  RETURN FALSE;
+ END IF;
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 END;$$;
 
 
 ALTER FUNCTION public.add_grading_system(name_arg text, weight_arg double precision, section_id_arg integer) OWNER TO postgres;
 
 --
+<<<<<<< HEAD
 -- Name: addstudentgrade(text, double precision, bigint, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -373,6 +383,8 @@ END;$$;
 ALTER FUNCTION public.addstudentgrade(student_id_arg text, score_arg double precision, grade_item_id_arg bigint, section_id_arg integer) OWNER TO postgres;
 
 --
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 -- Name: autola_id(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -477,6 +489,7 @@ CREATE FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text) 
 
 END;$$;
 
+<<<<<<< HEAD
 
 ALTER FUNCTION public.confirm_attendance(session_id_arg integer, student_id_arg text) OWNER TO postgres;
 
@@ -486,6 +499,17 @@ ALTER FUNCTION public.confirm_attendance(session_id_arg integer, student_id_arg 
 
 COMMENT ON FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text) IS 'input: session id, student_id
 
+=======
+
+ALTER FUNCTION public.confirm_attendance(session_id_arg integer, student_id_arg text) OWNER TO postgres;
+
+--
+-- Name: FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION confirm_attendance(session_id_arg integer, student_id_arg text) IS 'input: session id, student_id
+
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 returns TRUE if successful to confirm attendance, false otherwise';
 
 
@@ -630,6 +654,7 @@ returns boolean; TRUE if grade item was successfully deleted and FALSE otherwise
 
 
 --
+<<<<<<< HEAD
 -- Name: delete_grade_item_entry(bigint); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -647,6 +672,8 @@ END;$$;
 ALTER FUNCTION public.delete_grade_item_entry(grade_item_entry_id_arg bigint) OWNER TO postgres;
 
 --
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 -- Name: delete_grade_system_entry(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -670,6 +697,7 @@ ALTER FUNCTION public.delete_grade_system_entry(grade_system_id_arg integer, sec
 CREATE FUNCTION delete_grading_system(grading_system_id integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$BEGIN
+<<<<<<< HEAD
 
  IF grading_system_id IN (SELECT id FROM grading_system) THEN
 
@@ -683,6 +711,14 @@ CREATE FUNCTION delete_grading_system(grading_system_id integer) RETURNS boolean
 
  END IF;
 
+=======
+ IF grading_system_id IN (SELECT id FROM grading_system) THEN
+  DELETE FROM grading_system WHERE id = grading_system_id;
+  RETURN TRUE;
+ ELSE
+  RETURN FALSE;
+ END IF;
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 END$$;
 
 
@@ -1283,6 +1319,7 @@ returns setof integer; id of the grade item entry id that the grade item have';
 CREATE FUNCTION get_grade_item_entry_in_section(student_id_arg text, section_id_arg integer) RETURNS SETOF text
     LANGUAGE plpgsql
     AS $$DECLARE
+<<<<<<< HEAD
 
  grading_system_id_var INTEGER;
 
@@ -1309,6 +1346,21 @@ BEGIN
 
  RETURN;
 
+=======
+ grading_system_id_var INTEGER;
+ grade_item_id_var INTEGER;
+ grade_item_entry_output TEXT;
+
+BEGIN
+ FOR grading_system_id_var IN SELECT id FROM grading_system WHERE section_id = section_id_arg LOOP
+  FOR grade_item_id_var IN SELECT id FROM grade_item WHERE grading_system_id = grading_system_id_var LOOP
+   FOR grade_item_entry_output IN SELECT grading_system.name || '#' || grade_item.name || '#' || grade_item_entry.score || '#' || grade_item.total_score || '#' || grade_item.date FROM grading_system INNER JOIN grade_item ON (grading_system.id = grade_item.grading_system_id) INNER JOIN grade_item_entry ON (grade_item_entry.grade_item_id = grade_item.id) WHERE grade_item_id = grade_item_id_var AND person_id = student_id_arg AND person_type = 'STUDENT' LOOP
+    RETURN NEXT grade_item_entry_output;
+   END LOOP;
+  END LOOP;
+ END LOOP;
+ RETURN;
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 END;$$;
 
 
@@ -1715,7 +1767,11 @@ student_lname_output TEXT;
 
 BEGIN
 
+<<<<<<< HEAD
  SELECT INTO student_id_output, score_output, student_lname_output, student_fname_output, student_mname_output person_id, score, person.last_name, person.first_name, person.middle_name FROM grade_item_entry, person WHERE grade_item_entry.id = grade_item_entry_id_arg AND person_id = person.id;
+=======
+ SELECT INTO student_id_output, score_output person_id, score FROM grade_item_entry WHERE id = grade_item_entry_id_arg;
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
  RETURN grade_item_entry_id_arg || '#' || student_id_output || '#' || student_lname_output || ', ' || student_fname_output || ' ' || student_mname_output || '#' ||  score_output;
 
@@ -1894,7 +1950,11 @@ BEGIN
 
  SELECT INTO first_name_output, middle_name_output, last_name_output, email_output, image_source_output first_name, middle_name, last_name, email, image_source FROM person WHERE id = parent_id_arg AND type = 'PARENT';
 
+<<<<<<< HEAD
  RETURN parent_id_arg || '#' || first_name_output || ' ' || middle_name_output || ' ' || last_name_output || '#' || email_output || '#' || image_source_output;
+=======
+ RETURN parent_id_arg || '#' || first_name_output || ' ' || middle_name_output || ' ' || last_name_output || '#' || email_output;
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 END;$$;
 
@@ -2056,6 +2116,11 @@ BEGIN
 
  SELECT INTO faculty first_name || ' ' || middle_name || ' ' || last_name FROM person WHERE id = section_faculty(section_id_arg);
 
+<<<<<<< HEAD
+=======
+ 
+
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
  RETURN section_id_arg || '#' || subject_name_output || '#' || section_name_output || '#' || subject_description_output || '#' || section_day_output || ' ' || section_time_output || '#' || room_name_output || '#' || subject_unit_output || '#' || subject_type_output || '#' || faculty;
 
 END;$$;
@@ -2073,10 +2138,17 @@ returns text; information of the section, format: id - subject code - section co
 
 
 --
+<<<<<<< HEAD
 -- Name: standing_grade(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
 CREATE FUNCTION standing_grade(student_id_arg text, section_id_arg integer) RETURNS double precision
+=======
+-- Name: student_absence_count(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg integer) RETURNS integer
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
     LANGUAGE plpgsql
     AS $$DECLARE
  grade_item_sum_total_score DOUBLE PRECISION;
@@ -2088,6 +2160,7 @@ CREATE FUNCTION standing_grade(student_id_arg text, section_id_arg integer) RETU
  grade_item_total_score_var DOUBLE PRECISION;
  grade_item_entry_score_var DOUBLE PRECISION;
 BEGIN
+<<<<<<< HEAD
  final_grade = 0;
  FOR grading_system_id_var, grading_system_weight_var IN SELECT id, weight FROM grading_system WHERE section_id = section_id_arg LOOP
   grade_item_sum_total_score = 0;
@@ -2119,6 +2192,8 @@ CREATE FUNCTION student_absence_count(student_id_arg text, section_id_arg intege
  count INTEGER;
 
 BEGIN
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
  SELECT INTO count count(*) FROM student_sessions_absented (student_id_arg, section_id_arg);
 
@@ -2559,7 +2634,11 @@ ALTER SEQUENCE account_id_seq OWNED BY account.id;
 -- Name: account_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 SELECT pg_catalog.setval('account_id_seq', 6, true);
+=======
+SELECT pg_catalog.setval('account_id_seq', 5, true);
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -2616,7 +2695,11 @@ ALTER SEQUENCE class_session_id_seq OWNED BY class_session.id;
 -- Name: class_session_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 SELECT pg_catalog.setval('class_session_id_seq', 39, true);
+=======
+SELECT pg_catalog.setval('class_session_id_seq', 17, true);
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -2796,7 +2879,11 @@ ALTER SEQUENCE grade_item_entry_id_seq OWNED BY grade_item_entry.id;
 -- Name: grade_item_entry_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 SELECT pg_catalog.setval('grade_item_entry_id_seq', 405, true);
+=======
+SELECT pg_catalog.setval('grade_item_entry_id_seq', 18, true);
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -2824,7 +2911,11 @@ ALTER SEQUENCE grade_item_id_seq OWNED BY grade_item.id;
 -- Name: grade_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 SELECT pg_catalog.setval('grade_item_id_seq', 220, true);
+=======
+SELECT pg_catalog.setval('grade_item_id_seq', 9, true);
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -2866,7 +2957,11 @@ ALTER SEQUENCE grading_system_id_seq OWNED BY grading_system.id;
 -- Name: grading_system_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 SELECT pg_catalog.setval('grading_system_id_seq', 147, true);
+=======
+SELECT pg_catalog.setval('grading_system_id_seq', 62, true);
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -3171,16 +3266,24 @@ ALTER TABLE ONLY term ALTER COLUMN id SET DEFAULT nextval('term_id_seq'::regclas
 
 INSERT INTO account VALUES ('razor0512', 'a8e52a4c08639ff544bc259334cd262c8abf8f81705116ad1f38ff6c14bcb1f5fc51e4f7688d99793be703d8189c33015d40baec9d6006f7b75577a5ec8444ba', 'c42501e4552b4f72b8512abc72e2c18d', 3);
 INSERT INTO account VALUES ('encube', 'sandrevenant', '0457dea5c1cd443ca6692282c0780f72', 2);
+<<<<<<< HEAD
 INSERT INTO account VALUES ('parent', 'a80fc2e52e4cb13391f26bedb832a08e8ab5e570af2a82caa1e2d0cd117f1dc7c26375862c7c2670bfe2fdecdd442fd913992eec8e2801e7d712ff73714870c6', '8d00c9795d874c348a2e1173cbc873d1', 6);
 INSERT INTO account VALUES ('encuberevenant', 'fe74e2b4ee9406ca2214299d8c8cc5c06279224b620bab85034a919ac07a008849a3197ab356f2403838b11866c9181c57e5d4df860b2bee0e8d50fe21c71349', 'e80b652a119f46f38acf460a363202fc', 1);
 INSERT INTO account VALUES ('mama', '5416a2af91cd265c23b902fdee4aa2d71b1caf5c02620fc6c4b8df70a529105b3c1c5a982a2a320a068d03abb574c025e34e5939fcf7f246c24fb4e91591cbb0', '950ad93854d941e5ace1a41ffc55290d', 4);
 INSERT INTO account VALUES ('ADMIN', 'e5fb41359286aa8caf5dae8279159febbeb4e5cea38b4f916cbddbdedb64a67a9b90c306e745e459a120cf3794daa41c70cf11c57916dff4e9002079d06cef82', '599462f49254482ab84df9b7fdb59d4f', 5);
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
 -- Data for Name: attendance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
+=======
+INSERT INTO attendance VALUES (true, 12, '2010-7171', 'STUDENT', '2012-10-13 09:47:26');
+INSERT INTO attendance VALUES (true, 12, '2009-1625', 'STUDENT', '2012-10-13 09:47:34');
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 INSERT INTO attendance VALUES (true, 13, '2010-7171', 'STUDENT', '2012-10-13 09:49:19');
 INSERT INTO attendance VALUES (true, 13, '2009-1625', 'STUDENT', '2012-10-13 09:49:33');
 INSERT INTO attendance VALUES (true, 14, '2010-7171', 'STUDENT', '2012-10-13 10:43:48');
@@ -3189,6 +3292,7 @@ INSERT INTO attendance VALUES (true, 15, '2009-1625', 'STUDENT', '2012-10-13 10:
 INSERT INTO attendance VALUES (true, 15, '2010-7171', 'STUDENT', '2012-10-13 10:47:16');
 INSERT INTO attendance VALUES (true, 17, '2009-1625', 'STUDENT', '2012-10-13 22:28:00');
 INSERT INTO attendance VALUES (true, 17, '2010-7171', 'STUDENT', '2012-10-14 22:28:00');
+<<<<<<< HEAD
 INSERT INTO attendance VALUES (true, 18, '2010-7171', 'STUDENT', '2012-10-15 22:37:30');
 INSERT INTO attendance VALUES (true, 18, '2009-1625', 'STUDENT', '2012-10-15 22:37:54');
 INSERT INTO attendance VALUES (true, 19, '2010-7171', 'STUDENT', '2012-10-16 03:00:45');
@@ -3221,6 +3325,8 @@ INSERT INTO attendance VALUES (true, 37, '2009-1625', 'STUDENT', '2012-10-21 21:
 INSERT INTO attendance VALUES (true, 38, '2010-7171', 'STUDENT', '2012-10-21 21:55:42');
 INSERT INTO attendance VALUES (true, 39, '2009-1625', 'STUDENT', '2012-10-22 00:00:00');
 INSERT INTO attendance VALUES (true, 39, '2010-7171', 'STUDENT', '2012-10-22 01:01:00');
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -3237,6 +3343,7 @@ INSERT INTO class_session VALUES (12, 3, 'DISMISSED', '2012-10-13');
 INSERT INTO class_session VALUES (13, 3, 'DISMISSED', '2012-10-13');
 INSERT INTO class_session VALUES (14, 3, 'DISMISSED', '2012-10-13');
 INSERT INTO class_session VALUES (15, 1, 'DISMISSED', '2012-10-13');
+<<<<<<< HEAD
 INSERT INTO class_session VALUES (18, 3, 'DISMISSED', '2012-10-15');
 INSERT INTO class_session VALUES (19, 3, 'DISMISSED', '2012-10-16');
 INSERT INTO class_session VALUES (20, 3, 'DISMISSED', '2012-10-16');
@@ -3260,6 +3367,9 @@ INSERT INTO class_session VALUES (36, 3, 'DISMISSED', '2012-10-20');
 INSERT INTO class_session VALUES (37, 3, 'DISMISSED', '2012-10-21');
 INSERT INTO class_session VALUES (38, 3, 'DISMISSED', '2012-10-21');
 INSERT INTO class_session VALUES (39, 3, 'ONGOING', '2012-10-22');
+=======
+INSERT INTO class_session VALUES (17, 1, 'ONGOING', '2012-10-13');
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -3294,6 +3404,7 @@ INSERT INTO faculty_department VALUES ('1998-9999', 'FACULTY', 1);
 -- Data for Name: grade_item; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 INSERT INTO grade_item VALUES (30, 97, 'Prelim', 100, '2012-10-17 12:15:15');
 INSERT INTO grade_item VALUES (180, 141, 'Quiz 1', 50, '2012-10-20 17:09:34');
 INSERT INTO grade_item VALUES (184, 120, 'Assignment 1', 50, '2012-10-20 17:10:23');
@@ -3310,12 +3421,18 @@ INSERT INTO grade_item VALUES (217, 117, 'Quiz on Statements', 200, '2012-10-22 
 INSERT INTO grade_item VALUES (218, 118, 'Project on Chargers', 5, '2012-12-21 07:59:46');
 INSERT INTO grade_item VALUES (219, 118, 'Assigned Work on Project1', 10, '2012-12-21 08:01:26');
 INSERT INTO grade_item VALUES (220, 147, 'Midterms', 100, '2012-10-05 08:04:19');
+=======
+INSERT INTO grade_item VALUES (1, 41, 'preliminary', 50, '2012-09-26 00:55:48.419224');
+INSERT INTO grade_item VALUES (5, 41, 'quiz', 40, '2012-09-26 23:32:28.603076');
+INSERT INTO grade_item VALUES (9, 59, 'Assignment 1', 50, '2012-10-13 16:59:59');
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
 -- Data for Name: grade_item_entry; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 INSERT INTO grade_item_entry VALUES (327, 181, 20, '2009-1625', 'STUDENT');
 INSERT INTO grade_item_entry VALUES (365, 200, 30, '2009-1625', 'STUDENT');
 INSERT INTO grade_item_entry VALUES (332, 184, 45, '2010-7171', 'STUDENT');
@@ -3346,12 +3463,19 @@ INSERT INTO grade_item_entry VALUES (403, 219, 10, '2010-7171', 'STUDENT');
 INSERT INTO grade_item_entry VALUES (402, 219, 10, '2009-1625', 'STUDENT');
 INSERT INTO grade_item_entry VALUES (404, 220, 0, '2010-7171', 'STUDENT');
 INSERT INTO grade_item_entry VALUES (405, 220, 0, '2009-1625', 'STUDENT');
+=======
+INSERT INTO grade_item_entry VALUES (8, 1, 33, '2009-1625', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (10, 5, 20, '2010-7171', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (2, 1, 33, '2010-7171', 'STUDENT');
+INSERT INTO grade_item_entry VALUES (11, 5, 12, '2009-1625', 'STUDENT');
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
 -- Data for Name: grading_system; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+<<<<<<< HEAD
 INSERT INTO grading_system VALUES (25, 117, 'Quiz ', 1);
 INSERT INTO grading_system VALUES (25, 118, 'Project', 1);
 INSERT INTO grading_system VALUES (25, 119, 'Quiz', 2);
@@ -3359,6 +3483,17 @@ INSERT INTO grading_system VALUES (25, 97, 'Exam', 2);
 INSERT INTO grading_system VALUES (20, 141, 'Quiz', 3);
 INSERT INTO grading_system VALUES (20, 120, 'Assignment', 3);
 INSERT INTO grading_system VALUES (40, 147, 'Exam', 3);
+=======
+INSERT INTO grading_system VALUES (20, 44, 'Midterm', 1);
+INSERT INTO grading_system VALUES (20, 15, 'Assignment', 1);
+INSERT INTO grading_system VALUES (10, 47, 'Midterm', 2);
+INSERT INTO grading_system VALUES (24, 41, 'Prelim', 2);
+INSERT INTO grading_system VALUES (16, 22, 'Prelim', 1);
+INSERT INTO grading_system VALUES (10, 59, 'Assignment', 3);
+INSERT INTO grading_system VALUES (30, 58, 'Prelim', 3);
+INSERT INTO grading_system VALUES (25, 60, 'Quiz', 3);
+INSERT INTO grading_system VALUES (30, 26, 'Finals', 3);
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -3367,8 +3502,11 @@ INSERT INTO grading_system VALUES (40, 147, 'Exam', 3);
 
 INSERT INTO linked_account VALUES ('2009-1625', true, 'P-2373', 'STUDENT', 'PARENT', '2009-1625P-2373');
 INSERT INTO linked_account VALUES ('2010-7171', true, 'P-2373', 'STUDENT', 'PARENT', '2010-7171P-2373');
+<<<<<<< HEAD
 INSERT INTO linked_account VALUES ('2010-7171', true, 'BMW-S1000RR', 'STUDENT', 'PARENT', '2010-7171BMW-S1000RR');
 INSERT INTO linked_account VALUES ('2009-1625', true, 'BMW-S1000RR', 'STUDENT', 'PARENT', '2009-1625BMW-S1000RR');
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -3379,7 +3517,10 @@ INSERT INTO person VALUES ('P-2373', 'PARENT', 'uno', 'unta', 'dong', 4, 'NO IMA
 INSERT INTO person VALUES ('2010-7171', 'STUDENT', 'Kevin Eric', 'Ridao', 'Siangco', 3, 'hawke.jpg', 'shdwstrider@gmail.com', 4);
 INSERT INTO person VALUES ('2009-1625', 'STUDENT', 'Novo', 'Cubero', 'Dimaporo', 1, 'nero.jpg', 'encube@gmail.com', 3);
 INSERT INTO person VALUES ('1998-9999', 'FACULTY', 'Eddie', 'Inc', 'Singko', 5, 'edisingko.jpg', 'smilingsingko@gmail.com', NULL);
+<<<<<<< HEAD
 INSERT INTO person VALUES ('BMW-S1000RR', 'PARENT', 'Mama ', 'Ni', 'Kalel', 6, 'napwheelie.jpg', 'kalelsmom@gmail.com', 100);
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
@@ -3393,8 +3534,11 @@ INSERT INTO person_load VALUES ('2010-7171', 'STUDENT', 6, 1);
 INSERT INTO person_load VALUES ('1998-9999', 'FACULTY', 6, 3);
 INSERT INTO person_load VALUES ('1998-9999', 'FACULTY', 6, 2);
 INSERT INTO person_load VALUES ('1998-9999', 'FACULTY', 6, 1);
+<<<<<<< HEAD
 INSERT INTO person_load VALUES ('2010-7171', 'STUDENT', 6, 3);
 INSERT INTO person_load VALUES ('2009-1625', 'STUDENT', 6, 3);
+=======
+>>>>>>> 2e29da47413ca3225443b508132c2ba5bb83194d
 
 
 --
