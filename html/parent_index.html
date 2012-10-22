@@ -4,13 +4,14 @@
 		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 			<title>my.Eskwela - HOME</title>
 			<link type="text/css" href="css/style.css" rel="stylesheet">
-			<link type="text/css" href="css/style1.css" rel="stylesheet">
+			<link type="text/css" href="css/jquery.selectbox.css" rel="stylesheet">
 			<link rel="stylesheet" type="text/css" href="../javascript/jquery/css/south-street/jquery-ui-1.8.12.custom.css" />
 			  <script type="text/javascript" src="../javascript/jquery/js/jquery-1.5.1.min.js"> </script>
 			  <script type="text/javascript" src="../javascript/jquery/js/jquery-ui-1.8.12.custom.min.js"></script>
 			  <script type="text/javascript" src="../javascript/apMessage.js"></script>
 			  <script type="text/javascript" src="../javascript/glob.js"></script>
 			  <script type="text/javascript" src="../javascript/javascriptz.js"></script>
+			  <script type="text/javascript" src="../javascript/jquery.selectbox-0.2.min.js"></script>
 			  <script type="text/javascript" src="try1.js"></script>
 			  <!--#include virtual="try1.html" -->
 
@@ -23,6 +24,8 @@
 							$( "#dialog" ).dialog();
 							
 						});
+
+
 				</script>-->
 				<script type="text/javascript">
 					$(document).ready(function() {	
@@ -41,67 +44,89 @@
 						}) //end click	
 					});
 				</script>
+				<style type="text/css">
+	
+	img.r50 {
+               border:0,
+               margin:0 10px;
+               width:150px;
+               height:225px;
+           }
+
+	</style>
 	</head>
 
-	<body onload = "getFacInfo()">
+	<body onload = "getParentInfo()">
+
 		<div class="header">
 			<table style="width: 100%">
 				<table style="width: 100%">
 					<tr>
 						<td width="20em" id="minlogo_td">
-							<img src="pictures/logo_index.png"><br>
+							<img src="images/logo_index.png"><br>
 						</td>
 						<td>
 							<p class="header_text" style="text-align:right">
-								<a id = "tp" href="ind.html">Home</a>&nbsp;  | &nbsp;<a href="help.html">Help</a> &nbsp;  | &nbsp;  <a href="../../scripts/form/logout">Logout</a></p>					
-						</td>
+									<a id = "tp" href="prof_index.html">Home</a>&nbsp;  | &nbsp;<a href="help.html">Help</a> &nbsp;  | &nbsp;  <a href="../scripts/form/logout">Logout</a></p>					</td>
 					</tr>
 				</table>
 			</table>
 		</div>	
 
+		
 		<div id="tabs" class="tabs">
 			<script>
-				$(function() { 
-				      $('#tabs').tabs({
-					    load: function(event, ui) {
-						  $('a', ui.panel).live('click', function() {
-							$(ui.panel).load(this.href);
-							return false;
-						  });
-					    }
-				      });
-				});
-			</script>
+					$(function() { 
+      $('#tabs').tabs({
+            load: function(event, ui) {
+                  $('a', ui.panel).live('click', function() {
+                        $(ui.panel).load(this.href);
+                        return false;
+                  });
+            }
+      });
+});
+
+
+</script>
 						
 			<ul id="navs">
 				<li><a href="#tabs-smaller-1" name="tabs-smaller">HOME</a></li>
-				<li><a href="#tabs-smaller-2">churva</a></li>
+				<li><a href="#tabs-smaller-2">My Children</a></li>
 				
 			</ul>
 				<div id="tabs-smaller-1" class="tab_content">
-					<button id="change">Change Password</button>
-						<table>								
-							<table class="table_teacherinfo" id = "userinfo">
-								<tr>
-									<td rowspan="10" class="picturecell">
-										<img src="pictures/nopic.jpg"/>
-									</td>
-								</tr>
-								<tr>
-									<td id="td_teacherlabel">Name:</td>
-									<td class="td_teacherinfo">&nbsp;</td>
-								</tr>
-								<tr>
-									<td id="td_teacherlabel">Email:</td>
-									<td class="td_teacherinfo">&nbsp;</td>
-								</tr>
-							</table>
-						</table>
+						<br></br>
+								<table>
+											
+									<table class="table_teacherinfo" id = "userinfo">
+										<tr>
+											<td rowspan="10" class="picturecell">
+                     						<image id="profilepic" width="250" height="250">
+											</td>
+										</tr>
+										<tr>
+											<td id="td_teacherlabel">Name:</td>
+											<td class="td_teacherinfo">&nbsp;</td>
+										</tr>
+										<tr>
+											<td id="td_teacherlabel">Parent ID:</td>
+											<td class="td_teacherinfo">&nbsp;</td>
+										</tr>
+										<tr>
+											<td id="td_teacherlabel">Email:</td>
+											<td class="td_teacherinfo">&nbsp;</td>
+										</tr>											
+									</table>
+									
+			</table>
 			
-					<script>
-						$(function() {
-							$( "#dialog:ui-dialog" ).dialog( "destroy" );						
+			
+						<script>
+							$(function() {
+								// a workaround for a flaw in the demo system (http://dev.jqueryui.com/ticket/4375), ignore!
+								$( "#dialog:ui-dialog" ).dialog( "destroy" );
+								
 								var name = $( "#name" ),
 									pass = $( "#pass" ),
 									password = $( "#cpass" ),
@@ -145,15 +170,8 @@
 									modal: true,
 									buttons: {
 										"Save": function() {
-											var bValid = true;
-											allFields.removeClass( "ui-state-error" );
-			
-											bValid = bValid && checkLength( name, "username", 3, 16 );
-											bValid = bValid && checkLength( password, "pass", 6, 80 );
-											bValid = bValid && checkLength( cpassword, "cpass", 5, 16 );
-			
-											bValid = bValid && checkRegexp( name, /^[a-z]([0-9a-z_])+$/i, "Username may consist of a-z, 0-9, underscores, begin with a letter." );
-											bValid = bValid && checkRegexp( password, /^([0-9a-zA-Z])+$/, "Password field only allow : a-z 0-9" );											
+												
+											
 										},
 										Cancel: function() {
 											$( this ).dialog( "close" );
@@ -170,58 +188,87 @@
 										$( "#dialog-form" ).dialog( "open" );
 									});
 							});
-					</script>		
-			<div class="demo">
-				<div id="dialog-form" title="Change Password">
-					<p class="validateTips">All form fields are required.</p>
-						<form>
-							<fieldset>
-								<label for="name">Old Password</label>
-									<input type="text" name="name" id="name" class="text ui-widget-content ui-corner-all" />
-								<label for="pass">New Password</label>
-									<input type="text" name="email" id="email" value="" class="text ui-widget-content ui-corner-all" />
-								<label for="cpass">Confirm New Password</label>
-									<input type="password" name="password" id="password" value="" class="text ui-widget-content ui-corner-all" />
-							</fieldset>
-						</form>
-				</div>		
-			</div><!-- End demo -->
-					
-			</div>
-			<div id="tabs-smaller-2" class="tab_content">
-				<table class="table_classlists" id="classList">
-					<tr>
-					    <th id="td_section">Student ID</th>
-					    <th id="td_desc">Name</th>
-					    <th id="td_time">Year</th>
-					    <th id="td_action">Action</th>
-					</tr>	
-				</table>
+						</script>
 			
-						
-			<script type="text/javascript">
-				$('#tabs').tabs({
-				    load: function(event, ui) {
-					$(ui.panel).delegate('a', 'click', function(event) {
-					    $(ui.panel).load(this.href);
-					    event.preventDefault();
-					});
-				    }
-				})
-			</script>
-			<script type="text/javascript">    
-			    $(function(){
-			    	$('.fg-button').hover(
-			    		function(){ $(this).removeClass('ui-state-default').addClass('ui-state-focus'); },
-			    		function(){ $(this).removeClass('ui-state-focus').addClass('ui-state-default'); }
-			    	);
-			    	
-					$('#flat').menu({ 
-						content: $('#flat').next().html(), // grab content from this page
-						showSpeed: 400 
-					});
-			    });
-			</script>
-		</div>
-	</body>
-</html>
+						<div class="demo">
+			
+							<div id="dialog-form" title="Change Password">
+								<p class="validateTips">All form fields are required.</p>
+									<form>
+									<fieldset>
+										<label for="name">Old Password</label>
+										<input type="text" name="name" id="name" class="text ui-widget-content ui-corner-all" />
+										<label for="pass">New Password</label>
+										<input type="text" name="email" id="email" value="" class="text ui-widget-content ui-corner-all" />
+										<label for="cpass">Confirm New Password</label>
+										<input type="password" name="password" id="password" value="" class="text ui-widget-content ui-corner-all" />
+									</fieldset>
+									</form>
+							</div>		
+						</div><!-- End demo -->
+					
+					</div>
+				<div id="tabs-smaller-2" class="tab_content">
+					<select id = "childrenlist">
+						<option>Select Student</option>
+					</select>				
+				<div id="parentviewchildren" style = "display: none">
+			 		<p style = "font-size:14px;font-weight:bold; color: #33517A">Student Info</p>	
+			 		<hr width = "50%" align = "left">
+			 		<table style="text-align: left; width: 50%" border ="0" >
+			 			<tr>
+			 				<td> 
+			 					<p id = "studviewname" style = "font-size:12px;font-weight:bold">Name</p>
+			 					<br></br>
+               	 	 			<p id = "studviewid" style = "font-size:12px;font-weight:bold">ID Number</p>
+               	 	     		<br></br>
+               	 	   			<p id = "studviewcourse" style = "font-size:12px;font-weight:bold">Course</p>
+               	 	    		<br></br>
+               	 	     		<p id = "studviewemail" style = "font-size:12px;font-weight:bold">Email</p>			 		
+			 				</td>
+			 				<td>
+			 					<image src="images/placeholder.png" class="r50" id="studentviewpic" width="50" height="50">
+
+			 				</td>
+			 			</tr>
+			 	</table>
+			 	<hr width = "50%" align = "left">
+			 	
+			 	<br></br>
+			 	<p style = "font-size:14px;font-weight:bold; color: #33517A">Subject Statistics</p>	
+			 	<div id = "akongaccordion">
+			 	</div>
+										
+									</div>
+								</div>
+					<script type="text/javascript">
+$('#tabs').tabs({
+    load: function(event, ui) {
+        $(ui.panel).delegate('a', 'click', function(event) {
+            $(ui.panel).load(this.href);
+            event.preventDefault();
+        });
+    }
+})
+
+
+</script>
+						<script type="text/javascript">    
+    $(function(){
+    	// BUTTON
+    	$('.fg-button').hover(
+    		function(){ $(this).removeClass('ui-state-default').addClass('ui-state-focus'); },
+    		function(){ $(this).removeClass('ui-state-focus').addClass('ui-state-default'); }
+    	);
+    	
+    	// MENU	
+		$('#flat').menu({ 
+			content: $('#flat').next().html(), // grab content from this page
+			showSpeed: 400 
+		});
+    });
+						</script>
+			</div>
+					
+			</body>
+			</html>
