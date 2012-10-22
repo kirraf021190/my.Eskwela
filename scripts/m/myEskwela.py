@@ -1,4 +1,4 @@
-import pg, string, os, psycopg2
+import pg, string, os, psycopg2, hashlib
 
 class Auth:
 
@@ -16,10 +16,10 @@ class Auth:
         #param = ('encube', 'sandrevenant')
         #query = db.query(q, param)
 
-        q1 = "SELECT getsalt('"+self.username +")"
+        q1 = "SELECT getsalt('"+self.username +"')"
         query2 = db.query(q1)
         salt = query2.dictresult()
-        hash = encryptPass(salt, self.password)
+        hash = self.encryptPass(salt, self.password)
         q0 = "SELECT login('"+self.username+"', '"+hash+"')" #edit login to accept hash instead of password
         query = db.query(q0)
         result = query.dictresult()
@@ -30,7 +30,7 @@ class Auth:
         else:
             return False
         
-    def encryptPass(salt, pwd):
+    def encryptPass(self, salt, pwd):
         hashPass = hashlib.sha512(pwd + salt).hexdigest()
         return hashPass
 
@@ -83,7 +83,7 @@ class Database:
 
     def __init__(self, role):
         self.user = "myEskewlaGuest"
-		self.password = "password"
+        self.password = "password"
         
         if (role == "MASTER"):
             self.user = "postgres"
@@ -104,7 +104,7 @@ class Database:
         # RETURNS a LIST of TUPLES
         db = self.db
         cursor = db.cursor()
-		cursor.execute(queryString, queryArgs)
+        cursor.execute(queryString, queryArgs)
         data = cursor.fetchall()
         
         return data
@@ -116,5 +116,4 @@ class Database:
         self.db.commit()
         self.db.close()
         
-
 

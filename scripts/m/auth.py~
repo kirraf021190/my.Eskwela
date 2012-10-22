@@ -1,58 +1,77 @@
-import pg, string
+from myEskwela import *
+import psycopg2, string, uuid, hashlib
 
 def index(req):
     string = ''
 
     #Connect to Database
-    db = pg.connect('myEskwela', 'localhost', 5432, None, None, 'postgres', 'password')
+    #database = pg.connect('myEskwela', 'localhost', 5432, None, None, 'postgres', 'password')
+    #database = Database("GUEST")
+
+    form = req.form
+    username = form['username']
+    password = form['password']
     
-    if (authenticate(req, db) == "TRUE"):
-         sessionID = "TEST_SESSION_ID1"
-         userID    = "2009-1625" #generate_user_id(req, db)
-         userRole  = "STUDENT"
-         
-         string = '{"status":"valid", "sessionID":"'+sessionID+'", "userID":"'+userID+'", "userRole":"'+userRole+'"}'
+    #Connect to Database, currently, i'm doing a hardline... 
+    connString = "dbname=myEskwela user=postgres password=password host=localhost port=5432"
+    conn = psycopg2.connect(connString); curr = conn.cursor(); 
+
+    #authHandler = Auth(username, password)
+    #isAuthenticated = False;
+
+    mySalt = get_my_salt(curr, username); ePassword = encryptPass(mySalt, password):
+
+    arg1 = "SELECT login(%s, %s)"; arg2 = (username, ePassword);
+    curr.execute(arg1, arg2); data = curr.fetchall(); isAuth = data[0][0]
+
+    if (isAuth == "TRUE"):
+        sessionID = generate_salt()
+        userID = get_id_number_from_username(curr, username)
+        userRole = get_user_role_from_username(curr, username)
+
+        string = '{"status":"valid", "sessionID":"'+sessionID+'", "username":"'+username+'", "userID":"'+userID+'", "userRole":"'+userRole+'"}'
     else:
-         string = '{"status":"invalid"}'
+        string = '{"status":"invalid"}'
+  
+    #if (authHandler.auth(database)):
+    #     sessionID = authHandler.get_session_ID(database)
+    #     userID    = authHandler.get_id_number_from_username(database)
+    #     userRole  = authHandler.get_user_role_from_username(database)
+         
+    #     string = '{"status":"valid", "sessionID":"'+sessionID+'", "username":"'+username+'", "userID":"'+userID+'", "userRole":"'+userRole+'"}'
+    #else:
+    #     string = '{"status":"invalid"}'
+    
+    
+
 
     #Close DB
-    db.close()
+    #database.close()
+    conn.close(); curr.close()
     return string
 
+def encryptPass(salt, pwd):
+    hashPass = hashlib.sha512(pwd + salt).hexdigest()
+    return hashPass
 
-def authenticate(r, d):
-    form = r.form #extracts the form data f
-    username = form['username'] #gets the POST/GET variable "username"
-    password = form['password'] #gets the POST/GET variable "password"
+def generate_salt():
+    salt = uuid.uuid4().hex
+    return salt
 
-    #Getting information for the user... TODO: Salt this...
-    queryString = "SELECT login('"+username+"', '"+password+"')"
-    query = d.query(queryString)
-    result = query.dictresult()
-
-    return result[0]['login']
-
-def generate_user_id(r, d):
-    #extract data from form
-    form = r.form
-    username = form['username']
-
-    #get userID (not the ID#)
-    queryString = "SELECT getid('"+username+"')"
-    query = d.query(queryString)
-    result = query.dictresult()
-    userID = result[0]['getid']
-
-    #Optional: For release 1
-    queryString2 = "SELECT getinfo("+str(userID)+")"
-    query2 = d.query(queryString2)
-    result2 = query2.dictresult()
-    info = result2[0]['getinfo']
-
-    infoTemp = string.split(info, ',')
-    return infoTemp[1]
-
-# TODO: generate_user_info
+def get_my_salt(c, u):
+    arg1 = "SELECT getsalt(%s)"; arg2 = (u,)
+    c.execute(arg1, arg2); data = c.fetchall()
     
-def generate_user_id(req, db):
-	
+    return data[0][0]
+
+def get_id_number_from_username(c, u):
+    arg1 = "SELECT account_role_id(%s)"; arg2 = (u,)
+    c.execute(arg1, arg2); data = c.fetchall()
+
+    return data[0][0]
+
+def get_user_role_from_username(c, u):
+    arg1 = "SELECT account_role(%s)"; arg2 = (u,)
+    c.execute(arg1, arg2); data = c.fetchall()
+
+    return data[0][0]

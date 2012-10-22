@@ -1,0 +1,14 @@
+<script type='text/javascript'>
+$(function(){
+	var pageLocation = _server.serverLocation+"scripts/m/get-subject-list-n.py";
+	$.ajax({
+		url:pageLocation, success: function(data){
+			$('#subj-list-container-main').html(data).trigger('create');
+		}
+	});
+});
+	//alert(pageLocation);
+</script>
+<div id='subj-list-container-main'>
+	
+</div>

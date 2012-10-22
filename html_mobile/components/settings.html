@@ -1,0 +1,35 @@
+<script>
+$(function(){
+	$('#change-password-btn').click(function(){
+		$('#pword-form').hide('fade', 500, function(){
+			$('#loading-pword').show('fade', 500, function(){
+				alert("Password has been changed");
+				$('#loading-pword').hide('fade', 500, function(){ 
+					$('#pword-form').show('fade', 500); 
+				});
+			});
+		});
+		
+	});
+	$('#loading-pword').hide(0);
+});
+</script>
+<div id='loading-pword' class='ui-bar-c' align='center' style='padding:0% 0% 0% 10%;margin:-6% 0% 5% -10%;width:105%;'>
+	<h2> Loading...
+	<img src='img/load.gif' /></h2>
+</div>
+<div class='ui-bar-c' id='pword-form' style='padding:0% 0% 0% 10%;margin:-6% 0% 5% -10%;width:105%;'>
+	<h4 align='center' style='margin-left:-20px;'> Change Password </h4>
+    <div style='margin-left:-10px;font-weight:normal;font-size:80%;width:100%'>
+    	Current Password:
+    	<input type='password' placeholder='Current Password' id='current-password' />
+    	New Password:
+    	<input type='password' placeholder='New Password' id='new-password'/>
+    	Repeat New Password:
+    	<input type='password' placeholder='Repeat New Password' id='repeat-password'/>
+    	<br />
+    	<button id='change-password-btn'> Change Password </button>
+    	<br />
+    </div> 
+
+</div>

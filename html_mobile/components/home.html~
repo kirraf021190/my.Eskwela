@@ -1,0 +1,45 @@
+<script type='text/javascript'>
+$(function(){
+	var contentLocation = _server.serverLocation+"scripts/m/get-home-info.py",
+		account = "2009-1625", username = "encube";
+	$.ajax({ url:contentLocation, cache:false, 
+		data: {acctID:account, uname:username},
+		success: function(data){
+			//alert(data);
+			var userInfo = jQuery.parseJSON(data);
+			
+			$('#home-page-full-name').html(userInfo.fullname);
+			$('#home-page-img-cont').html("<img src='img/"+userInfo.img+"' />");
+			$('#home-page-account-type').html("CHAR");
+			$('#home-page-account-id').html(userInfo.username);
+			$('#home-page-account-username').html(userInfo.id);
+		}
+	});
+});
+</script>
+<div id='main-menu-basic-info-cont' align='center'>
+				<span id='home-page-img-cont'>
+					<img src='img/"""+username+""".jpg' />
+				</span>
+				<div id='basic-info-content'>
+					<h2 id='home-page-full-name'></h2>	
+				</div>				
+			</div>
+			<div id='main-menu-adv-info'>
+				<div class='ui-grid-a'>
+					<div class='ui-block-a'>Account Type:</div>
+					<div id='home-page-account-type' class='ui-block-b'></div>
+				</div>
+				<div class='ui-grid-a'>
+					<div class='ui-block-a'>ID Number:</div>
+					<div id='home-page-account-id' class='ui-block-b'></div>
+				</div>
+				<div class='ui-grid-a'>
+					<div class='ui-block-a'>Username:</div>
+					<div id='home-page-account-username' class='ui-block-b'></div>
+				</div>
+				<div class='ui-grid-a'>
+					<div class='ui-block-a'>Password:</div>
+					<div id='home-page-account-type' class='ui-block-b'>not shown</div>
+				</div>
+			</div>

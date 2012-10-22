@@ -1,0 +1,44 @@
+from myEskwela import *
+
+def index(req):
+    form = req.form
+    # Role(s) accepted are STUDENT and FACULTY
+    role = "STUDENT"; acctID = "2009-1625";
+    
+    if (role == "STUDENT"):
+        print ""
+    elif (role == "FACULTY"):
+        print ""
+    
+    
+    
+    
+    return """
+        <script>
+        $(function(){
+            $('.subject-list-item').click(function(){
+	    	    var subjSectID = $(this).attr('id');
+		
+        		//Initiate and append to QueryHandler
+	        	_queryHandler.initializeQuery();
+	        	_queryHandler.setSubjSectionID(subjSectID);
+		
+        		//Set Back Tracker...
+		
+		
+        		//Go to Subject Info...
+        		//$.mobile.changePage('components/dialog/subject-info.html', {role:'dialog', 
+                _pageHandler.generate_subject_info_page();
+        	});
+        });
+        </script>
+        <ul data-role='listview'>
+            <li> Current Subject(s) List as of current SY</li>
+            <li data-role='list-divider'> Please select from below: </li>
+            <li id='TEST1' class='subject-list-item'><a href='#'> foo</a></li>
+            <li id='TEST2' class='subject-list-item'><a href='#'> foo</a></li>
+            <li id='TEST3' class='subject-list-item'><a href='#'> foo</a></li>
+        </ul>
+
+
+    """;

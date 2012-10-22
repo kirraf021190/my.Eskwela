@@ -1,47 +1,30 @@
-import pg, string
-
+import string, psycopg2
 
 def index(req):
+    #Getting AccountID and UserName
     form = req.form
-    username = form['acctID']
-    uname = form['uname']
+    username = form['acctID'] #Account ID ni siya
+    uname = form['uname'] #This is the username
 
-    db = pg.connect('myEskwela', 'localhost', 5432, None, None, 'postgres', 'password')
-    q0 = "SELECT student_information('"+username+"')"
-    query = db.query(q0)
-    result = query.dictresult()
+    #Connect to Database, currently, i'm doing a hardline... 
+    connString = "dbname=myEskwela user=postgres password=password host=localhost port=5432"
+    conn = psycopg2.connect(connString)
+    curr = conn.cursor()
+   
+    #Get Role
+    arg1 = "SELECT account_role(%s)"; arg2 = (uname,)
+    curr.execute(arg1, arg2); data = curr.fetchone(); role = data[0];
 
-    info = string.split(result[0]['student_information'], '#')
-    name = info[2]+", "+info[0]+" "+info[1]
-
+    if (role == "STUDENT"):
+        arg1 = "SELECT student_information(%s)"; arg2 = (username,);
+    elif (role == "FACULTY"):
+        arg1 = "SELECT faculty_information(%s)"; arg2 = (username,)
+    elif (role == "PARENT"):
+        arg1 = "SELECT parent_information(%s)"; arg2 = (username,);
     
+    curr.execute(arg1, arg2); data = curr.fetchone();
+    info = string.split(data[0], '#'); name = info[3]+", "+info[1]+" "+info[2]
 
+    data = '{"username":"'+uname+'", "id":"'+username+'", "fullname":"'+name+'", "img":"'+username+'.jpg", "type":"'+role+'"}'
     
-    return """
-        <div id='main-menu-basic-info-cont' align='center'>
-				<img src='img/nopic.jpg' />
-				<div id='basic-info-content'>
-					<h2>"""+name+"""</h2>	
-				</div>				
-			</div>
-			<div id='main-menu-adv-info'>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>Account Type:</div>
-					<div class='ui-block-b'>Student</div>
-				</div>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>ID Number:</div>
-					<div class='ui-block-b'>"""+username+"""</div>
-				</div>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>Username:</div>
-					<div class='ui-block-b'>"""+uname+"""</div>
-				</div>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>Last Login:</div>
-					<div class='ui-block-b'>12/21/2012 23:59:59</div>
-				</div>
-			</div>
-
-
-        """
+    return data;

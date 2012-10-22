@@ -1,0 +1,16 @@
+<ul data-role='listview'>
+	<li>
+		<h1> About my.Eskwela Mobile </h1>
+	</li>
+	<li>
+		<div style='width:100%;font-weight:normal'>
+			my.Eskwela is a descriptive churva blah blah blah.
+			my.Eskwela is a descriptive churva blah blah blah.
+			my.Eskwela is a descriptive churva blah blah blah.
+			my.Eskwela is a descriptive churva blah blah blah.
+		</div>
+		<div style='width:100%;font-weight:normal'>
+			<button> Download User Manual </button>
+		</div>
+	</li>
+</ul>

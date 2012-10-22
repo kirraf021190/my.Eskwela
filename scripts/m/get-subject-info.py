@@ -65,7 +65,7 @@ def index(req):
     elif (role == "FACULTY"):
         html += """
                         <a href='subj-student-list.html' data-role='button'>View Student Attendance</a>
-			<a href='#' data-rel='back' data-role='button'>Add Grade Churva</a>		
+			<a href='add-student-grade.html' data-role='button'>Add Student Grade</a>		
             """
 
 

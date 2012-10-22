@@ -53,7 +53,7 @@
 						$('#stats-main-cont').append(ul);
 						ul.listview();
 					});
-				} //End Else
+				//} //End Else
 				
 			});
 			</script>

@@ -32,7 +32,7 @@ JSON.stringify = JSON.stringify || function (obj) {
 
 var _server = {
 	
-	serverLocation: "http://"+location.host + "/eskwela.iit.edu.ph/",
+	serverLocation: "http://"+location.host + "/myEskwelaMobile/",
 	serverPort: 80
 }
 
@@ -179,9 +179,15 @@ var _sessionHandler = {
 			 
 		return query.userID;
 	},
+        getUserName: function(){
+	    var queryString = sessionStorage.getItem("session"),
+                query = jQuery.parseJSON(queryString);
+   
+            return query.username;
+        },
 	
 	/* Logout Action */
-	logoutAction: function(){
+	logoutAction: function(){$.mobile.page.prototype.options.degradeInputs.date = true;
 		//Erase all SESSION
 		sessionStorage.removeItem("session");
 		sessionStorage.removeItem("query");
@@ -233,7 +239,7 @@ $(document).bind('pageinit', function(e){
 			}
 		);
 		
-		alert(_location);
+		//alert(_location);
 		
 		_request.fail(function(){
 			$.mobile.changePage('dialog_html/network-error.html', {transition:'flip', role:'dialog'});
@@ -247,7 +253,7 @@ $(document).bind('pageinit', function(e){
 				//Then if authenticated, do a store and a redirection
 				_sessionHandler.loginAction(json);
 				//HACK: Add username in the session...
-				sessionStorage.setItem("username", _username);			
+				//sessionStorage.setItem("username", _username);			
 				$.mobile.changePage('index.html', {transition:'flip'});
 			} else {
 				//Otherwise, Show an error...
@@ -260,75 +266,20 @@ $(document).bind('pageinit', function(e){
 	});
 	
 	/** This is for Main Menu Buttons **/
-	$('#view-attendance-btn').click(function(){
-		_queryHandler.initializeQuery(); 
-		_queryHandler.setQueryType("view-attendance");
+	$('#stats-btn').click(function(){
+		//_queryHandler.initializeQuery(); 
+		//_queryHandler.setQueryType("view-attendance");
 		
 		//Check userRole
 		var userRole = _sessionHandler.getUserRole();
+		alert("foo");
 		if (userRole == "STUDENT"){
-			$.mobile.changePage("select-subject.html", {reloadPage:true});
+			//$.mobile.changePage("select-subject.html", {reloadPage:true});
 		} else if (userRole == "PARENT"){
-			$.mobile.changePage("select-child.html");
+			//$.mobile.changePage("select-child.html");
 		} else { alert("No can't do."); } //Impossible.
 		
 	});
-	
-	/*** NEW: Main Menu Buttons **
-	$('#stats-btn').click(function(){
-		var location = _server.serverLocation + "scripts/m/get-stat-main-info.py";
-		var request = $.ajax({
-				url: location
-		});
-		
-		
-		var html = ""
-		$('#content-cont').hide(500);
-		$('#content-cont').html("");
-		setTimeout(function(){
-			
-			alert($('#content-cont').html());
-			
-			request.fail(function(){
-				$.mobile.changePage('dialog_html/network-error.html', {transition:'flip', role:'dialog'});
-				disable_all_fcns();
-			});
-			
-			request.done(function(data){
-				var ul = $(data);
-				$('#content-cont').append(ul);
-				ul.listview();
-			});
-			
-			$('#content-cont').show(500);
-			
-		}, 500);
-	});
-	*/
-
-/*	
-	/* Clicking the Home Button: Main Menu */
-/*	$('#home-btn').click(function(){
-		var acct = _sessionHandler.getAcctID();
-		var location = _server.serverLocation + "scripts/m/get-home-info.py";
-		var request = $.ajax({
-				url: location, data: {acctID:acct}
-		});
-		
-		$('#content-cont').hide(500);
-		setTimeout(function(){
-			
-			request.fail(function(){
-				$.mobile.changePage('dialog_html/network-error.html', {transition:'flip', role:'dialog'});
-				disable_all_fcns();
-			});
-			
-			request.done(function(data){ 
-				alert(data); $('#content-cont').html(data); })						
-			$('#content-cont').show(500);
-			
-		}, 500);
-	}); */
 
 });
 
@@ -375,10 +326,142 @@ var _statsMod = {
 						$('#stats-main-cont').append(ul);
 						ul.listview();
 					*/
-						alert('been here');
 						$('#stats-main-cont').html(data).trigger('create');
 					});			
 	}
 		
 }
 
+//Animation and Page Module Functions...
+var _pageHandler = {
+	
+    mainContainerHolder: $('#main-pane'),
+    
+	animateInType: null, animateOutType: null, 
+	args: {direction:'up'}, animateSpeed:0,
+	
+	generate_main_page: function(container){
+		/*** Main Page Content Generator ***/
+		container.hide(_pageHandler.animateOutType, _pageHandler.args, _pageHandler.animateSpeed);
+		setTimeout(function(){
+			var pageLoc = _server.serverLocation+"html_mobile/components/home.html",
+				pageContent = $.ajax({ url:pageLoc, cache:false });
+			
+			pageContent.done(function(data){
+				container.html(data).trigger('create').show(_pageHandler.animateInType, _pageHandler.args, _pageHandler.animateSpeed);
+			});	
+		
+		}, _pageHandler.animateSpeed);
+	},
+	generate_stats_page: function(container){
+		/*** Page Generator after clicking "stats" button ***/
+		container.hide(_pageHandler.animateOutType, _pageHandler.args, _pageHandler.animateSpeed);
+		setTimeout(function(){
+			var pageLoc = _server.serverLocation, 
+		            role = "STUDENT";
+			
+			if (role == "STUDENT" || role == "FACULTY"){
+				pageLoc += "html_mobile/components/subj-list.html"
+			} else if (role == "PARENT"){
+			        alert();
+				pageLoc += "html_mobile/components/child-list.html"
+			} else { alert("Can't do!"); } //Impossible.. Can't do..
+			
+			var pageContent = $.ajax({ url:pageLoc, cache:false });
+			
+			pageContent.done(function(data){
+				container.html(data).trigger('create').show(_pageHandler.animateInType, _pageHandler.args, _pageHandler.animateSpeed);
+			});	
+		}, _pageHandler.animateSpeed);
+	},
+    generate_subject_info_page: function(){
+        var pageLoc = _server.serverLocation + "scripts/m/get-subject-info-n.py";
+        var role = _sessionHandler.getUserRole(), ssid = _queryHandler.getSubjectSectionID();
+        var pageRequest = $.ajax({ url:pageLoc, data:{userRole:role, ss:ssid} });
+
+        pageRequest.done(function(data){
+            $('#main-pane').html(data).trigger('create');
+        });
+    },
+    generate_my_attendance_results: function(){
+        var pageLoc = _server.serverLocation + "scripts/m/get-attendance-report-n.py";
+        var role = _sessionHandler.getUserRole(), 
+        	id = null, section = _queryHandler.getSubjectSectionID();
+        if (role == "PARENT"){ //Grab data from ChildList
+        	
+        } else { id = _sessionHandler.getAcctID(); }
+        
+        var pageRequest = $.ajax({ url:pageLoc, data: { i:id, s:section } });
+        pageRequest.done(function(data){
+            $('#main-pane').html(data).trigger('create');
+        });
+    },
+    generate_my_grade_results: function(){
+		var pageLoc = _server.serverLocation + "scripts/m/get-grade-results-n.py";
+		var role = _sessionHandler.getUserRole(), 
+        	id = null, section = _queryHandler.getSubjectSectionID();
+        if (role == "PARENT"){ //Grab data from ChildList
+        	//_queryHandler.
+        } else { id = _sessionHandler.getAcctID(); }
+	
+		var pageReq = $.ajax({ url:pageLoc, data:{ i:id, s:section } });
+		pageReq.done(function(data){
+	    	$('#main-pane').html(data).trigger('create');
+		});
+    },
+    attend_session: function(data){
+		var loc = _server.serverLocation+"scripts/m/attend-session-n.py";
+		var pageReq = $.ajax({ url:loc });
+
+		pageReq.done(function(data){
+	    	$('#main-pane').html(data).trigger('create');
+        });
+    },
+    show_grade_list: function(){
+        var loc = _server.serverLocation+"scripts/m/show-grade-list-n.py";
+        var section = _queryHandler.getSubjectSectionID();
+
+		var pageReq = $.ajax({ url:loc });
+		pageReq.done(function(data){
+	    	$('#main-pane').html(data).trigger('create');
+        });
+    },
+    show_class_list: function(){
+        var loc = _server.serverLocation+"scripts/m/show-class-list-n.py";
+		var pageReq = $.ajax({ url:loc });
+
+		pageReq.done(function(data){
+	    	$('#main-pane').html(data).trigger('create');
+        });
+    },
+    generate_child_page: function(){
+        var loc = _server.serverLocation + "scripts/m/show-child-list-n.py";
+        var idNum = _sessionHandler.getAcctID();
+        var pageReq = $.ajax({ url:loc, data:{ id:idNum } });
+
+        pageReq.done(function(data){
+	    	$('#main-pane').html(data).trigger('create');
+        });
+    },
+    generate_my_subjects: function(){
+        var pageLoc = _server.serverLocation+"scripts/m/get-subject-list-n.py", 
+            idNum = null, role = _sessionHandler.getUserRole(); 
+		
+		if (role == "PARENT"){
+			idNum = _queryHandler.getChildAcctID(); //The Selected Child ID Acct
+        } else { idNum = _sessionHandler.getAcctID(); }
+
+		var pageReq = $.ajax({ url:pageLoc, data:{ acct:idNum, acctRole:role } });
+        pageReq.done(function(data){
+            $('#main-pane').html(data).trigger('create');
+        });
+    },
+    show_add_grade_item_form: function(){
+		var pageLoc = _server.serverLocation+"scripts/m/add-grade-form-n.py";
+        var pageReq = $.ajax({ url:pageLoc });
+
+        pageReq.done(function(data){ $('#main-pane').html(data).trigger('create'); });
+    }
+}
+
+//Attendance Report

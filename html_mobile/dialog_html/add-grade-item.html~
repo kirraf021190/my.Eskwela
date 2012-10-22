@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+		<!-- We need to load everything so that para ma load daan on DOM -->
+	<link rel='stylesheet' href='css/custom-theme/jqueryUI.css' />
+	<link rel='stylesheet' href='css/jquery.mobile-1.1.0.min.css' />
+	<link rel='stylesheet' href='css/style.css' />
+	
+	<script type='text/javascript' src='../javascript/jquery171.js'></script>
+	<script type='text/javascript' src='../javascript/jqueryui.js'></script>
+	<script type='text/javascript' src='../javascript/jquerymobile110.js'></script>
+	<script type='text/javascript' src='../javascript/mobile.js'></script>
+	<!-- End Load  -->
+	
+</head>
+<body id='main-body-container'>
+
+	<div data-role='page' class='mainpage'>
+	
+		<div data-role='header'>
+			<h2>Add Grade Item</h2>
+		</div>
+		<div data-role='content'>
+			<script type='text/javascript'>
+			$(function(){
+				$('#datepick').datepicker();
+			});			
+			</script>
+			<p><i>Please enter details below.</i></p><br />
+			<p>Quiz Name:</p>
+			<input type='text' placeholder='Name' />
+			<p>Quiz Date: </p>
+			<input type='text' placeholder='Date' id='datepick' />
+			<p>Number of Items: </p>
+			<input type='text' placeholder='No. of items' />
+			
+			<div class='ui-grid-a'>
+					<div class='ui-block-a'>
+						<a href='#' data-rel='back' data-role='button' data-icon='check'>OK</a>
+					</div>
+					<div class='ui-block-b'>
+						<a href='#' data-rel='back' data-role='button' data-icon='delete'>Cancel</a>
+					</div>
+			</div>
+		</div>
+	</div>
+	
+</body>
+</html>

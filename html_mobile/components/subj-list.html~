@@ -1,0 +1,28 @@
+<script type='text/javascript'>
+$(function(){
+	$('.subject-list-item').click(function(){
+		var subjSectID = $(this).attr('id');
+		
+		//Initiate and append to QueryHandler
+		_queryHandler.initializeQuery();
+		_queryHandler.setSubjSectionID(subjSectID);
+		
+		//Set Back Tracker...
+		
+		
+		//Go to Subject Info...
+		$.mobile.changePage('components/dialog/subject-info.html', {role:'dialog', transition:'none'});
+	});
+	
+	var pageLocation = _server.serverLocation+"scripts/m/get-subject-list-n.py";
+	$.ajax({
+		url:pageLocation, success: function(data){
+			$('#subj-list-container-main').html(data).trigger('create');
+		}
+	});
+});
+	//alert(pageLocation);
+</script>
+<div id='subj-list-container-main'>
+	
+</div>

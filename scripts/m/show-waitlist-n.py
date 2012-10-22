@@ -1,0 +1,76 @@
+import psycopg2, string
+
+def index(req):
+    
+    form = req.form; section = form['s']
+    
+    #Connect to Database, currently, i'm doing a hardline... 
+    connString = "dbname=myEskwela user=postgres password=password host=localhost port=5432"
+    conn = psycopg2.connect(connString); curr = conn.cursor();
+    
+    #Get subject information
+    
+    #Get ongoing session.. and its information
+    
+    #Get list of on 
+    
+    numberInWaitList = 0; waitList = []
+    arg1 = "SELECT get_unconfirmed_attendance(%s)"; arg2 = (section,)
+    curr.execute(arg1, arg2); data = curr.fetchall()
+    for student in data:
+        studentInfo = string.split(student[0], '#')
+        waitList.append(studentInfo); numberInWaitList += 1;
+    
+    html = """
+        <script>
+        $(function(){
+            $('.accept-load-msg').hide(0);
+            $('.accept-student').click(function(){
+                var id = $(this).attr('id'), session = $(this).attr('data-session-id');
+                $('#s'+id+'').html("<h3 align='center'>Accepting Attendance Request...</h3>");
+
+                var loc = _server.serverLocation+'scripts/m/waitlist-accept-request-n.py';
+                var waitReq = $.ajax({
+                    url:loc, data:{ i:id, s:session }
+                });
+
+                waitReq.done(function(){
+                    $('#s'+id+'').hide('fade', 500, function(){
+                        alert('Student request has been accepted!');     
+                    });
+                });
+            });
+        });
+        </script>
+        <ul data-role='listview'>
+            <li><h3> Showing attendance waitlist </h3></li>
+    """;
+    
+    #Printing List
+    if (numberInWaitList == 0):
+        html += """
+            <li> You have no student(s) in your attendance waitlist. 
+            Please wait for your students or click refresh below.
+            <button id=''> Refresh List </button>
+             </li>
+        """;
+    else:
+        for student in waitList:
+            html += """
+                <li id='s"""+student[0]+"""'>
+                    <img src='img/"""+student[0]+""".jpg' />
+                    """+student[1]+"""<br /><!-- 
+                    <span style='font-weight:normal;font-size:90%;'>"""+student[0]+""" | Date: """+student[3]+"""</span> -->
+                    <div class='ui-grid-a'>
+                        
+                    </div>
+                    <button id="""+student[0]+""" class='accept-student' data-session-id="""+student[2]+""">Accept</button>
+                </li>
+            """;
+        
+        html += """
+        
+        """;
+                            
+    
+    return html;

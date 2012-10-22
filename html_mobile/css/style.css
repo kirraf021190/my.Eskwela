@@ -128,3 +128,6 @@ body, body h5{
 #stat-main-menu-cont h3{
 	margin:0px; padding:5px; 
 }
+
+
+.ui-page { -webkit-backface-visibility: hidden; } 

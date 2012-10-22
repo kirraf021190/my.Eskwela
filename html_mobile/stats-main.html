@@ -24,10 +24,6 @@
 			<img src='img/logo-head.png' id='main-app-header'/>
 		</div> 
 		<div id='content-cont' data-role='content' >
-			<div id='stats-main-cont'>
-			
-			
-			</div>			
 			<script type="text/javascript" >
 			$(function(){
 				//Initialize Query Variable...
@@ -49,14 +45,21 @@
 							{transition:'flip', role:'dialog'});
 					});
 					request.done(function(data){
-						var ul = $(data);
-						$('#stats-main-cont').append(ul);
-						ul.listview();
+						//var ul = $(data);
+						//$('#stats-main-cont').append(ul);
+						//ul.listview();
+						
+						$('#stats-main-cont').html(data).trigger('create');
 					});
 				//} //End Else
 				
 			});
 			</script>
+			<div id='stats-main-cont'>
+			
+			
+			</div>			
+
 		</div>
 		<div data-role='footer' data-theme='c' data-position='fixed' data-fullscreen='false'>
 			<div style='background-color:white;height:3px;'>

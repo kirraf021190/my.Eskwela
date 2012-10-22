@@ -1,67 +1,31 @@
-import pg, string
-
+import string, psycopg2
 
 def index(req):
+    #Getting AccountID and UserName
     form = req.form
-    username = form['acctID']
-    uname = form['uname']
+    username = form['acctID'] #Account ID ni siya
+    uname = form['uname'] #This is the username
 
-    db = pg.connect('myEskwela', 'localhost', 5432, None, None, 'postgres', 'password')
+    #Connect to Database, currently, i'm doing a hardline... 
+    connString = "dbname=myEskwela user=postgres password=password host=localhost port=5432"
+    conn = psycopg2.connect(connString)
+    curr = conn.cursor()
+   
     #Get Role
-    q = "SELECT account_role('"+uname+"')"
-    query0 = db.query(q)
-    res = query0.dictresult()
-    role = res[0]['account_role']
+    arg1 = "SELECT account_role(%s)"; arg2 = (uname,)
+    curr.execute(arg1, arg2); data = curr.fetchone(); role = data[0];
 
     if (role == "STUDENT"):
-        q0 = "SELECT student_information('"+username+"')"
-        query = db.query(q0)
-        result = query.dictresult()
-
-        info = string.split(result[0]['student_information'], '#')
-        name = info[2]+", "+info[0]+" "+info[1]
+        arg1 = "SELECT student_information(%s)"; arg2 = (username,);
     elif (role == "FACULTY"):
-        q0 = "SELECT faculty_information('"+username+"')"
-        query = db.query(q0)
-        result = query.dictresult()
-
-        info = string.split(result[0]['faculty_information'], '#')
-        name = info[2]+", "+info[0]+" "+info[1]
+        arg1 = "SELECT faculty_information(%s)"; arg2 = (username,)
     elif (role == "PARENT"):
-        q0 = "SELECT parent_information('"+username+"')"
-        query = db.query(q0)
-        result = query.dictresult()
-
-        info = string.split(result[0]['parent_information'], '#')
-        name = info[2]+", "+info[0]+" "+info[1]
-
-
+        arg1 = "SELECT parent_information(%s)"; arg2 = (username,);
     
-    return """
-        <div id='main-menu-basic-info-cont' align='center'>
-				<img src='img/"""+username+""".jpg' />
-				<div id='basic-info-content'>
-					<h2>"""+name+"""</h2>	
-				</div>				
-			</div>
-			<div id='main-menu-adv-info'>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>Account Type:</div>
-					<div class='ui-block-b'>"""+role+"""</div>
-				</div>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>ID Number:</div>
-					<div class='ui-block-b'>"""+username+"""</div>
-				</div>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>Username:</div>
-					<div class='ui-block-b'>"""+uname+"""</div>
-				</div>
-				<div class='ui-grid-a'>
-					<div class='ui-block-a'>Last Login:</div>
-					<div class='ui-block-b'>12/21/2012 23:59:59</div>
-				</div>
-			</div>
+    curr.execute(arg1, arg2); data = curr.fetchone();
+    info = string.split(data[0], '#'); #name = info[3]+", "+info[1]+" "+info[2]
+    name = info[1]
 
-
-        """
+    data = '{"username":"'+uname+'", "id":"'+username+'", "fullname":"'+name+'", "img":"'+username+'.jpg", "type":"'+role+'"}'
+    
+    return data;

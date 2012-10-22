@@ -1,0 +1,33 @@
+
+
+def index(req):
+
+    return """
+        <script>
+        $(function(){
+            $('#show-attendance-btn').click(function(){
+                _pageHandler.generate_my_attendance_results();
+            });
+        });
+        </script>    
+        <ul data-role='listview'>
+            <li align='center'> My Attendance Stats </li>
+            <li>
+                <div>
+                    Subject Description: <i>kjldsjfdsk</i> <hr /> 
+                    Instructor: <i> fdklsjfldks </i> <hr />
+                </div>
+            </li>
+            <li data-role='list-divider'> Please select what to do: </li>
+            <li>
+                <ul data-role='listview'>
+                    <li><a href='#'>Whew</a></li>
+                    <li><a href='#'>Whew</a></li>
+                    <li><a href='#'>Whew</a></li>
+                    <li><a href='#'>Whew</a></li>
+                </ul>
+            </li>
+
+        </ul>
+
+   """;
