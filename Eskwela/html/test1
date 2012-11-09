@@ -1,0 +1,27 @@
+<html>
+<head>
+</head>
+<body>
+<table>
+  <tr>
+    <td>column 1 row 1</td>
+    <td>column 2 row 1</td>   </tr>
+  <tr>
+    <td>column 1 row 2</td>
+    <td>
+      <table>
+        <tr>
+          <td>column 1 row 1</td>
+          <td>column 2 row 1</td>
+        </tr>
+        <tr>
+          <td>column 1 row 2</td>
+          <td>column 2 row 2</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,111 @@
+<html>
+  <head>
+	<link rel="stylesheet" type="text/css" href="../javascript/jquery/css/south-street/jquery-ui-1.8.12.custom.css" />
+	<link href="css/style.css" media="all" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="../javascript/jquery/js/jquery-1.5.1.min.js"> </script>
+	<script type="text/javascript" src="../javascript/jquery/js/jquery-ui-1.8.12.custom.min.js"></script>
+	<script type="text/javascript" src="../javascript/apMessage.js"></script>
+	 <script type="text/javascript" src="../javascript/ajaxQueries.js"></script>
+	<script type="text/javascript" src="../javascript/mga_javascripts.js"></script>
+	<script type="text/javascript" src="../javascript/json.js"></script>
+	
+	<!--foe exporting grades-->
+	<script type="text/javascript" src="js/base64.js"></script>
+	<script type="text/javascript" src="js/sprintf.js"></script>
+	<script type="text/javascript" src="js/jspdf.js"></script>
+	<script type="text/javascript" src="js/swfobject.js"></script>
+	<script type="text/javascript" src="js/downloadify.min.js"></script>
+	
+	
+	
+	
+	
+	
+	
+	<!--end-->
+	
+	<script type="text/javascript" src="spec/jquery.js"></script>
+        <script type="text/javascript" src="spec/jquery.ui.js"></script>
+        <script type="text/javascript" src="js/jquery.editinplace.js"></script>
+        <script type="text/javascript" src="js/editable.js"></script>
+	
+        <link rel="stylesheet" href="./css/styles.css" type="text/css" media="screen" title="no title" charset="utf-8" />
+    <noscript> 
+        <meta http-equiv="refresh" content="0;URL=http://google.com" />
+    </noscript>
+
+    <title> Gradebook</title>
+	<style type="text/css">
+		#tabs1 { border:0; }
+		#ui-tab-dialog-close { position:absolute; right:0; top:23px; }
+		#ui-tab-dialog-close a { float:none; padding:0; }
+
+	</style>
+  </head>
+
+  <body onload="getHeader()">
+	<div id="div_parentcontent">
+	<div class="div_header">
+<table class="table_header">
+	<tr>
+		<td width="20em" id="minlogo_td"><img src="pictures/logo_mini.png"></td>
+		<td colspan="5" id="head"><p class="header_text" style="text-align:right"><a href="help.html">Help</a> &nbsp;  | &nbsp;  <a href="../scripts/form/logout">Logout</a></p></td>
+	</tr>
+	<tr>
+		<td id="home" colspan="6"><p class="header_text" style="padding: 0.8em 0em 1em 2em"><a href="studentHome.html">Home</a></p>
+
+</td>
+	</tr>
+	
+	<tr>
+		<td id="subjcode" colspan="6"><p></p></td>
+	
+	</tr>
+</table>
+	
+	
+</div><!--end of div_header-->
+<br> 
+
+<div id="div_content">
+	
+	<div id="tabs"> 
+        <ul>
+            <li><a href="#0" id="00"><span>Grades</span></a></li>
+        </ul>
+
+<div id="0">	
+	<div id="dvscale" class="ui-widget"> 
+	      
+	     <div class="graderep_table">            
+		<table class="ui-widget ui-widget-content"  id="students">
+			<caption> Grade Report </caption>
+
+                 <thead id="thead1">
+			<tr class="ui-widget-header">
+				
+				<div id="headRep">
+				</div>
+				
+				<th scope="col"> Grade</th>
+
+			</tr>
+			<tr id="grpPerformance"></tr>
+                  </thead>
+                  <tbody id="tbody1"></tbody>		
+         	</table> <!-- end of datatable2 -->
+             </div>
+
+			 
+			
+	</div> <!-- end of div id="dvscale" -->
+</div> <!-- end of div id=3 -->
+
+</div>  
+</div>
+	<p id="footer">&copy; my.Eskwela 2011</p>
+</div>
+</div> 
+</body>
+</html>
+

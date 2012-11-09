@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"  "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Untitled Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<style type="text/css">
+#mytab td{
+width:100px;
+height:20px;
+background:#cccccc;
+}
+</style>
+<script type="text/javascript">
+function addRow(){
+var root=document.getElementById('mytab').getElementsByTagName('tbody')[0];
+var rows=root.getElementsByTagName('tr');
+var clone=cloneEl(rows[rows.length-1]);
+root.appendChild(clone);
+}
+function addColumn(){
+var rows=document.getElementById('mytab').getElementsByTagName('tr'), i=0, r, c, clone;
+	while(r=rows[i++]){
+	c=r.getElementsByTagName('td');
+	clone=cloneEl(c[c.length-1]);
+	c[0].parentNode.appendChild(clone);
+	}
+}
+function cloneEl(el){
+var clo=el.cloneNode(true);
+return clo;
+}
+</script>
+
+</head>
+<body>
+<form action="">
+<input type="button" value="Add a Row" onclick="addRow()">
+<input type="button" value="Add a Column" onclick="addColumn()">
+</form>
+<br>
+
+<table id="mytab" border="1" cellspacing="0" cellpadding="0">
+  <tr>
+    <td>hor</td>
+    <td>hello</td>
+  </tr>
+  <tr>
+    <td>i</td>
+    <td>am</td>
+  </tr>
+  <tr>
+    <td>me</td>
+    <td>tou</td>
+  </tr>
+  <tr>
+    <td>a</td>
+    <td>b</td>
+  </tr>
+</table>
+</body>
+</html>
